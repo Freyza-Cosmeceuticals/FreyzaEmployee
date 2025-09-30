@@ -2,10 +2,10 @@ package com.freyza.employee.data.repository
 
 import com.freyza.employee.data.models.ExpenseEntry
 import com.freyza.employee.data.models.User
+import com.freyza.employee.util.Result
 import kotlinx.coroutines.delay
 import java.util.UUID
 import kotlin.random.Random
-import com.freyza.employee.util.Result
 
 class FakeUserRepository : UserRepository {
     override suspend fun login(username: String, password: String): Result<User> {
@@ -21,6 +21,10 @@ class FakeUserRepository : UserRepository {
         } else {
             Result.Error(Exception("Invalid Credentials"))
         }
+    }
+
+    override suspend fun logout() {
+        delay(1000)
     }
 }
 
@@ -49,7 +53,7 @@ class FakeExpenseRepository : ExpenseRepository {
         delay(2500)
 
         return if (Random.nextBoolean()) {
-            var expense = ExpenseEntry(UUID.randomUUID().toString(), location, distance, cost)
+            val expense = ExpenseEntry(UUID.randomUUID().toString(), location, distance, cost)
             items.add(expense)
 
             Result.Success(expense)

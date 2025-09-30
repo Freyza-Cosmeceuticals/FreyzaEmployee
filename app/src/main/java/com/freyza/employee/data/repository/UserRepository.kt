@@ -5,4 +5,5 @@ import com.freyza.employee.util.Result
 
 interface UserRepository {
     suspend fun login(username: String, password: String): Result<User>
+    suspend fun logout()
 }

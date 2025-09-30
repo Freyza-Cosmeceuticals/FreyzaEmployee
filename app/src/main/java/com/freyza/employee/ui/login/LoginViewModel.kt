@@ -21,4 +21,12 @@ class LoginViewModel(private val userRepository: UserRepository) : ViewModel() {
             _uiState.value = result
         }
     }
+
+    fun logout() {
+        _uiState.value = Result.Progress
+        viewModelScope.launch {
+            userRepository.logout()
+            _uiState.value = null
+        }
+    }
 }

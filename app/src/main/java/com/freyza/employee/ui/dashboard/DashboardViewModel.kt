@@ -1,18 +1,18 @@
 package com.freyza.employee.ui.dashboard
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.data.models.ExpenseEntry
 import com.freyza.employee.data.repository.ExpenseRepository
 import com.freyza.employee.util.Result
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 
-class DashboardViewModel(private val repository: ExpenseRepository) : ViewModel() {
-    private val _itemsLiveData = MutableLiveData<Result<List<ExpenseEntry>>>()
-    val itemsLiveData: LiveData<Result<List<ExpenseEntry>>> = _itemsLiveData
+class DashboardViewModel(private val expenseRepository: ExpenseRepository) : ViewModel() {
+    private val _uiState = MutableStateFlow<Result<List<ExpenseEntry>>>(Result.Success(emptyList()))
+    val itemsData: StateFlow<Result<List<ExpenseEntry>>> = _uiState.asStateFlow()
 
     init {
         loadItems()
@@ -20,21 +20,21 @@ class DashboardViewModel(private val repository: ExpenseRepository) : ViewModel(
 
     fun loadItems() {
         viewModelScope.launch {
-            val items = repository.getAllExpenses()
-            _itemsLiveData.postValue(items)
+            val items = expenseRepository.getAllExpenses()
+            _uiState.value = items
         }
     }
 
     fun addItem(location: String, distance: Float, cost: Float) {
         viewModelScope.launch {
-            val item = repository.createExpense(location, distance, cost)
+            val item = expenseRepository.createExpense(location, distance, cost)
         }
         loadItems()
     }
 
     fun lockItem(id: String) {
         viewModelScope.launch {
-            repository.lockExpense(id)
+            expenseRepository.lockExpense(id)
         }
         loadItems()
     }
