@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.konan.properties.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
@@ -19,6 +21,22 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val properties = Properties()
+        val propertiesFile = project.rootProject.file("secret.properties")
+        properties.load(FileInputStream(propertiesFile))
+
+        buildConfigField(
+            "String",
+            "SUPABASE_PUBLISHABLE_KEY",
+            "\"${properties.getProperty("SUPABASE_PUBLISHABLE_KEY")}\""
+        )
+        buildConfigField("String", "SUPABASE_URL", "\"${properties.getProperty("SUPABASE_URL")}\"")
+        buildConfigField(
+            "String",
+            "WEB_CLIENT_ID",
+            "\"${properties.getProperty("WEB_CLIENT_ID")}\""
+        )
     }
 
     buildTypes {
@@ -44,6 +62,7 @@ android {
 //    }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -68,8 +87,19 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.navigation.compose)
+
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
+
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.auth.kt)
+    implementation(libs.postgrest.kt)
+
+    implementation(libs.ktor.client.android)
+
+    implementation(libs.googleid)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
 }
