@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.common.Result

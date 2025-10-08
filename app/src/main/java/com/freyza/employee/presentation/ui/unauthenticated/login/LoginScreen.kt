@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.unauthenticated.login
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -102,7 +101,6 @@ fun LoginScreen(
 
         when (val result = loginResult) {
             is Result.Success -> {
-                val user = result.data
                 LaunchedEffect(Unit) { onNavigateToAuthenticatedRoute() }
             }
 

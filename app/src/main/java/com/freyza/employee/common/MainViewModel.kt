@@ -110,8 +110,8 @@ class MainViewModel(private val supabaseClient: SupabaseClient) : ViewModel() {
                     }
 
                     is SessionStatus.RefreshFailure -> {
-                        Logger.d(TAG, "Session refresh failed: ${status.cause}")
-                        _toastMessageFlow.emit("Session refresh failed: ${status.cause}")
+                        Logger.d(TAG, "Session refresh failed")
+                        _toastMessageFlow.emit("Session refresh failed")
                     }
 
                 }

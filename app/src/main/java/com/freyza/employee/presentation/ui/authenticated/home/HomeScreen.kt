@@ -1,14 +1,15 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,11 +41,13 @@ fun HomeScreen(
     onLogoutClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(modifier = modifier.fillMaxSize()) {
-        Column {
-            Text("Home Screen")
-            Button(onClick = onLogoutClicked) { Text("Logout") }
-        }
+    Column(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Home Screen")
+        Button(onClick = onLogoutClicked) { Text("Logout") }
 
         when (val result = uiState) {
             is Result.Success -> {

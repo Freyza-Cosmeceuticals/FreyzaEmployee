@@ -8,8 +8,7 @@ object Logger {
     fun e(tag: String, message: String) {
         Log.e("$BASE_TAG-$tag", message)
     }
-
-    // Add other levels if needed
+    
     fun d(tag: String, message: String) {
         Log.d("$BASE_TAG-$tag", message)
     }
