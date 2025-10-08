@@ -1,5 +1,6 @@
 package com.freyza.employee.domain.usecase.impl
 
+import com.freyza.employee.common.AuthResponse
 import com.freyza.employee.data.repository.AuthenticationRepository
 import com.freyza.employee.domain.usecase.LoginUseCase
 import kotlinx.coroutines.Dispatchers
@@ -9,10 +10,14 @@ class LoginUseCaseImpl(private val authRepository: AuthenticationRepository) : L
     override suspend fun execute(input: LoginUseCase.Input): LoginUseCase.Output {
         return withContext(Dispatchers.IO) {
             val result = authRepository.login(input.email, input.password)
-            if (result) {
-                LoginUseCase.Output.Success
-            } else {
-                LoginUseCase.Output.Failure
+            when (result) {
+                is AuthResponse.Success -> {
+                    LoginUseCase.Output.Success
+                }
+
+                is AuthResponse.Error -> {
+                    LoginUseCase.Output.Failure(result.message)
+                }
             }
         }
     }

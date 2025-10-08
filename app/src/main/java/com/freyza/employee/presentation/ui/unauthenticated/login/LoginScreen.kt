@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.common.Result
 import com.freyza.employee.data.network.dto.UserDto
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
+import com.freyza.employee.util.Logger
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -107,7 +108,7 @@ fun LoginScreen(
 
             is Result.Error -> {
                 val error = result.message
-                Log.d("APP", "Error logging in: $error")
+                Logger.d("APP", "Error logging in: $error")
                 Text(text = "Error: $error", color = Color.Red)
             }
 

@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import com.freyza.employee.common.Result
+import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -43,14 +43,14 @@ fun DashboardScreen(
     ) {
         Text("Dashboard")
         Spacer(Modifier.height(24.dp))
-        Button(onClick = { loginViewModel.logout(coroutineScope) }) {
-            Text("Logout")
-        }
+//        Button(onClick = { loginViewModel.logout(coroutineScope) }) {
+//            Text("Logout")
+//        }
 
         when (val result = itemsResult) {
             is Result.Success -> {
                 LazyColumn() {
-                    if (result.data.isNotEmpty()) {
+                    if (result.data?.isNotEmpty() == true) {
                         items(result.data) {
                             Text(it.id)
                         }
@@ -64,7 +64,7 @@ fun DashboardScreen(
             }
 
             is Result.Error -> {
-                Text("Unable to fetch expenses data ${result.exception.toString()}")
+                Text("Unable to fetch expenses data ${result}")
             }
 
             is Result.Loading -> {

@@ -7,6 +7,7 @@ import com.freyza.employee.common.Result
 import com.freyza.employee.data.network.dto.UserDto
 import com.freyza.employee.domain.usecase.LoginUseCase
 import com.freyza.employee.domain.usecase.LoginWithGoogleUseCase
+import com.freyza.employee.util.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,12 +30,12 @@ class LoginViewModel(
             when (result) {
                 is LoginUseCase.Output.Success -> {
                     _uiState.value = Result.Success()
-                    Log.d("AUTH", "Login with email success")
+                    Logger.d("AUTH", "Login with email success")
                 }
 
-                else -> {
-                    _uiState.value = Result.Error("Error logging in")
-                    Log.d("AUTH", "Login with email failed")
+                is LoginUseCase.Output.Failure -> {
+                    _uiState.value = Result.Error("Error logging in ${result.message}")
+                    Logger.d("AUTH", "Login with email failed ${result.message}")
 
                 }
             }
@@ -50,12 +51,12 @@ class LoginViewModel(
             when (result) {
                 is LoginWithGoogleUseCase.Output.Success -> {
                     _uiState.value = Result.Success()
-                    Log.d("AUTH", "Login with google success")
+                    Logger.d("AUTH", "Login with google success")
                 }
 
-                else -> {
-                    _uiState.value = Result.Error("Login  failed")
-                    Log.d("AUTH", "Login with google failed")
+                is LoginWithGoogleUseCase.Output.Failure -> {
+                    _uiState.value = Result.Error("Login  failed ${result.message}")
+                    Logger.d("AUTH", "Login with google failed ${result.message}")
                 }
             }
         }

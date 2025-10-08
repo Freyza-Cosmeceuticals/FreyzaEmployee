@@ -5,6 +5,6 @@ interface LoginWithGoogleUseCase :
     class Input
     sealed class Output() {
         object Success : Output()
-        object Failure : Output()
+        data class Failure(val message: String) : Output()
     }
 }

@@ -37,7 +37,7 @@ class FakeExpenseRepository : ExpenseRepository {
 
             Result.Success(expense)
         } else {
-            Result.Error(Exception("Network Error"))
+            Result.Error("Network Error")
         }
     }
 
@@ -47,7 +47,7 @@ class FakeExpenseRepository : ExpenseRepository {
         return if (Random.nextBoolean()) {
             Result.Success(items.toList())
         } else {
-            Result.Error(Exception("Network Error"))
+            Result.Error("Network Error")
         }
     }
 

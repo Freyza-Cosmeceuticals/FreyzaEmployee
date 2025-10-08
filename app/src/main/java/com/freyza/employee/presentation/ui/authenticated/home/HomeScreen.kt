@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
@@ -12,9 +11,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.common.Result
+import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
+import com.freyza.employee.util.Logger
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -41,7 +43,7 @@ fun HomeScreen(
     Surface(modifier = modifier.fillMaxSize()) {
         Column {
             Text("Home Screen")
-            Button(onClick = onLogoutClicked) { "Logout" }
+            Button(onClick = onLogoutClicked) { Text("Logout") }
         }
 
         when (val result = uiState) {
@@ -50,12 +52,20 @@ fun HomeScreen(
             }
 
             is Result.Error -> {
-                Log.d("APP", "Error logging out")
+                Logger.d("APP", "Error logging out")
                 Text(text = "Error", color = Color.Red)
             }
 
             is Result.Loading -> CircularProgressIndicator()
             else -> {}
         }
+    }
+}
+
+@Preview
+@Composable
+fun HomeScreenPreview() {
+    FreyzaEmployeeTheme {
+        HomeScreen(null, {}, {})
     }
 }

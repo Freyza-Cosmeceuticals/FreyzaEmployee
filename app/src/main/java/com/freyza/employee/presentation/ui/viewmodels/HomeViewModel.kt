@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.common.Result
 import com.freyza.employee.domain.usecase.LogoutUseCase
+import com.freyza.employee.util.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,12 +23,12 @@ class HomeViewModel(private val logoutUseCase: LogoutUseCase) : ViewModel() {
             when (result) {
                 is LogoutUseCase.Output.Success -> {
                     _uiState.value = Result.Success()
-                    Log.d("AUTH", "Logout success")
+                    Logger.d("AUTH", "Logout success")
                 }
 
-                else -> {
-                    _uiState.value = Result.Error("Error logging out")
-                    Log.d("AUTH", "Logout failed")
+                is LogoutUseCase.Output.Failure -> {
+                    _uiState.value = Result.Error("Error logging out ${result.message}")
+                    Logger.d("AUTH", "Logout failed ${result.message}")
                 }
             }
         }

@@ -1,8 +1,9 @@
 package com.freyza.employee.data.repository.impl
 
-import android.util.Log
+import com.freyza.employee.common.AuthResponse
 import com.freyza.employee.data.repository.AuthenticationRepository
 import com.freyza.employee.domain.model.AuthState
+import com.freyza.employee.util.Logger
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.providers.Google
@@ -37,39 +38,39 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
         }
     }
 
-    override suspend fun login(email: String, password: String): Boolean {
+    override suspend fun login(email: String, password: String): AuthResponse {
         return try {
             auth.signInWith(Email) {
                 this.email = email
                 this.password = password
             }
 
-            true
+            AuthResponse.Success
         } catch (e: Exception) {
-            // TODO: Return actual error messages
-            false
+            AuthResponse.Error(e.message.toString())
         }
     }
 
-    override suspend fun register(name: String, email: String, password: String): Boolean {
+    override suspend fun register(name: String, email: String, password: String): AuthResponse {
         return try {
             auth.signUpWith(Email, "app://supabase.com/confirm") {
                 this.email = email
                 this.password = password
                 this.data = JsonObject(mapOf("name" to JsonPrimitive(name)))
             }
-            true
+
+            AuthResponse.Success
         } catch (e: Exception) {
-            false
+            AuthResponse.Error(e.message.toString())
         }
     }
 
-    override suspend fun loginWithGoogle(): Boolean {
+    override suspend fun loginWithGoogle(): AuthResponse {
         return try {
             auth.signInWith(Google)
-            true
+            AuthResponse.Success
         } catch (e: Exception) {
-            false
+            AuthResponse.Error(e.message.toString())
         }
     }
 
@@ -77,7 +78,7 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
     private fun logSessionStatus(sessionStatus: SessionStatus) {
         when (sessionStatus) {
             is SessionStatus.Authenticated -> {
-                Log.d(
+                Logger.d(
                     logTag, """
                            Session source:${sessionStatus.source}
                            SessionStatus: Authenticated
@@ -89,18 +90,18 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
 
 
             SessionStatus.Initializing -> {
-                Log.d(logTag, "SessionStatus: Initializing")
+                Logger.d(logTag, "SessionStatus: Initializing")
                 _authState.value = AuthState.Initializing
 
             }
 
 
             is SessionStatus.RefreshFailure -> {
-                Log.d(logTag, "SessionStatus: RefreshFailure")
+                Logger.d(logTag, "SessionStatus: RefreshFailure")
             }
 
             is SessionStatus.NotAuthenticated -> {
-                Log.d(
+                Logger.d(
                     logTag,
                     """
                            SessionStatus: NotAuthenticated
@@ -131,12 +132,12 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
         return Result.failure(e)
     }
 
-    override suspend fun logout(): Boolean {
+    override suspend fun logout(): AuthResponse {
         return try {
             auth.signOut()
-            true
+            AuthResponse.Success
         } catch (e: Exception) {
-            false
+            AuthResponse.Error(e.message.toString())
         }
     }
 

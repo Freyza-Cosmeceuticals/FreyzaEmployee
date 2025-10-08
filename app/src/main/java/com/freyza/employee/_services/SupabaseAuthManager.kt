@@ -4,8 +4,7 @@ import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import com.freyza.employee.BuildConfig
-import com.freyza.employee.data.network.dto.UserDto
-import com.freyza.employee.util._AuthResponse
+import com.freyza.employee.common.AuthResponse
 import com.freyza.employee.util.SharedPreferencesHelper
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -37,7 +36,7 @@ class SupabaseAuthManager(private val context: Context) : AuthManager {
     override suspend fun loginWithEmail(
         emailValue: String,
         passwordValue: String
-    ): Flow<_AuthResponse> = flow {
+    ): Flow<AuthResponse> = flow {
         try {
             supabase.auth.signInWith(Email) {
                 email = emailValue
@@ -47,24 +46,18 @@ class SupabaseAuthManager(private val context: Context) : AuthManager {
 
             val userInfo = supabase.auth.currentUserOrNull()
             if (userInfo == null) {
-                emit(_AuthResponse.Error("User not found"))
+                emit(AuthResponse.Error("User not found"))
             } else {
                 emit(
-                    _AuthResponse.Success(
-                        UserDto(
-                            id = userInfo.id,
-                            name = userInfo.email.toString(),
-                            email = userInfo.email.toString()
-                        )
-                    )
+                    AuthResponse.Success
                 )
             }
         } catch (e: Exception) {
-            emit(_AuthResponse.Error(e.message ?: ""))
+            emit(AuthResponse.Error(e.message ?: ""))
         }
     }
 
-    override suspend fun loginWithGoogle(): Flow<_AuthResponse> = flow {
+    override suspend fun loginWithGoogle(): Flow<AuthResponse> = flow {
         val hashedNonce = createNonce()
 
         val googleIdOption = GetGoogleIdOption.Builder()
@@ -94,58 +87,46 @@ class SupabaseAuthManager(private val context: Context) : AuthManager {
 
             val userInfo = supabase.auth.currentUserOrNull()
             if (userInfo == null) {
-                emit(_AuthResponse.Error("User not found"))
+                emit(AuthResponse.Error("User not found"))
             } else {
                 emit(
-                    _AuthResponse.Success(
-                        UserDto(
-                            id = userInfo.id,
-                            name = userInfo.email.toString(),
-                            email = userInfo.email.toString()
-                        )
-                    )
+                    AuthResponse.Success
                 )
             }
         } catch (e: Exception) {
-            emit(_AuthResponse.Error(e.message ?: ""))
+            emit(AuthResponse.Error(e.message ?: ""))
         }
     }
 
-    override suspend fun logout(): Flow<_AuthResponse> = flow {
+    override suspend fun logout(): Flow<AuthResponse> = flow {
         try {
             val credentialManager = CredentialManager.create(context)
 //            credentialManager.clearCredentialState(ClearCredentialStateRequest.TYPE_CLEAR_CREDENTIAL_STATE)
             supabase.auth.signOut()
             revokeToken()
 
-            emit(_AuthResponse.Success(null))
+            emit(AuthResponse.Success)
         } catch (e: Exception) {
-            emit(_AuthResponse.Error(e.message ?: ""))
+            emit(AuthResponse.Error(e.message ?: ""))
         }
     }
 
-    override suspend fun isLoggedIn(): Flow<_AuthResponse> = flow {
+    override suspend fun isLoggedIn(): Flow<AuthResponse> = flow {
         try {
             val token = getToken()
-            
+
             if (token.isNullOrEmpty()) {
-                emit(_AuthResponse.Error("User is not logged in"))
+                emit(AuthResponse.Error("User is not logged in"))
             } else {
                 val user = supabase.auth.retrieveUser(token)
                 supabase.auth.refreshCurrentSession()
                 saveToken()
                 emit(
-                    _AuthResponse.Success(
-                        UserDto(
-                            user.id,
-                            user.email.toString(),
-                            user.email.toString()
-                        )
-                    )
+                    AuthResponse.Success
                 )
             }
         } catch (e: Exception) {
-            emit(_AuthResponse.Error(e.message.toString()))
+            emit(AuthResponse.Error(e.message.toString()))
         }
     }
 
