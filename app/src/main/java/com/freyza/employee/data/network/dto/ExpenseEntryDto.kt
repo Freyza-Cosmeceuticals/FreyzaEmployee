@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ExpenseEntryDto(
     @SerialName("id")
-    val id: String,
+    val id: String? = null,
 
     @SerialName("location")
     val location: String,

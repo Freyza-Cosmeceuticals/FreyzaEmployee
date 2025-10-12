@@ -12,7 +12,7 @@ class RegisterUseCaseImpl(private val authRepository: AuthenticationRepository) 
             val result = authRepository.register(input.name, input.email, input.password)
             when (result) {
                 is AuthResponse.Success -> {
-                    RegisterUseCase.Output.Success
+                    RegisterUseCase.Output.Success(result.userInfo)
                 }
 
                 is AuthResponse.Error -> {

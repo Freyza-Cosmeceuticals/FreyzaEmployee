@@ -4,12 +4,16 @@ import com.freyza.employee.BuildConfig
 import com.freyza.employee.common.MainViewModel
 import com.freyza.employee.data.repository.AuthenticationRepository
 import com.freyza.employee.data.repository.ExpenseRepository
+import com.freyza.employee.data.repository.UserRepository
 import com.freyza.employee.data.repository.impl.AuthenticationRepositoryImpl
 import com.freyza.employee.data.repository.impl.ExpenseRepositoryImpl
+import com.freyza.employee.data.repository.impl.UserRepositoryImpl
+import com.freyza.employee.domain.usecase.GetUserUseCase
 import com.freyza.employee.domain.usecase.LoginUseCase
 import com.freyza.employee.domain.usecase.LoginWithGoogleUseCase
 import com.freyza.employee.domain.usecase.LogoutUseCase
 import com.freyza.employee.domain.usecase.RegisterUseCase
+import com.freyza.employee.domain.usecase.impl.GetUserUseCaseImpl
 import com.freyza.employee.domain.usecase.impl.LoginUseCaseImpl
 import com.freyza.employee.domain.usecase.impl.LoginWithGoogleUseCaseImpl
 import com.freyza.employee.domain.usecase.impl.LogoutUseCaseImpl
@@ -29,6 +33,7 @@ import org.koin.dsl.module
 val repositoryModule = module {
     single<AuthenticationRepository> { AuthenticationRepositoryImpl(get()) }
     single<ExpenseRepository> { ExpenseRepositoryImpl(get()) }
+    single<UserRepository> { UserRepositoryImpl(get()) }
 }
 
 val supabaseModule = module {
@@ -61,10 +66,12 @@ val useCaseModule = module {
     single<RegisterUseCase> { RegisterUseCaseImpl(get()) }
     single<LoginWithGoogleUseCase> { LoginWithGoogleUseCaseImpl(get()) }
     single<LogoutUseCase> { LogoutUseCaseImpl(get()) }
+
+    single<GetUserUseCase> { GetUserUseCaseImpl(get()) }
 }
 
 val viewModelModule = module {
-    viewModel { MainViewModel(get()) }
+    viewModel { MainViewModel(get(), get(), get()) }
     viewModel { LoginViewModel(get(), get()) }
-    viewModel { HomeViewModel(get()) }
+    viewModel { HomeViewModel() }
 }

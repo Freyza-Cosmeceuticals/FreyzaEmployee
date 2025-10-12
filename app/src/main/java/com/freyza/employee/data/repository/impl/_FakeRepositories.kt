@@ -2,12 +2,12 @@ package com.freyza.employee.data.repository.impl
 
 import com.freyza.employee.common.Result
 import com.freyza.employee.data.network.dto.ExpenseEntryDto
-import com.freyza.employee.data.repository.ExpenseRepository
 import kotlinx.coroutines.delay
 import java.util.UUID
 import kotlin.random.Random
 
-class FakeExpenseRepository : ExpenseRepository {
+class FakeExpenseRepository {
+    //: ExpenseRepository {
     private val items = mutableListOf<ExpenseEntryDto>(
         ExpenseEntryDto(
             "13412eb6-8a56-47aa-812e-b68a5637aaf2",
@@ -24,7 +24,7 @@ class FakeExpenseRepository : ExpenseRepository {
         )
     )
 
-    override suspend fun createExpense(
+    suspend fun createExpense(
         location: String,
         distance: Float,
         cost: Float
@@ -41,7 +41,7 @@ class FakeExpenseRepository : ExpenseRepository {
         }
     }
 
-    override suspend fun getAllExpenses(): Result<List<ExpenseEntryDto>> {
+    suspend fun getAllExpenses(): Result<List<ExpenseEntryDto>> {
         delay(1000)
 
         return if (Random.nextBoolean()) {
@@ -51,7 +51,7 @@ class FakeExpenseRepository : ExpenseRepository {
         }
     }
 
-    override suspend fun lockExpense(id: String): Result<Boolean> {
+    suspend fun lockExpense(id: String): Result<Boolean> {
         val ex = items.find { (_id, _, _, _, _) -> _id == id }
         if (ex !== null) {
             ex.locked = true

@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,14 +19,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.common.Result
-import com.freyza.employee.data.network.dto.UserDto
+import com.freyza.employee.presentation.ui.composables.LoadingScreen
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import com.freyza.employee.util.Logger
+import io.github.jan.supabase.auth.user.UserInfo
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -42,7 +45,6 @@ fun LoginScreen(
     val onLoginWithEmailClicked = { email: String, password: String ->
         viewModel.loginWithEmail(email, password)
     }
-
     val onLoginWithGoogleClicked = { viewModel.loginWithGoogle() }
 
     LoginScreen(
@@ -56,7 +58,7 @@ fun LoginScreen(
 
 @Composable
 fun LoginScreen(
-    loginResult: Result<UserDto>?,
+    loginResult: Result<UserInfo>?,
     onLoginWithEmailClicked: (email: String, password: String) -> Unit,
     onLoginWithGoogleClicked: () -> Unit,
     onNavigateToAuthenticatedRoute: () -> Unit,
@@ -72,17 +74,25 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        TextField(
+        Text("Freyza Cosmo", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        Text("Employee Login", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+
+        Spacer(Modifier.height(64.dp))
+
+        OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
+            singleLine = true
         )
         Spacer(Modifier.height(8.dp))
-        TextField(
+        OutlinedTextField(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = PasswordVisualTransformation(),
+            singleLine = true
         )
         Spacer(Modifier.height(16.dp))
 
@@ -90,14 +100,10 @@ fun LoginScreen(
         Button(onClick = { onLoginWithEmailClicked(email, password) }) {
             Text("Login")
         }
-
-        Spacer(Modifier.height(8.dp))
-
-        Button(onClick = onLoginWithGoogleClicked) {
+        Spacer(Modifier.height(16.dp))
+        ElevatedButton(onClick = onLoginWithGoogleClicked) {
             Text("Login with Google")
         }
-
-        Spacer(Modifier.height(8.dp))
 
         when (val result = loginResult) {
             is Result.Success -> {
@@ -111,7 +117,7 @@ fun LoginScreen(
             }
 
             is Result.Loading -> {
-                CircularProgressIndicator()
+                LoadingScreen(message = "Logging you in...")
             }
 
             else -> {}

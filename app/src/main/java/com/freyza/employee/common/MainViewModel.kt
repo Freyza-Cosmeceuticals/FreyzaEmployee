@@ -2,7 +2,10 @@ package com.freyza.employee.common
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.freyza.employee.data.network.dto.UserDto
+import com.freyza.employee.domain.model.MainUiState
+import com.freyza.employee.domain.model.User
+import com.freyza.employee.domain.usecase.GetUserUseCase
+import com.freyza.employee.domain.usecase.LogoutUseCase
 import com.freyza.employee.util.Logger
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.annotations.SupabaseExperimental
@@ -21,15 +24,18 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
-
-data class MainUiState(
-    val isLoading: Boolean = true, val hasValidSession: Boolean = false, val user: UserDto? = null
-)
+import kotlin.time.Instant
 
 const val TAG = "MainViewModel/AUTH"
 
-class MainViewModel(private val supabaseClient: SupabaseClient) : ViewModel() {
-    private val _uiState = MutableStateFlow(MainUiState())
+@OptIn(ExperimentalTime::class)
+class MainViewModel(
+    private val supabaseClient: SupabaseClient,
+    val getUserUseCase: GetUserUseCase,
+    val logoutUseCase: LogoutUseCase
+) :
+    ViewModel() {
+    private val _uiState = MutableStateFlow<Result<MainUiState>>(Result.Loading(MainUiState()))
     val uiState = _uiState.asStateFlow()
 
     // SharedFlow to emit debug/toast messages.
@@ -38,41 +44,106 @@ class MainViewModel(private val supabaseClient: SupabaseClient) : ViewModel() {
 
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            awaitSessionInit()
-
-            val session = supabaseClient.auth.currentSessionOrNull()
-            val user = supabaseClient.auth.currentUserOrNull()
-            val validSession = session != null && user != null
-
-            withContext(Dispatchers.Main) {
-                if (validSession) {
-                    val userDto = UserDto(
-                        email = user.email ?: "N/A",
-                        id = user.id,
-                        name = (user.userMetadata?.get("name") ?: "N/A") as String
-                    )
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false, hasValidSession = true, user = userDto
-                        )
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false, hasValidSession = false, user = null
-                        )
-                    }
-                }
-            }
-        }
-
+        initializeSession()
         listenToAuthEvents()
     }
+
 
     private suspend fun awaitSessionInit() {
         supabaseClient.auth.sessionStatus.first { status ->
             status !is SessionStatus.Initializing
+        }
+    }
+
+    fun initializeSession() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                awaitSessionInit()
+
+                val session = supabaseClient.auth.currentSessionOrNull()
+                val supabaseUser = supabaseClient.auth.currentUserOrNull()
+                val validSession = session != null && supabaseUser != null
+
+                withContext(Dispatchers.Main) {
+                    if (validSession) {
+                        Logger.d(TAG, "Fetching user info using getUserUseCase")
+
+                        val result =
+                            getUserUseCase.execute(GetUserUseCase.Input(id = supabaseUser.id))
+
+                        val user = when {
+                            result is GetUserUseCase.Output.Success && result.user != null -> {
+                                User(
+                                    id = result.user.id,
+                                    name = result.user.name,
+                                    role = result.user.role,
+                                    status = result.user.status,
+                                    location = result.user.location,
+                                    createdAt = Instant.parse(result.user.createdAt),
+                                    updatedAt = result.user.updatedAt?.let { Instant.parse(it) },
+                                    userInfo = supabaseUser
+                                )
+                            }
+
+                            result is GetUserUseCase.Output.Failure -> {
+                                Logger.e(TAG, "Error: ${result.message}")
+                                throw Exception(result.message)
+                            }
+
+                            else -> {
+                                null
+                            }
+                        }
+
+                        _uiState.update {
+                            Result.Success(
+                                it.data?.copy(
+                                    hasValidSession = true, user = user
+                                )
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            Result.Success(
+                                it.data?.copy(
+                                    hasValidSession = false, user = null
+                                )
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    Result.Error(
+                        e.message.toString(),
+                        data = it.data?.copy(hasValidSession = false, user = null)
+                    )
+                }
+            }
+        }
+    }
+
+    fun logout() {
+        _uiState.value = Result.Loading()
+
+        viewModelScope.launch {
+            val result = logoutUseCase.execute(LogoutUseCase.Input())
+
+            when (result) {
+                is LogoutUseCase.Output.Success -> {
+                    _uiState.update {
+                        Result.Success(MainUiState(hasValidSession = false, user = null))
+                    }
+                    Logger.d("AUTH", "Logout success")
+                }
+
+                is LogoutUseCase.Output.Failure -> {
+                    _uiState.update {
+                        Result.Error("Error logging out")
+                    }
+                    Logger.d("AUTH", "Logout failed ${result.message}")
+                }
+            }
         }
     }
 

@@ -13,7 +13,7 @@ class LogoutUseCaseImpl(private val authRepository: AuthenticationRepository) : 
 
             when (result) {
                 is AuthResponse.Success -> {
-                    LogoutUseCase.Output.Success
+                    LogoutUseCase.Output.Success()
                 }
 
                 is AuthResponse.Error -> {

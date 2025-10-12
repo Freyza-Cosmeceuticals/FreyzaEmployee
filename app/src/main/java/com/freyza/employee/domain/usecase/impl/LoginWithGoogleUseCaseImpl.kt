@@ -13,7 +13,7 @@ class LoginWithGoogleUseCaseImpl(private val authRepository: AuthenticationRepos
             val result = authRepository.loginWithGoogle()
             when (result) {
                 is AuthResponse.Success -> {
-                    LoginWithGoogleUseCase.Output.Success
+                    LoginWithGoogleUseCase.Output.Success(result.userInfo)
                 }
 
                 is AuthResponse.Error -> {

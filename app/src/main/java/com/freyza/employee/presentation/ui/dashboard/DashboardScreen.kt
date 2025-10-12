@@ -52,7 +52,7 @@ fun DashboardScreen(
                 LazyColumn() {
                     if (result.data?.isNotEmpty() == true) {
                         items(result.data) {
-                            Text(it.id)
+                            Text(it.id!!)
                         }
 
                     } else {

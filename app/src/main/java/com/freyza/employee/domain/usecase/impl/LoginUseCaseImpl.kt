@@ -12,7 +12,7 @@ class LoginUseCaseImpl(private val authRepository: AuthenticationRepository) : L
             val result = authRepository.login(input.email, input.password)
             when (result) {
                 is AuthResponse.Success -> {
-                    LoginUseCase.Output.Success
+                    LoginUseCase.Output.Success(result.userInfo)
                 }
 
                 is AuthResponse.Error -> {

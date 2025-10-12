@@ -49,7 +49,7 @@ class SupabaseAuthManager(private val context: Context) : AuthManager {
                 emit(AuthResponse.Error("User not found"))
             } else {
                 emit(
-                    AuthResponse.Success
+                    AuthResponse.Success()
                 )
             }
         } catch (e: Exception) {
@@ -90,7 +90,7 @@ class SupabaseAuthManager(private val context: Context) : AuthManager {
                 emit(AuthResponse.Error("User not found"))
             } else {
                 emit(
-                    AuthResponse.Success
+                    AuthResponse.Success()
                 )
             }
         } catch (e: Exception) {
@@ -105,7 +105,7 @@ class SupabaseAuthManager(private val context: Context) : AuthManager {
             supabase.auth.signOut()
             revokeToken()
 
-            emit(AuthResponse.Success)
+            emit(AuthResponse.Success())
         } catch (e: Exception) {
             emit(AuthResponse.Error(e.message ?: ""))
         }
@@ -122,7 +122,7 @@ class SupabaseAuthManager(private val context: Context) : AuthManager {
                 supabase.auth.refreshCurrentSession()
                 saveToken()
                 emit(
-                    AuthResponse.Success
+                    AuthResponse.Success()
                 )
             }
         } catch (e: Exception) {
