@@ -35,7 +35,7 @@ fun FreyzaEmployeeApp(
 
     when (val res = uiState) {
         is Result.Loading -> {
-            LoadingScreen()
+            LoadingScreen(Modifier.fillMaxSize())
         }
 
         is Result.Success -> {
@@ -60,6 +60,7 @@ fun FreyzaEmployeeApp(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("An Unexpected Error has Occurred!")
+                Text(res.message.toString())
                 Button(onClick = { mainViewModel.initializeSession() }) { Text("Retry") }
                 Button(onClick = { mainViewModel.logout() }) { Text("Logout") }
             }

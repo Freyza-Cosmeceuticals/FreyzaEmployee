@@ -3,6 +3,7 @@ package com.freyza.employee.common
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.domain.model.MainUiState
+import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.usecase.auth.GetUserUseCase
 import com.freyza.employee.domain.usecase.auth.LogoutUseCase
 import com.freyza.employee.util.Logger
@@ -71,7 +72,13 @@ class MainViewModel(
 
                         val user = when {
                             result is GetUserUseCase.Output.Success && result.user != null -> {
-                                result.user.copy(userInfo = supabaseUser)
+                                if (result.user.role == UserRole.EMPLOYEE) {
+                                    result.user.copy(userInfo = supabaseUser)
+                                } else {
+                                    Logger.e(TAG, "Error: Invalid Admin Login on Employee App")
+                                    logout()
+                                    throw Exception("Invalid admin login on Employee App")
+                                }
                             }
 
                             result is GetUserUseCase.Output.Failure -> {

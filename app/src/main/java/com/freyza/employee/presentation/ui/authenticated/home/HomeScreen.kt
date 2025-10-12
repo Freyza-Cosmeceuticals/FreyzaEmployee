@@ -117,7 +117,7 @@ fun HomeScreen(
             }
 
             is Result.Error -> {
-                Text("Cannot fetch recent Expenses")
+                Text(uiState.message.toString())
             }
         }
 
