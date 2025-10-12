@@ -1,8 +1,8 @@
-package com.freyza.employee.domain.usecase.impl
+package com.freyza.employee.domain.usecase.auth.impl
 
 import com.freyza.employee.common.AuthResponse
 import com.freyza.employee.data.repository.AuthenticationRepository
-import com.freyza.employee.domain.usecase.RegisterUseCase
+import com.freyza.employee.domain.usecase.auth.RegisterUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

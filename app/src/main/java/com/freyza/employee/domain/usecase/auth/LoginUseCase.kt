@@ -1,5 +1,6 @@
-package com.freyza.employee.domain.usecase
+package com.freyza.employee.domain.usecase.auth
 
+import com.freyza.employee.domain.usecase.UseCase
 import io.github.jan.supabase.auth.user.UserInfo
 
 interface LoginUseCase : UseCase<LoginUseCase.Input, LoginUseCase.Output> {

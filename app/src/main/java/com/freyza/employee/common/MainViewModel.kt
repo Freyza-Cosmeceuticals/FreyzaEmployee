@@ -3,9 +3,8 @@ package com.freyza.employee.common
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.domain.model.MainUiState
-import com.freyza.employee.domain.model.User
-import com.freyza.employee.domain.usecase.GetUserUseCase
-import com.freyza.employee.domain.usecase.LogoutUseCase
+import com.freyza.employee.domain.usecase.auth.GetUserUseCase
+import com.freyza.employee.domain.usecase.auth.LogoutUseCase
 import com.freyza.employee.util.Logger
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.annotations.SupabaseExperimental
@@ -24,7 +23,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 const val TAG = "MainViewModel/AUTH"
 
@@ -73,16 +71,7 @@ class MainViewModel(
 
                         val user = when {
                             result is GetUserUseCase.Output.Success && result.user != null -> {
-                                User(
-                                    id = result.user.id,
-                                    name = result.user.name,
-                                    role = result.user.role,
-                                    status = result.user.status,
-                                    location = result.user.location,
-                                    createdAt = Instant.parse(result.user.createdAt),
-                                    updatedAt = result.user.updatedAt?.let { Instant.parse(it) },
-                                    userInfo = supabaseUser
-                                )
+                                result.user.copy(userInfo = supabaseUser)
                             }
 
                             result is GetUserUseCase.Output.Failure -> {
@@ -198,8 +187,8 @@ class MainViewModel(
                     }
 
                     else -> {
-                        Logger.d(TAG, "Unhandled event: ${event.toString()}")
-                        _toastMessageFlow.emit("Unhandled event: ${event.toString()}")
+                        Logger.d(TAG, "Unhandled event: $event")
+                        _toastMessageFlow.emit("Unhandled event: ${event}")
                     }
                 }
             }

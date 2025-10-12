@@ -12,10 +12,10 @@ data class ExpenseEntryDto(
     val location: String,
 
     @SerialName("distance")
-    val distance: Float,
+    val distance: Double,
 
     @SerialName("cost")
-    val cost: Float,
+    val cost: Double,
 
     @SerialName("locked")
     var locked: Boolean = false

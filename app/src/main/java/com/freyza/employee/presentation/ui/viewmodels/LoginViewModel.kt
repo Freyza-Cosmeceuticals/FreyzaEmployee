@@ -3,8 +3,8 @@ package com.freyza.employee.presentation.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.common.Result
-import com.freyza.employee.domain.usecase.LoginUseCase
-import com.freyza.employee.domain.usecase.LoginWithGoogleUseCase
+import com.freyza.employee.domain.usecase.auth.LoginUseCase
+import com.freyza.employee.domain.usecase.auth.LoginWithGoogleUseCase
 import com.freyza.employee.util.Logger
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +34,12 @@ class LoginViewModel(
                 }
 
                 is LoginUseCase.Output.Failure -> {
-                    _uiState.update { Result.Error("Error logging in ${result.message}") }
+                    _uiState.update {
+                        Result.Error(
+                            "Error logging in ${result.message}",
+                            data = null
+                        )
+                    }
                     Logger.d("AUTH", "Login with email failed ${result.message}")
                 }
             }

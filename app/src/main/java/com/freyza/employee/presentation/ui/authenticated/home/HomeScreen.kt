@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
@@ -20,8 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.common.MainViewModel
 import com.freyza.employee.common.Result
+import com.freyza.employee.domain.model.Expense
+import com.freyza.employee.domain.model.HomeScreenUiState
 import com.freyza.employee.domain.model.MainUiState
 import com.freyza.employee.domain.model.User
+import com.freyza.employee.domain.model.dummyExpenses
 import com.freyza.employee.domain.model.dummyUser
 import com.freyza.employee.presentation.ui.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.composables.LoadingScreen
@@ -73,7 +78,7 @@ fun HomeScreen(
 
 @Composable
 fun HomeScreen(
-    uiState: Result<Nothing>?,
+    uiState: Result<HomeScreenUiState>,
     mainUiState: MainUiState,
     onNavigateToUnauthenticated: () -> Unit,
     onLogoutClicked: () -> Unit,
@@ -101,6 +106,21 @@ fun HomeScreen(
         DebugUserInfo(mainUiState.user)
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        when (uiState) {
+            is Result.Loading -> {
+                LoadingScreen(message = "Loading your recent expenses...")
+            }
+
+            is Result.Success -> {
+                ExpenseList(uiState.data!!.recentExpenses)
+            }
+
+            is Result.Error -> {
+                Text("Cannot fetch recent Expenses")
+            }
+        }
+
 
         Button(onClick = onLogoutClicked) { Text("Logout") }
     }
@@ -159,10 +179,36 @@ fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun ExpenseList(expenses: List<Expense>) {
+
+    if (expenses.isEmpty()) {
+        Text("No Recent Expenses Found")
+    }
+
+    LazyColumn {
+        items(expenses) {
+            Card(modifier = Modifier.padding(8.dp)) {
+                Text(it.id)
+                Text(it.location)
+                Text("${it.distance}km")
+                Text("$${it.cost}")
+                Text(if (it.locked) "Locked" else "Open")
+            }
+        }
+
+
+    }
+}
+
 @Preview(showSystemUi = true, showBackground = true)
 @Composable
 fun HomeScreenPreview() {
     FreyzaEmployeeTheme {
-        HomeScreen(null, MainUiState(hasValidSession = true, user = dummyUser()), {}, {})
+        HomeScreen(
+            Result.Success(HomeScreenUiState(dummyExpenses())),
+            MainUiState(hasValidSession = true, user = dummyUser()),
+            {},
+            {})
     }
 }

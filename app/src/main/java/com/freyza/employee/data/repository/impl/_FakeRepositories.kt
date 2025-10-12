@@ -12,22 +12,22 @@ class FakeExpenseRepository {
         ExpenseEntryDto(
             "13412eb6-8a56-47aa-812e-b68a5637aaf2",
             "Patna",
-            120f,
-            240f,
+            120.0,
+            240.0,
             true
         ),
         ExpenseEntryDto(
             "45987a6b-cc2f-482d-987a-6bcc2fb82db8",
             "Darbhanga",
-            520f,
-            1040f
+            520.0,
+            1040.0
         )
     )
 
     suspend fun createExpense(
         location: String,
-        distance: Float,
-        cost: Float
+        distance: Double,
+        cost: Double
     ): Result<ExpenseEntryDto> {
         delay(2500)
 

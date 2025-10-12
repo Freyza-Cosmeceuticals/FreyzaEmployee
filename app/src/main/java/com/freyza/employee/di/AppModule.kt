@@ -8,16 +8,20 @@ import com.freyza.employee.data.repository.UserRepository
 import com.freyza.employee.data.repository.impl.AuthenticationRepositoryImpl
 import com.freyza.employee.data.repository.impl.ExpenseRepositoryImpl
 import com.freyza.employee.data.repository.impl.UserRepositoryImpl
-import com.freyza.employee.domain.usecase.GetUserUseCase
-import com.freyza.employee.domain.usecase.LoginUseCase
-import com.freyza.employee.domain.usecase.LoginWithGoogleUseCase
-import com.freyza.employee.domain.usecase.LogoutUseCase
-import com.freyza.employee.domain.usecase.RegisterUseCase
-import com.freyza.employee.domain.usecase.impl.GetUserUseCaseImpl
-import com.freyza.employee.domain.usecase.impl.LoginUseCaseImpl
-import com.freyza.employee.domain.usecase.impl.LoginWithGoogleUseCaseImpl
-import com.freyza.employee.domain.usecase.impl.LogoutUseCaseImpl
-import com.freyza.employee.domain.usecase.impl.RegisterUseCaseImpl
+import com.freyza.employee.domain.usecase.auth.GetUserUseCase
+import com.freyza.employee.domain.usecase.auth.LoginUseCase
+import com.freyza.employee.domain.usecase.auth.LoginWithGoogleUseCase
+import com.freyza.employee.domain.usecase.auth.LogoutUseCase
+import com.freyza.employee.domain.usecase.auth.RegisterUseCase
+import com.freyza.employee.domain.usecase.auth.impl.GetUserUseCaseImpl
+import com.freyza.employee.domain.usecase.auth.impl.LoginUseCaseImpl
+import com.freyza.employee.domain.usecase.auth.impl.LoginWithGoogleUseCaseImpl
+import com.freyza.employee.domain.usecase.auth.impl.LogoutUseCaseImpl
+import com.freyza.employee.domain.usecase.auth.impl.RegisterUseCaseImpl
+import com.freyza.employee.domain.usecase.expense.GetAllExpensesUseCase
+import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
+import com.freyza.employee.domain.usecase.expense.impl.GetAllExpensesUseCaseImpl
+import com.freyza.employee.domain.usecase.expense.impl.GetRecentExpensesUseCaseImpl
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import io.github.jan.supabase.SupabaseClient
@@ -68,10 +72,13 @@ val useCaseModule = module {
     single<LogoutUseCase> { LogoutUseCaseImpl(get()) }
 
     single<GetUserUseCase> { GetUserUseCaseImpl(get()) }
+
+    single<GetAllExpensesUseCase> { GetAllExpensesUseCaseImpl(get()) }
+    single<GetRecentExpensesUseCase> { GetRecentExpensesUseCaseImpl(get()) }
 }
 
 val viewModelModule = module {
     viewModel { MainViewModel(get(), get(), get()) }
     viewModel { LoginViewModel(get(), get()) }
-    viewModel { HomeViewModel() }
+    viewModel { HomeViewModel(get()) }
 }

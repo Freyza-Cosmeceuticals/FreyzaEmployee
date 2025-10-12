@@ -1,24 +1,25 @@
 package com.freyza.employee.data.repository
 
 import com.freyza.employee.common.Result
-import com.freyza.employee.data.network.dto.ExpenseEntryDto
+import com.freyza.employee.domain.model.Expense
 
 interface ExpenseRepository {
     suspend fun createExpense(
         location: String,
-        distance: Float,
-        cost: Float
-    ): Result<ExpenseEntryDto>
+        distance: Double,
+        cost: Double
+    ): Result<Expense>
 
-    suspend fun getAllExpenses(): Result<List<ExpenseEntryDto>>
-    suspend fun getExpense(id: String): Result<ExpenseEntryDto>
+    suspend fun getAllExpenses(): Result<List<Expense>>
+    suspend fun getRecentExpenses(numExpenses: Long): Result<List<Expense>>
+    suspend fun getExpense(id: String): Result<Expense>
     suspend fun updateExpense(
         id: String,
         location: String? = null,
-        distance: Float? = null,
-        cost: Float? = null,
+        distance: Double? = null,
+        cost: Double? = null,
         locked: Boolean? = null
-    ): Result<ExpenseEntryDto>
+    ): Result<Expense>
 
-    suspend fun lockExpense(id: String): Result<ExpenseEntryDto>
+    suspend fun lockExpense(id: String): Result<Expense>
 }
