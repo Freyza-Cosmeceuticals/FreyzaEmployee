@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.common.Result
 import com.freyza.employee.presentation.ui.composables.LoadingScreen
+import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import com.freyza.employee.util.Logger
 import io.github.jan.supabase.auth.user.UserInfo
@@ -47,7 +48,7 @@ fun LoginScreen(
     }
     val onLoginWithGoogleClicked = { viewModel.loginWithGoogle() }
 
-    LoginScreen(
+    ActualLoginScreen(
         uiState,
         onLoginWithEmailClicked,
         onLoginWithGoogleClicked,
@@ -57,7 +58,7 @@ fun LoginScreen(
 }
 
 @Composable
-fun LoginScreen(
+private fun ActualLoginScreen(
     loginResult: Result<UserInfo>?,
     onLoginWithEmailClicked: (email: String, password: String) -> Unit,
     onLoginWithGoogleClicked: () -> Unit,
@@ -68,7 +69,7 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
@@ -128,10 +129,12 @@ fun LoginScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
-    LoginScreen(
-        loginResult = null,
-        onLoginWithEmailClicked = { _, _ -> },
-        onLoginWithGoogleClicked = {},
-        onNavigateToAuthenticatedRoute = {}
-    )
+    FreyzaEmployeeTheme {
+        ActualLoginScreen(
+            loginResult = null,
+            onLoginWithEmailClicked = { _, _ -> },
+            onLoginWithGoogleClicked = {},
+            onNavigateToAuthenticatedRoute = {}
+        )
+    }
 }

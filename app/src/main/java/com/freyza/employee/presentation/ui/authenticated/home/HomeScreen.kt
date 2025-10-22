@@ -60,7 +60,7 @@ fun HomeScreen(
         }
 
         is Result.Success -> {
-            HomeScreen(
+            ActualHomeScreen(
                 uiState,
                 mainUiState.data!!,
                 onNavigateToUnauthenticated,
@@ -77,7 +77,7 @@ fun HomeScreen(
 }
 
 @Composable
-fun HomeScreen(
+private fun ActualHomeScreen(
     uiState: Result<HomeScreenUiState>,
     mainUiState: MainUiState,
     onNavigateToUnauthenticated: () -> Unit,
@@ -129,7 +129,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalTime::class)
 @Composable
-fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
+private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
     Card {
         Column(modifier = Modifier.padding(8.dp)) {
 
@@ -205,7 +205,7 @@ fun ExpenseList(expenses: List<Expense>) {
 @Composable
 fun HomeScreenPreview() {
     FreyzaEmployeeTheme {
-        HomeScreen(
+        ActualHomeScreen(
             Result.Success(HomeScreenUiState(dummyExpenses())),
             MainUiState(hasValidSession = true, user = dummyUser()),
             {},

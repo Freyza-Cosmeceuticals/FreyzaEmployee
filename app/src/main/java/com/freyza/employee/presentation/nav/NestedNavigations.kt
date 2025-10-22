@@ -11,6 +11,9 @@ import androidx.navigation.toRoute
 import com.freyza.employee.presentation.ui.authenticated.home.HomeScreen
 import com.freyza.employee.presentation.ui.unauthenticated.login.LoginScreen
 
+/*
+* Builds the unauthenticated navigation graph
+*/
 fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 
     navigation<NavigationRoutes.Unauthenticated.NavigationRoute>(
@@ -19,6 +22,7 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 
         composable<NavigationRoutes.Unauthenticated.Login> {
             LoginScreen(
+                // We will never navigate to registration, although
                 onNavigateToRegistration = {
                     navController.navigate(NavigationRoutes.Unauthenticated.Register)
                 },
@@ -35,7 +39,7 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
         composable<NavigationRoutes.Unauthenticated.Register> {
             Column {
 
-                Text("Register Screen is not available")
+                Text("Register Screen is not available on Employee App")
                 Button(onClick = { navController.navigateUp() }) { Text("Back") }
             }
         }
@@ -44,6 +48,9 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 
 }
 
+/*
+* Builds the Authenticated Navigation Graph
+ */
 fun NavGraphBuilder.authenticatedGraph(navController: NavController) {
 
     navigation<NavigationRoutes.Authenticated.NavigationRoute>(
@@ -58,6 +65,10 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController) {
                     }
                 }
             })
+        }
+
+        composable<NavigationRoutes.Authenticated.ExpenseHistory> {
+            Text("Expense History Here")
         }
 
         composable<NavigationRoutes.Authenticated.AddExpense> {

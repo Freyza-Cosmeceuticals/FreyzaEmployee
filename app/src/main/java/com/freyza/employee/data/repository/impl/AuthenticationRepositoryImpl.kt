@@ -5,12 +5,9 @@ import com.freyza.employee.data.repository.AuthenticationRepository
 import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.model.UserStatus
 import io.github.jan.supabase.auth.Auth
-import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
 
 private const val logTag = "AuthenticationRepository"
 
@@ -47,19 +44,21 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
     }
 
     override suspend fun register(name: String, email: String, password: String): AuthResponse {
-        return try {
-            auth.signUpWith(Email, "app://supabase.com/confirm") {
-                this.email = email
-                this.password = password
-                this.data = buildJsonObject {
-                    put("name", name)
-                }
-            }
+        return AuthResponse.Error("Registration not implemented in app")
 
-            AuthResponse.Success(auth.currentUserOrNull())
-        } catch (e: Exception) {
-            AuthResponse.Error(e.message.toString())
-        }
+//        return try {
+//            auth.signUpWith(Email, "app://supabase.com/confirm") {
+//                this.email = email
+//                this.password = password
+//                this.data = buildJsonObject {
+//                    put("name", name)
+//                }
+//            }
+//
+//            AuthResponse.Success(auth.currentUserOrNull())
+//        } catch (e: Exception) {
+//            AuthResponse.Error(e.message.toString())
+//        }
     }
 
     override suspend fun loginWithGoogle(): AuthResponse {
@@ -69,24 +68,6 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
         } catch (e: Exception) {
             AuthResponse.Error(e.message.toString())
         }
-    }
-
-    override suspend fun exchangeCodeForSession(code: String): Result<Unit> =
-        runCatching {
-            auth.exchangeCodeForSession(code = code, saveSession = true)
-            return Result.success(Unit)
-        }.onFailure {
-            return Result.failure(it)
-        }
-
-    override suspend fun verifyEmail(tokenHash: String): Result<Unit> = runCatching {
-        auth.verifyEmailOtp(
-            type = OtpType.Email.EMAIL,
-            tokenHash = tokenHash
-        )
-        return Result.success(Unit)
-    }.onFailure { e ->
-        return Result.failure(e)
     }
 
     override suspend fun logout(): AuthResponse {

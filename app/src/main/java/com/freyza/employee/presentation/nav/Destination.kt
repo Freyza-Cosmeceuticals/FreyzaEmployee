@@ -1,40 +1,11 @@
 package com.freyza.employee.presentation.nav
 
+import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.serialization.Serializable
 
-interface Destination {
-    val title: String
-}
-
-object UnauthenticatedDestination : Destination {
-    override val title: String = "Unauthenticated"
-}
-
-object LoginDestination : Destination {
-    override val title: String = "Login"
-}
-
-object RegisterDestination : Destination {
-    override val title: String = "Register"
-}
-
-object AuthenticatedDestination : Destination {
-    override val title: String = "Authenticated"
-}
-
-object HomeDestination : Destination {
-    override val title: String = "Home"
-}
-
-object AddExpenseDestination : Destination {
-    override val title: String = "Add Expense"
-}
-
-object ExpenseDetailDestination : Destination {
-    override val title: String = "Expense Details"
-}
-
+@Serializable
 sealed class NavigationRoutes {
+    @Serializable
     sealed class Unauthenticated() : NavigationRoutes() {
         @Serializable
         object NavigationRoute : Unauthenticated()
@@ -46,6 +17,7 @@ sealed class NavigationRoutes {
         object Register : Unauthenticated()
     }
 
+    @Serializable
     sealed class Authenticated() : NavigationRoutes() {
         @Serializable
         object NavigationRoute : Authenticated()
@@ -54,9 +26,22 @@ sealed class NavigationRoutes {
         object Home : Authenticated()
 
         @Serializable
+        object ExpenseHistory : Authenticated()
+
+        @Serializable
         object AddExpense : Authenticated()
 
         @Serializable
         data class ExpenseDetail(val expenseId: String) : Authenticated()
     }
+}
+
+sealed class BottomNavItem(val route: NavigationRoutes, val icon: ImageVector?, val label: String) {
+    object ExpenseHistory : BottomNavItem(
+        NavigationRoutes.Authenticated.ExpenseHistory,
+        icon = null,
+        label = "History",
+    )
+
+    object Home : BottomNavItem(NavigationRoutes.Authenticated.Home, icon = null, label = "Home")
 }
