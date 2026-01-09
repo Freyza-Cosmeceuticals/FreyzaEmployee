@@ -57,9 +57,6 @@ android {
             jvmTarget = JvmTarget.fromTarget("11")
         }
     }
-//    kotlinOptions {
-//        jvmTarget = "11"
-//    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -67,7 +64,7 @@ android {
 }
 
 dependencies {
-
+    // core android and compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -85,20 +82,24 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // compose navigation
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.navigation.compose)
 
+    // koin DI
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
 
+    // supabase
     implementation(platform(libs.supabase.bom))
     implementation(libs.auth.kt)
     implementation(libs.postgrest.kt)
 
     implementation(libs.ktor.client.android)
 
+    // google login
     implementation(libs.googleid)
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
