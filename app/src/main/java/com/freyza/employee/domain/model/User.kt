@@ -3,6 +3,8 @@ package com.freyza.employee.domain.model
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
 import io.github.jan.supabase.auth.user.UserInfo
+import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 data class User(
     val id: String,
@@ -16,11 +18,11 @@ data class User(
     val tier: EmployeeTier?,
     val hqId: String?,
 
-    val joiningDate: String,
-    val resignDate: String?,
+    val joiningDate: LocalDate,
+    val resignDate: LocalDate?,
 
-    val createdAt: String,
-    val updatedAt: String?,
+    val createdAt: Instant,
+    val updatedAt: Instant?,
 
     val userInfo: UserInfo?
 )
@@ -56,9 +58,9 @@ fun dummyUser(): User = User(
     status = UserStatus.ACTIVE,
     tier = EmployeeTier.FSO,
     hqId = "fca17731-c0af-4f2e-a177-31c0af0f2ea3",
-    joiningDate = "2025-10-10T18:15:03.410287+00",
+    joiningDate = LocalDate.parse("2025-10-10"),
     resignDate = null,
-    createdAt = "2025-10-10T18:15:03.410287+00",
+    createdAt = Instant.parse("2025-10-10T18:15:03.410287+00"),
     updatedAt = null,
     userInfo = null,
 )

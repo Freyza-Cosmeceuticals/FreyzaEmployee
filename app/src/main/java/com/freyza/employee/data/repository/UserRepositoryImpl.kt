@@ -10,6 +10,8 @@ import io.github.jan.supabase.auth.user.UserInfo
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 class UserRepositoryImpl(
     private val auth: Auth,
@@ -28,20 +30,20 @@ class UserRepositoryImpl(
                     }
                 }.decodeSingleOrNull<UserDto>()
 
-                val user = userDto?.let {
+                val user = userDto?.let { u ->
                     User(
-                        id = it.id,
-                        name = it.name,
-                        email = it.email,
-                        phone = it.phone,
-                        role = it.role,
-                        tier = it.tier,
-                        status = it.status,
-                        hqId = it.hqId,
-                        joiningDate = it.joiningDate,
-                        resignDate = it.resignDate,
-                        createdAt = it.createdAt,
-                        updatedAt = it.updatedAt,
+                        id = u.id,
+                        name = u.name,
+                        email = u.email,
+                        phone = u.phone,
+                        role = u.role,
+                        tier = u.tier,
+                        status = u.status,
+                        hqId = u.hqId,
+                        joiningDate = LocalDate.parse(u.joiningDate),
+                        resignDate = u.resignDate?.let { LocalDate.parse(it) },
+                        createdAt = Instant.parse(u.createdAt),
+                        updatedAt = u.updatedAt?.let { Instant.parse(it) },
                         userInfo = null,
                     )
                 }

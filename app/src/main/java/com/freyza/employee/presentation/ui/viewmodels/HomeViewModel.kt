@@ -7,6 +7,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
+import com.freyza.employee.domain.usecase.travelplan.GetTodayTravelPlanEntryUseCase
 import com.freyza.employee.domain.usecase.user.GetCurrentUserUseCase
 import com.freyza.employee.domain.usecase.user.GetCurrentUserUseCase.Input
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
@@ -19,6 +20,7 @@ class HomeViewModel(
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getRecentExpensesUseCase: GetRecentExpensesUseCase,
     private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
+    private val getTodayTravelPlanEntryUseCase: GetTodayTravelPlanEntryUseCase
 ) : ViewModel() {
 
     companion object {
@@ -106,6 +108,36 @@ class HomeViewModel(
                         Result.Error("Unable to fetch employee id")
                     }
                     Logger.e(TAG, "Cannot get current user id")
+                }
+            }
+        }
+    }
+
+    fun loadTodayTravelPlanEntry(tpId: String) {
+        viewModelScope.launch {
+            when (val result = getTodayTravelPlanEntryUseCase.execute(
+                GetTodayTravelPlanEntryUseCase.Input(
+                    tpId
+                )
+            )) {
+                is GetTodayTravelPlanEntryUseCase.Output.Success -> {
+                    _uiState.update {
+                        Result.Success(it.data?.copy(todayTravelPlanEntry = result.travelPlanEntry))
+                    }
+                    Logger.d(
+                        TAG,
+                        "${result.travelPlanEntry?.id} Today Travel Plan Entry Fetched Successfully"
+                    )
+                }
+
+                is GetTodayTravelPlanEntryUseCase.Output.Failure -> {
+                    _uiState.update {
+                        Result.Error(
+                            message = "Unable to fetch today travel plan entry",
+                            it.data?.copy()
+                        )
+                    }
+                    Logger.e(TAG, "Cannot fetch today travel plan entry: ${result.message}")
                 }
             }
         }

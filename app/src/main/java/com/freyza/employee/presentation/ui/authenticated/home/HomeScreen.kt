@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
@@ -21,10 +23,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.domain.model.Expense
 import com.freyza.employee.domain.model.TravelPlan
+import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyExpenses
+import com.freyza.employee.domain.model.dummyTravelPlan
+import com.freyza.employee.domain.model.dummyTravelPlanEntry
 import com.freyza.employee.domain.model.dummyUser
 import com.freyza.employee.presentation.ui.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.composables.LoadingScreen
@@ -33,12 +39,6 @@ import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.char
-import kotlinx.datetime.toLocalDateTime
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -53,6 +53,8 @@ fun HomeScreen(
     val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
     val onLogoutClicked = { mainViewModel.logout() }
+    val loadTodayTravelPlanEntry: (tpId: String) -> Unit =
+        { viewModel.loadTodayTravelPlanEntry(it) }
 
     when (mainUiState) {
         is Result.Loading -> {
@@ -61,7 +63,12 @@ fun HomeScreen(
 
         is Result.Success -> {
             ActualHomeScreen(
-                uiState, mainUiState.data!!, onNavigateToUnauthenticated, onLogoutClicked, modifier
+                uiState,
+                mainUiState.data!!,
+                onNavigateToUnauthenticated,
+                onLogoutClicked,
+                loadTodayTravelPlanEntry,
+                modifier
             )
         }
 
@@ -78,12 +85,16 @@ private fun ActualHomeScreen(
     mainUiState: MainUiState,
     onNavigateToUnauthenticated: () -> Unit,
     onLogoutClicked: () -> Unit,
+    loadTodayTravelPlanEntry: (tpId: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
     ) {
         if (!mainUiState.hasValidSession || mainUiState.user == null) {
             LoadingScreen(message = "Signing Out...")
@@ -97,6 +108,12 @@ private fun ActualHomeScreen(
             return
         }
 
+        if (uiState.data?.currentTravelPlan !== null) {
+            LaunchedEffect(uiState.data.currentTravelPlan.id) {
+                loadTodayTravelPlanEntry(uiState.data.currentTravelPlan.id)
+            }
+        }
+
         Text("Welcome back ${mainUiState.user.name}")
         DebugUserInfo(mainUiState.user)
 
@@ -108,8 +125,9 @@ private fun ActualHomeScreen(
             }
 
             is Result.Success -> {
-                ExpenseList(uiState.data!!.recentExpenses)
-                DebugTravelPlan(uiState.data.currentTravelPlan)
+//                ExpenseList(uiState.data!!.recentExpenses)
+                DebugTravelPlan(uiState.data!!.currentTravelPlan)
+                DebugTravelPlanEntry(uiState.data.todayTravelPlanEntry)
             }
 
             is Result.Error -> {
@@ -139,20 +157,13 @@ private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
             Text(user.tier?.fullForm.toString())
             Text(user.hqId.toString())
 
-            Text(user.createdAt)
-            Text(user.updatedAt.toString())
+            Text(DateFormatter.format(user.createdAt))
+            user.updatedAt?.let {
+                Text(DateFormatter.format(it))
+            }
 
             user.userInfo?.lastSignInAt?.let {
-                Text(
-                    it.toLocalDateTime(TimeZone.currentSystemDefault())
-                        .format(LocalDateTime.Format {
-                            day()
-                            char('/')
-                            monthName(MonthNames.ENGLISH_ABBREVIATED)
-                            char('/')
-                            year()
-                        })
-                )
+                Text(DateFormatter.format(it))
             }
         }
     }
@@ -168,17 +179,42 @@ private fun DebugTravelPlan(travelPlan: TravelPlan?, modifier: Modifier = Modifi
             } else {
                 Text(travelPlan.id, fontFamily = FontFamily.Monospace)
                 Text(travelPlan.employeeId)
-                Text(travelPlan.month)
+                Text(DateFormatter.format(travelPlan.month))
                 Text(travelPlan.createdById)
 
                 Text(travelPlan.travelPlanEntries.size.toString())
 
-                Text(travelPlan.createdAt)
-                Text(travelPlan.updatedAt.toString())
+                Text(DateFormatter.format(travelPlan.createdAt))
+                travelPlan.updatedAt?.let {
+                    Text(DateFormatter.format(it))
+                }
             }
         }
     }
 }
+
+@Composable
+private fun DebugTravelPlanEntry(travelPlanEntry: TravelPlanEntry?, modifier: Modifier = Modifier) {
+    Card {
+        Column(modifier = modifier.padding(8.dp)) {
+
+            if (travelPlanEntry === null) {
+                Text("No Travel Plan Entry")
+            } else {
+                Text(travelPlanEntry.id, fontFamily = FontFamily.Monospace)
+                Text(DateFormatter.format(travelPlanEntry.date))
+                Text(travelPlanEntry.dayType.titleCase())
+                Text(travelPlanEntry.routeId.toString())
+
+                Text(DateFormatter.format(travelPlanEntry.createdAt))
+                travelPlanEntry.updatedAt?.let {
+                    Text(DateFormatter.format(it))
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun ExpenseList(expenses: List<Expense>) {
@@ -207,8 +243,15 @@ fun ExpenseList(expenses: List<Expense>) {
 fun HomeScreenPreview() {
     FreyzaEmployeeTheme {
         ActualHomeScreen(
-            Result.Success(HomeScreenUiState(dummyExpenses())),
+            Result.Success(
+                HomeScreenUiState(
+                    dummyExpenses(),
+                    currentTravelPlan = dummyTravelPlan(),
+                    todayTravelPlanEntry = dummyTravelPlanEntry()
+                )
+            ),
             MainUiState(hasValidSession = true, user = dummyUser()),
+            {},
             {},
             {})
     }
