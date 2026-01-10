@@ -81,7 +81,7 @@ fun HomeScreen(
 
 @Composable
 private fun ActualHomeScreen(
-    uiState: Result<HomeScreenUiState>,
+    uiState: HomeScreenUiState,
     mainUiState: MainUiState,
     onNavigateToUnauthenticated: () -> Unit,
     onLogoutClicked: () -> Unit,
@@ -108,34 +108,49 @@ private fun ActualHomeScreen(
             return
         }
 
-        if (uiState.data?.currentTravelPlan !== null) {
-            LaunchedEffect(uiState.data.currentTravelPlan.id) {
-                loadTodayTravelPlanEntry(uiState.data.currentTravelPlan.id)
+        LaunchedEffect(uiState.currentTravelPlan.data?.id) {
+            if (uiState.currentTravelPlan.data?.id !== null) {
+                loadTodayTravelPlanEntry(uiState.currentTravelPlan.data.id)
             }
         }
 
         Text("Welcome back ${mainUiState.user.name}")
         DebugUserInfo(mainUiState.user)
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        when (uiState) {
+        //                ExpenseList(uiState.data!!.recentExpenses)
+
+        when (val travelPlan = uiState.currentTravelPlan) {
             is Result.Loading -> {
-                LoadingScreen(message = "Loading..")
+                LoadingScreen(message = "Loading Travel Plan..")
             }
 
             is Result.Success -> {
-//                ExpenseList(uiState.data!!.recentExpenses)
-                DebugTravelPlan(uiState.data!!.currentTravelPlan)
-                DebugTravelPlanEntry(uiState.data.todayTravelPlanEntry)
+                DebugTravelPlan(travelPlan.data)
             }
 
             is Result.Error -> {
-                Text(uiState.message.toString())
+                Text(travelPlan.message.toString())
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
 
+        when (val travelPlanEntry = uiState.todayTravelPlanEntry) {
+            is Result.Loading -> {
+                LoadingScreen(message = "Loading Travel Plan Entry...")
+            }
+
+            is Result.Success -> {
+                DebugTravelPlanEntry(travelPlanEntry.data)
+            }
+
+            is Result.Error -> {
+                Text(travelPlanEntry.message.toString())
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onLogoutClicked) { Text("Logout") }
     }
 }
@@ -243,12 +258,10 @@ fun ExpenseList(expenses: List<Expense>) {
 fun HomeScreenPreview() {
     FreyzaEmployeeTheme {
         ActualHomeScreen(
-            Result.Success(
-                HomeScreenUiState(
-                    dummyExpenses(),
-                    currentTravelPlan = dummyTravelPlan(),
-                    todayTravelPlanEntry = dummyTravelPlanEntry()
-                )
+            HomeScreenUiState(
+                Result.Success(dummyExpenses()),
+                currentTravelPlan = Result.Success(dummyTravelPlan()),
+                todayTravelPlanEntry = Result.Success(dummyTravelPlanEntry())
             ),
             MainUiState(hasValidSession = true, user = dummyUser()),
             {},

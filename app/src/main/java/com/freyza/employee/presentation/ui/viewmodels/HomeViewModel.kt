@@ -27,11 +27,7 @@ class HomeViewModel(
         const val TAG = "HOME_VIEW_MODEL"
     }
 
-    private val _uiState = MutableStateFlow<Result<HomeScreenUiState>>(
-        Result.Loading(
-            HomeScreenUiState()
-        )
-    )
+    private val _uiState = MutableStateFlow<HomeScreenUiState>(HomeScreenUiState())
     val uiState = _uiState.asStateFlow()
 
     init {
@@ -47,14 +43,14 @@ class HomeViewModel(
             when (result) {
                 is GetRecentExpensesUseCase.Output.Success -> {
                     _uiState.update {
-                        Result.Success(it.data?.copy(recentExpenses = result.expenses))
+                        it.copy(recentExpenses = Result.Success(result.expenses))
                     }
                     Logger.d(TAG, "${result.expenses.size} Recent Expenses Fetched Successfully")
                 }
 
                 is GetRecentExpensesUseCase.Output.Failure -> {
                     _uiState.update {
-                        Result.Error(message = "Unable to fetch recent expenses", it.data?.copy())
+                        it.copy(recentExpenses = Result.Error(message = "Unable to fetch recent expenses"))
                     }
                     Logger.e(TAG, "Cannot fetch recent expenses: ${result.message}")
                 }
@@ -64,6 +60,7 @@ class HomeViewModel(
 
     fun loadCurrentTravelPlan() {
         viewModelScope.launch {
+            _uiState.update { it.copy(currentTravelPlan = Result.Loading(it.currentTravelPlan.data)) }
 
             when (val employeeInfo = getCurrentUserUseCase.execute(Input())) {
                 is GetCurrentUserUseCase.Output.Success -> {
@@ -76,7 +73,7 @@ class HomeViewModel(
                         )) {
                             is GetCurrentTravelPlanUseCase.Output.Success -> {
                                 _uiState.update {
-                                    Result.Success(it.data?.copy(currentTravelPlan = result.travelPlan))
+                                    it.copy(currentTravelPlan = Result.Success(result.travelPlan))
                                 }
                                 Logger.d(
                                     TAG,
@@ -86,18 +83,24 @@ class HomeViewModel(
 
                             is GetCurrentTravelPlanUseCase.Output.Failure -> {
                                 _uiState.update {
-                                    Result.Error(
-                                        message = "Unable to fetch current travel plan",
-                                        it.data?.copy()
+                                    it.copy(
+                                        currentTravelPlan = Result.Error(
+                                            message = "Unable to fetch current travel plan",
+                                            data = it.currentTravelPlan.data
+                                        )
                                     )
                                 }
                                 Logger.e(TAG, "Cannot fetch current travel plan: ${result.message}")
                             }
-
                         }
                     } else {
                         _uiState.update {
-                            Result.Error("Unable to fetch employee id")
+                            it.copy(
+                                currentTravelPlan = Result.Error(
+                                    message = "Unable to fetch employee id",
+                                    data = it.currentTravelPlan.data
+                                )
+                            )
                         }
                         Logger.e(TAG, "Current User is null")
                     }
@@ -105,7 +108,12 @@ class HomeViewModel(
 
                 is GetCurrentUserUseCase.Output.Failure -> {
                     _uiState.update {
-                        Result.Error("Unable to fetch employee id")
+                        it.copy(
+                            currentTravelPlan = Result.Error(
+                                message = "Unable to fetch employee id",
+                                data = it.currentTravelPlan.data
+                            )
+                        )
                     }
                     Logger.e(TAG, "Cannot get current user id")
                 }
@@ -115,14 +123,14 @@ class HomeViewModel(
 
     fun loadTodayTravelPlanEntry(tpId: String) {
         viewModelScope.launch {
+            _uiState.update { it.copy(todayTravelPlanEntry = Result.Loading(it.todayTravelPlanEntry.data)) }
+
             when (val result = getTodayTravelPlanEntryUseCase.execute(
-                GetTodayTravelPlanEntryUseCase.Input(
-                    tpId
-                )
+                GetTodayTravelPlanEntryUseCase.Input(tpId)
             )) {
                 is GetTodayTravelPlanEntryUseCase.Output.Success -> {
                     _uiState.update {
-                        Result.Success(it.data?.copy(todayTravelPlanEntry = result.travelPlanEntry))
+                        it.copy(todayTravelPlanEntry = Result.Success(result.travelPlanEntry))
                     }
                     Logger.d(
                         TAG,
@@ -132,9 +140,11 @@ class HomeViewModel(
 
                 is GetTodayTravelPlanEntryUseCase.Output.Failure -> {
                     _uiState.update {
-                        Result.Error(
-                            message = "Unable to fetch today travel plan entry",
-                            it.data?.copy()
+                        it.copy(
+                            todayTravelPlanEntry = Result.Error(
+                                message = "Unable to fetch today travel plan entry",
+                                data = it.todayTravelPlanEntry.data
+                            )
                         )
                     }
                     Logger.e(TAG, "Cannot fetch today travel plan entry: ${result.message}")
