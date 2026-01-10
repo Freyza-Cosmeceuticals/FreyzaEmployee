@@ -2,7 +2,7 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.freyza.employee.core.Result
+import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.usecase.auth.LogoutUseCase
@@ -23,17 +23,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.ExperimentalTime
 
 const val TAG = "MainViewModel/AUTH"
 
 class MainViewModel(
-    private val auth: Auth,
-    val getUserUseCase: GetUserUseCase,
-    val logoutUseCase: LogoutUseCase
-) :
-    ViewModel() {
-    private val _uiState = MutableStateFlow<Result<MainUiState>>(Result.Loading(MainUiState()))
+    private val auth: Auth, val getUserUseCase: GetUserUseCase, val logoutUseCase: LogoutUseCase
+) : ViewModel() {
+    private val _uiState = MutableStateFlow<UIState<MainUiState>>(UIState.Idle())
     val uiState = _uiState.asStateFlow()
 
     // SharedFlow to emit debug/toast messages.
@@ -46,7 +42,6 @@ class MainViewModel(
         listenToAuthEvents()
     }
 
-
     private suspend fun awaitSessionInit() {
         auth.sessionStatus.first { status ->
             status !is SessionStatus.Initializing
@@ -55,6 +50,8 @@ class MainViewModel(
 
     fun initializeSession() {
         viewModelScope.launch(Dispatchers.IO) {
+            _uiState.value = UIState.Loading()
+
             try {
                 awaitSessionInit()
 
@@ -91,16 +88,16 @@ class MainViewModel(
                         }
 
                         _uiState.update {
-                            Result.Success(
-                                it.data?.copy(
+                            UIState.Ready(
+                                it.data?.copy(hasValidSession = true, user = user) ?: MainUiState(
                                     hasValidSession = true, user = user
                                 )
                             )
                         }
                     } else {
                         _uiState.update {
-                            Result.Success(
-                                it.data?.copy(
+                            UIState.Ready(
+                                it.data?.copy(hasValidSession = false, user = null) ?: MainUiState(
                                     hasValidSession = false, user = null
                                 )
                             )
@@ -109,7 +106,7 @@ class MainViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    Result.Error(
+                    UIState.Error(
                         e.message.toString(),
                         data = it.data?.copy(hasValidSession = false, user = null)
                     )
@@ -119,20 +116,25 @@ class MainViewModel(
     }
 
     fun logout() {
-        _uiState.value = Result.Loading()
+        _uiState.value = UIState.Loading()
 
         viewModelScope.launch {
             when (val result = logoutUseCase.execute(LogoutUseCase.Input())) {
                 is LogoutUseCase.Output.Success -> {
                     _uiState.update {
-                        Result.Success(MainUiState(hasValidSession = false, user = null))
+                        UIState.Ready(
+                            it.data?.copy(hasValidSession = false, user = null) ?: MainUiState(
+                                hasValidSession = false,
+                                user = null
+                            )
+                        )
                     }
                     Logger.d("AUTH", "Logout success")
                 }
 
                 is LogoutUseCase.Output.Failure -> {
                     _uiState.update {
-                        Result.Error("Error logging out")
+                        UIState.Error("Error logging out", it.data)
                     }
                     Logger.d("AUTH", "Logout failed ${result.message}")
                 }
@@ -140,7 +142,7 @@ class MainViewModel(
         }
     }
 
-    @OptIn(SupabaseExperimental::class, ExperimentalTime::class)
+    @OptIn(SupabaseExperimental::class)
     private fun listenToAuthEvents() {
         viewModelScope.launch(Dispatchers.IO) {
             auth.sessionStatus.collect { status ->

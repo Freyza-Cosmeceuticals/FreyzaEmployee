@@ -25,8 +25,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.freyza.employee.core.Result
-import com.freyza.employee.presentation.ui.composables.LoadingScreen
+import com.freyza.employee.core.UIState
+import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import io.github.jan.supabase.auth.user.UserInfo
@@ -58,7 +58,7 @@ fun LoginScreen(
 
 @Composable
 private fun ActualLoginScreen(
-    loginResult: Result<UserInfo>?,
+    loginResult: UIState<UserInfo>,
     onLoginWithEmailClicked: (email: String, password: String) -> Unit,
     onLoginWithGoogleClicked: () -> Unit,
     onNavigateToAuthenticatedRoute: () -> Unit,
@@ -96,7 +96,6 @@ private fun ActualLoginScreen(
         )
         Spacer(Modifier.height(16.dp))
 
-
         Button(onClick = { onLoginWithEmailClicked(email, password) }) {
             Text("Login")
         }
@@ -106,17 +105,17 @@ private fun ActualLoginScreen(
         }
 
         when (loginResult) {
-            is Result.Success -> {
+            is UIState.Ready -> {
                 LaunchedEffect(Unit) { onNavigateToAuthenticatedRoute() }
             }
 
-            is Result.Error -> {
+            is UIState.Error -> {
                 val error = loginResult.message
                 Text(text = "Error: $error", color = Color.Red)
             }
 
-            is Result.Loading -> {
-                LoadingScreen(message = "Logging you in...")
+            is UIState.Loading -> {
+                LoadingIndicator(message = "Logging you in...")
             }
 
             else -> {}
@@ -129,10 +128,9 @@ private fun ActualLoginScreen(
 fun LoginScreenPreview() {
     FreyzaEmployeeTheme {
         ActualLoginScreen(
-            loginResult = null,
+            loginResult = UIState.Idle(),
             onLoginWithEmailClicked = { _, _ -> },
             onLoginWithGoogleClicked = {},
-            onNavigateToAuthenticatedRoute = {}
-        )
+            onNavigateToAuthenticatedRoute = {})
     }
 }

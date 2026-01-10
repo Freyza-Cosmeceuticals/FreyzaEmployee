@@ -23,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.domain.model.Expense
 import com.freyza.employee.domain.model.TravelPlan
@@ -32,8 +33,8 @@ import com.freyza.employee.domain.model.dummyExpenses
 import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntry
 import com.freyza.employee.domain.model.dummyUser
-import com.freyza.employee.presentation.ui.composables.HomeScreenSkeleton
-import com.freyza.employee.presentation.ui.composables.LoadingScreen
+import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
+import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -53,28 +54,29 @@ fun HomeScreen(
     val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
     val onLogoutClicked = { mainViewModel.logout() }
-    val loadTodayTravelPlanEntry: (tpId: String) -> Unit =
-        { viewModel.loadTodayTravelPlanEntry(it) }
+    val loadTravelPlan: () -> Unit = { viewModel.loadCurrentTravelPlan() }
 
     when (mainUiState) {
-        is Result.Loading -> {
+        is UIState.Loading -> {
             HomeScreenSkeleton()
         }
 
-        is Result.Success -> {
+        is UIState.Ready -> {
             ActualHomeScreen(
                 uiState,
                 mainUiState.data!!,
                 onNavigateToUnauthenticated,
                 onLogoutClicked,
-                loadTodayTravelPlanEntry,
+                loadTravelPlan,
                 modifier
             )
         }
 
-        is Result.Error -> {
+        is UIState.Error -> {
             Text("Error")
         }
+
+        else -> {}
     }
 
 }
@@ -85,7 +87,7 @@ private fun ActualHomeScreen(
     mainUiState: MainUiState,
     onNavigateToUnauthenticated: () -> Unit,
     onLogoutClicked: () -> Unit,
-    loadTodayTravelPlanEntry: (tpId: String) -> Unit,
+    loadTravelPlan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -97,7 +99,7 @@ private fun ActualHomeScreen(
             .padding(16.dp)
     ) {
         if (!mainUiState.hasValidSession || mainUiState.user == null) {
-            LoadingScreen(message = "Signing Out...")
+            LoadingIndicator(message = "Signing Out...")
 
             LaunchedEffect(Unit) {
                 onNavigateToUnauthenticated()
@@ -108,46 +110,48 @@ private fun ActualHomeScreen(
             return
         }
 
-        LaunchedEffect(uiState.currentTravelPlan.data?.id) {
-            if (uiState.currentTravelPlan.data?.id !== null) {
-                loadTodayTravelPlanEntry(uiState.currentTravelPlan.data.id)
-            }
+        LaunchedEffect(mainUiState.user.id) {
+            loadTravelPlan()
         }
 
         Text("Welcome back ${mainUiState.user.name}")
         DebugUserInfo(mainUiState.user)
         Spacer(modifier = Modifier.height(16.dp))
 
-        //                ExpenseList(uiState.data!!.recentExpenses)
+        // ExpenseList(uiState.data!!.recentExpenses)
 
         when (val travelPlan = uiState.currentTravelPlan) {
-            is Result.Loading -> {
-                LoadingScreen(message = "Loading Travel Plan..")
+            is UIState.Loading -> {
+                LoadingIndicator(message = "Loading Travel Plan..")
             }
 
-            is Result.Success -> {
+            is UIState.Ready -> {
                 DebugTravelPlan(travelPlan.data)
             }
 
-            is Result.Error -> {
+            is UIState.Error -> {
                 Text(travelPlan.message.toString())
             }
+
+            else -> {}
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         when (val travelPlanEntry = uiState.todayTravelPlanEntry) {
-            is Result.Loading -> {
-                LoadingScreen(message = "Loading Travel Plan Entry...")
+            is UIState.Loading -> {
+                LoadingIndicator(message = "Loading Travel Plan Entry...")
             }
 
-            is Result.Success -> {
+            is UIState.Ready -> {
                 DebugTravelPlanEntry(travelPlanEntry.data)
             }
 
-            is Result.Error -> {
+            is UIState.Error -> {
                 Text(travelPlanEntry.message.toString())
             }
+
+            else -> {}
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -259,13 +263,9 @@ fun HomeScreenPreview() {
     FreyzaEmployeeTheme {
         ActualHomeScreen(
             HomeScreenUiState(
-                Result.Success(dummyExpenses()),
-                currentTravelPlan = Result.Success(dummyTravelPlan()),
-                todayTravelPlanEntry = Result.Success(dummyTravelPlanEntry())
-            ),
-            MainUiState(hasValidSession = true, user = dummyUser()),
-            {},
-            {},
-            {})
+            UIState.Ready(dummyExpenses()),
+            currentTravelPlan = UIState.Ready(dummyTravelPlan()),
+            todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntry())
+        ), MainUiState(hasValidSession = true, user = dummyUser()), {}, {}, {})
     }
 }

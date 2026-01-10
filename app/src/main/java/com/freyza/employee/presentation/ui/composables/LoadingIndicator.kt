@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
 @Composable
-fun LoadingScreen(
+fun LoadingIndicator(
     modifier: Modifier = Modifier,
     message: String = "Please hold tight while we load...",
 ) {
@@ -37,8 +37,8 @@ fun LoadingScreen(
 
 @Preview(showSystemUi = false, showBackground = true)
 @Composable
-fun LoadingScreenPreview() {
+fun LoadingIndicatorPreview() {
     FreyzaEmployeeTheme {
-        LoadingScreen(message = "Preview Loading")
+        LoadingIndicator(message = "Preview Loading")
     }
 }

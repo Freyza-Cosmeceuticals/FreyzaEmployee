@@ -8,5 +8,6 @@ interface RegisterUseCase : UseCase<RegisterUseCase.Input, RegisterUseCase.Outpu
     sealed class Output {
         data class Success(val userInfo: UserInfo? = null) : Output()
         data class Failure(val message: String) : Output()
+        object Logout : Output()
     }
 }

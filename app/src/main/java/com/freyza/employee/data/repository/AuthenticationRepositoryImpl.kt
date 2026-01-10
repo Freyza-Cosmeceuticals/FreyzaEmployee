@@ -24,10 +24,13 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
             }
 
             val user = auth.currentUserOrNull()
-            val role =
-                user?.appMetadata?.get("app_role")?.jsonPrimitive?.content.toString()
-            val status =
-                user?.appMetadata?.get("app_status")?.jsonPrimitive?.content.toString()
+            if (user === null) {
+                Logger.e(TAG, "Login Error: $email, Current user is null")
+                return AuthResponse.Error("Unable to login")
+            }
+
+            val role = user.appMetadata?.get("app_role")?.jsonPrimitive?.content.toString()
+            val status = user.appMetadata?.get("app_status")?.jsonPrimitive?.content.toString()
 
             if (role != UserRole.EMPLOYEE.toString()) {
                 auth.signOut()
@@ -69,7 +72,13 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
     override suspend fun loginWithGoogle(): AuthResponse {
         return try {
             auth.signInWith(Google)
-            AuthResponse.Success(auth.currentUserOrNull())
+            val user = auth.currentUserOrNull()
+            if (user === null) {
+                Logger.e(TAG, "Login Error: Google, Current user is null")
+                return AuthResponse.Error("Unable to login")
+            }
+
+            AuthResponse.Success(user)
         } catch (e: Exception) {
             AuthResponse.Error(e.message.toString())
         }
@@ -78,7 +87,7 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
     override suspend fun logout(): AuthResponse {
         return try {
             auth.signOut()
-            AuthResponse.Success(null)
+            AuthResponse.Logout
         } catch (e: Exception) {
             val cause = e.message?.lines()?.first().toString().trim()
             Logger.e(TAG, "Logout Error: ${e.message.toString()}")

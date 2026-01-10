@@ -18,6 +18,10 @@ class LoginUseCaseImpl(private val authRepository: AuthenticationRepository) : L
                 is AuthResponse.Error -> {
                     LoginUseCase.Output.Failure(result.message)
                 }
+
+                is AuthResponse.Logout -> {
+                    LoginUseCase.Output.Logout
+                }
             }
         }
     }

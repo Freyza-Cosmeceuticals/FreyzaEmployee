@@ -19,14 +19,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
-import com.freyza.employee.core.Result
+import com.freyza.employee.core.UIState
 import com.freyza.employee.presentation.nav.NavigationRoutes
 import com.freyza.employee.presentation.nav.authenticatedGraph
 import com.freyza.employee.presentation.nav.unauthenticatedGraph
 import com.freyza.employee.presentation.ui.composables.FreyzaAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaBottomNavBar
-import com.freyza.employee.presentation.ui.composables.LoadingScreen
+import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -40,9 +40,9 @@ fun FreyzaEmployeeApp(
 
     // Change UI based on initial loading state
     when (val res = uiState) {
-        is Result.Loading -> {
+        is UIState.Loading -> {
             Scaffold { paddingValues ->
-                LoadingScreen(
+                LoadingIndicator(
                     Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -50,7 +50,7 @@ fun FreyzaEmployeeApp(
             }
         }
 
-        is Result.Success -> {
+        is UIState.Ready -> {
             // if valid login found, start with the Authenticated route, otherwise the UnAuthenticated route.
             val startDestination =
                 if (res.data?.hasValidSession == true && res.data.user != null) NavigationRoutes.Authenticated.NavigationRoute else NavigationRoutes.Unauthenticated.NavigationRoute
@@ -70,7 +70,7 @@ fun FreyzaEmployeeApp(
             }
         }
 
-        is Result.Error -> {
+        is UIState.Error -> {
             Scaffold { paddingValues ->
                 Column(
                     modifier = Modifier
@@ -86,6 +86,8 @@ fun FreyzaEmployeeApp(
                 }
             }
         }
+
+        else -> {}
     }
 }
 
