@@ -67,6 +67,10 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController) {
             })
         }
 
+        composable<NavigationRoutes.Authenticated.TravelPlan> {
+            Text("Current Travel Plan Here")
+        }
+
         composable<NavigationRoutes.Authenticated.ExpenseHistory> {
             Text("Expense History Here")
         }

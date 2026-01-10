@@ -26,6 +26,9 @@ sealed class NavigationRoutes {
         object Home : Authenticated()
 
         @Serializable
+        object TravelPlan : Authenticated()
+
+        @Serializable
         object ExpenseHistory : Authenticated()
 
         @Serializable
@@ -37,11 +40,15 @@ sealed class NavigationRoutes {
 }
 
 sealed class BottomNavItem(val route: NavigationRoutes, val icon: ImageVector?, val label: String) {
+    object Home : BottomNavItem(NavigationRoutes.Authenticated.Home, icon = null, label = "Home")
+
+    object TravelPlan :
+        BottomNavItem(NavigationRoutes.Authenticated.TravelPlan, icon = null, label = "Travel Plan")
+
     object ExpenseHistory : BottomNavItem(
         NavigationRoutes.Authenticated.ExpenseHistory,
         icon = null,
         label = "History",
     )
 
-    object Home : BottomNavItem(NavigationRoutes.Authenticated.Home, icon = null, label = "Home")
 }

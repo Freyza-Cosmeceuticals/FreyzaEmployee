@@ -19,8 +19,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.freyza.employee.common.MainViewModel
-import com.freyza.employee.common.Result
+import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
+import com.freyza.employee.core.Result
 import com.freyza.employee.presentation.nav.NavigationRoutes
 import com.freyza.employee.presentation.nav.authenticatedGraph
 import com.freyza.employee.presentation.nav.unauthenticatedGraph

@@ -1,7 +1,6 @@
 *.iml
 .gradle
 /local.properties
-/secret.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -13,5 +12,11 @@
 /captures
 .externalNativeBuild
 .cxx
-local.properties
-secret.properties
+
+/secret.*.properties
+
+# Remember to never publicly share your keystore.
+# See https://flutter.dev/to/reference-keystore
+key.properties
+**/*.keystore
+**/*.jks

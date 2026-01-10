@@ -18,14 +18,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.freyza.employee.presentation.nav.BottomNavItem
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
-import com.freyza.employee.util.Logger
+import com.freyza.employee.core.util.Logger
 
 private const val TAG = "BOTTOM_BAR"
 private const val ROUTE_PREFIX = "com.freyza.employee.presentation.nav."
 
 @Composable
 fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifier) {
-    val screens = setOf(BottomNavItem.Home, BottomNavItem.ExpenseHistory)
+    val screens = setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory)
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
@@ -87,7 +87,8 @@ private fun ActualNavBar(
 fun FreyzaNavBarPreview() {
     FreyzaEmployeeTheme {
         ActualNavBar(
-            setOf(BottomNavItem.Home, BottomNavItem.ExpenseHistory), rememberNavController(),
+            setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory),
+            rememberNavController(),
             NavDestination("")
         )
     }

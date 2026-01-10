@@ -25,11 +25,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.freyza.employee.common.Result
+import com.freyza.employee.core.Result
 import com.freyza.employee.presentation.ui.composables.LoadingScreen
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
-import com.freyza.employee.util.Logger
 import io.github.jan.supabase.auth.user.UserInfo
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -69,7 +68,7 @@ private fun ActualLoginScreen(
     var password by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
@@ -106,14 +105,13 @@ private fun ActualLoginScreen(
             Text("Login with Google")
         }
 
-        when (val result = loginResult) {
+        when (loginResult) {
             is Result.Success -> {
                 LaunchedEffect(Unit) { onNavigateToAuthenticatedRoute() }
             }
 
             is Result.Error -> {
-                val error = result.message
-                Logger.d("APP", "Error logging in: $error")
+                val error = loginResult.message
                 Text(text = "Error: $error", color = Color.Red)
             }
 

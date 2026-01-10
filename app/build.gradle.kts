@@ -9,6 +9,18 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+val secretDevPropertiesFile = project.rootProject.file("secret.dev.properties")
+val secretDevProperties = Properties()
+secretDevProperties.load(FileInputStream(secretDevPropertiesFile))
+
+val secretStagingPropertiesFile = project.rootProject.file("secret.staging.properties")
+val secretStagingProperties = Properties()
+secretStagingProperties.load(FileInputStream(secretStagingPropertiesFile))
+
 android {
     namespace = "com.freyza.employee"
     compileSdk = 36
@@ -22,45 +34,106 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val properties = Properties()
-        val propertiesFile = project.rootProject.file("secret.properties")
-        properties.load(FileInputStream(propertiesFile))
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "")
+        buildConfigField("String", "SUPABASE_URL", "")
+        buildConfigField("String", "WEB_CLIENT_ID", "")
+    }
 
-        buildConfigField(
-            "String",
-            "SUPABASE_PUBLISHABLE_KEY",
-            "\"${properties.getProperty("SUPABASE_PUBLISHABLE_KEY")}\""
-        )
-        buildConfigField("String", "SUPABASE_URL", "\"${properties.getProperty("SUPABASE_URL")}\"")
-        buildConfigField(
-            "String",
-            "WEB_CLIENT_ID",
-            "\"${properties.getProperty("WEB_CLIENT_ID")}\""
-        )
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
+
+    flavorDimensions += "env"
+
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+
+            buildConfigField(
+                "String",
+                "SUPABASE_PUBLISHABLE_KEY",
+                "\"${secretDevProperties.getProperty("SUPABASE_PUBLISHABLE_KEY")}\""
+            )
+            buildConfigField(
+                "String",
+                "SUPABASE_URL",
+                "\"${secretDevProperties.getProperty("SUPABASE_URL")}\""
+            )
+            buildConfigField(
+                "String",
+                "WEB_CLIENT_ID",
+                "\"${secretDevProperties.getProperty("WEB_CLIENT_ID")}\""
+            )
+        }
+
+        create("staging") {
+            dimension = "env"
+            applicationIdSuffix = ".staging"
+            versionName = "-staging"
+
+            buildConfigField(
+                "String",
+                "SUPABASE_PUBLISHABLE_KEY",
+                "\"${secretStagingProperties.getProperty("SUPABASE_PUBLISHABLE_KEY")}\""
+            )
+            buildConfigField(
+                "String",
+                "SUPABASE_URL",
+                "\"${secretStagingProperties.getProperty("SUPABASE_URL")}\""
+            )
+            buildConfigField(
+                "String",
+                "WEB_CLIENT_ID",
+                "\"${secretStagingProperties.getProperty("WEB_CLIENT_ID")}\""
+            )
+        }
+
+        create("prod") {
+            dimension = "env"
+        }
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
+        getByName("debug") {
+            isDebuggable = true
+            versionNameSuffix = "-debug"
+        }
+        getByName("release") {
+            isMinifyEnabled = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+
+            signingConfig = signingConfigs.getByName("release")
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlin {
         compilerOptions {
-            jvmTarget = JvmTarget.fromTarget("11")
+            jvmTarget = JvmTarget.fromTarget("17")
         }
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
+
+    buildToolsVersion = "35.0.0"
 }
 
 dependencies {

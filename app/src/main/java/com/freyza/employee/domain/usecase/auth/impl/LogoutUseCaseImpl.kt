@@ -1,7 +1,7 @@
 package com.freyza.employee.domain.usecase.auth.impl
 
-import com.freyza.employee.common.AuthResponse
-import com.freyza.employee.data.repository.AuthenticationRepository
+import com.freyza.employee.core.AuthResponse
+import com.freyza.employee.domain.repository.AuthenticationRepository
 import com.freyza.employee.domain.usecase.auth.LogoutUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

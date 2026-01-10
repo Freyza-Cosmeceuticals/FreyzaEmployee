@@ -1,5 +1,6 @@
 package com.freyza.employee.data.network.dto
 
+import com.freyza.employee.domain.model.EmployeeTier
 import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.model.UserStatus
 import kotlinx.serialization.SerialName
@@ -13,8 +14,11 @@ data class UserDto(
     @SerialName("name")
     val name: String,
 
-//    @SerialName("email")
-//    val email: String,
+    @SerialName("email")
+    val email: String,
+
+    @SerialName("phone")
+    val phone: String,
 
     @SerialName("role")
     val role: UserRole,
@@ -22,12 +26,21 @@ data class UserDto(
     @SerialName("status")
     val status: UserStatus,
 
-    @SerialName("location")
-    val location: String?,
+    @SerialName("tier")
+    val tier: EmployeeTier?,
 
-    @SerialName("created_at")
+    @SerialName("hqId")
+    val hqId: String?,
+
+    @SerialName("joiningDate")
+    val joiningDate: String,
+
+    @SerialName("resignDate")
+    val resignDate: String?,
+
+    @SerialName("createdAt")
     val createdAt: String,
 
-    @SerialName("updated_at")
+    @SerialName("updatedAt")
     val updatedAt: String?
 )

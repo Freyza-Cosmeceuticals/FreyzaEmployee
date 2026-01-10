@@ -2,10 +2,10 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.freyza.employee.common.Result
+import com.freyza.employee.core.Result
+import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.usecase.auth.LoginUseCase
 import com.freyza.employee.domain.usecase.auth.LoginWithGoogleUseCase
-import com.freyza.employee.util.Logger
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +17,10 @@ class LoginViewModel(
     private val loginUseCase: LoginUseCase,
     private val loginWithGoogleUseCase: LoginWithGoogleUseCase,
 ) : ViewModel() {
+
+    companion object {
+        const val TAG = "AUTH"
+    }
 
     private val _uiState = MutableStateFlow<Result<UserInfo>?>(null)
     val uiState: StateFlow<Result<UserInfo>?> = _uiState.asStateFlow()
@@ -30,17 +34,17 @@ class LoginViewModel(
             when (result) {
                 is LoginUseCase.Output.Success -> {
                     _uiState.update { Result.Success(result.userInfo) }
-                    Logger.d("AUTH", "Login with email success")
+                    Logger.d(TAG, "Login with email success")
                 }
 
                 is LoginUseCase.Output.Failure -> {
                     _uiState.update {
                         Result.Error(
-                            "Error logging in ${result.message}",
+                            result.message,
                             data = null
                         )
                     }
-                    Logger.d("AUTH", "Login with email failed ${result.message}")
+                    Logger.d(TAG, "Login with email failed ${result.message}")
                 }
             }
         }
@@ -55,12 +59,12 @@ class LoginViewModel(
             when (result) {
                 is LoginWithGoogleUseCase.Output.Success -> {
                     _uiState.value = Result.Success(result.userInfo)
-                    Logger.d("AUTH", "Login with google success")
+                    Logger.d(TAG, "Login with google success")
                 }
 
                 is LoginWithGoogleUseCase.Output.Failure -> {
                     _uiState.value = Result.Error("Login  failed ${result.message}")
-                    Logger.d("AUTH", "Login with google failed ${result.message}")
+                    Logger.d(TAG, "Login with google failed ${result.message}")
                 }
             }
         }

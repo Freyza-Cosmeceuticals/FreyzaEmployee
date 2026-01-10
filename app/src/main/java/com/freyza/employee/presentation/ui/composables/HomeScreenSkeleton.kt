@@ -30,12 +30,12 @@ fun HomeScreenSkeleton(modifier: Modifier = Modifier) {
         Skeleton(
             Modifier
                 .width(200.dp)
-                .height(10.dp)
+                .height(20.dp)
         )
         Skeleton(
             Modifier
                 .width(200.dp)
-                .height(10.dp)
+                .height(20.dp)
         )
 
         Spacer(Modifier.height(64.dp))

@@ -1,7 +1,7 @@
 package com.freyza.employee.domain.usecase.expense.impl
 
-import com.freyza.employee.common.Result
-import com.freyza.employee.data.repository.ExpenseRepository
+import com.freyza.employee.core.Result
+import com.freyza.employee.domain.repository.ExpenseRepository
 import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

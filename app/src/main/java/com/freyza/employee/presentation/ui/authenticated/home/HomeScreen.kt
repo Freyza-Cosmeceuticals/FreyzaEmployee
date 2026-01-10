@@ -20,18 +20,19 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.freyza.employee.common.MainViewModel
-import com.freyza.employee.common.Result
+import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.Expense
-import com.freyza.employee.domain.model.HomeScreenUiState
-import com.freyza.employee.domain.model.MainUiState
+import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyExpenses
 import com.freyza.employee.domain.model.dummyUser
 import com.freyza.employee.presentation.ui.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.composables.LoadingScreen
+import com.freyza.employee.presentation.ui.state.HomeScreenUiState
+import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
+import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -39,7 +40,6 @@ import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.koin.androidx.compose.koinViewModel
-import kotlin.time.ExperimentalTime
 
 @Composable
 fun HomeScreen(
@@ -61,11 +61,7 @@ fun HomeScreen(
 
         is Result.Success -> {
             ActualHomeScreen(
-                uiState,
-                mainUiState.data!!,
-                onNavigateToUnauthenticated,
-                onLogoutClicked,
-                modifier
+                uiState, mainUiState.data!!, onNavigateToUnauthenticated, onLogoutClicked, modifier
             )
         }
 
@@ -102,18 +98,18 @@ private fun ActualHomeScreen(
         }
 
         Text("Welcome back ${mainUiState.user.name}")
-
         DebugUserInfo(mainUiState.user)
 
         Spacer(modifier = Modifier.height(16.dp))
 
         when (uiState) {
             is Result.Loading -> {
-                LoadingScreen(message = "Loading your recent expenses...")
+                LoadingScreen(message = "Loading..")
             }
 
             is Result.Success -> {
                 ExpenseList(uiState.data!!.recentExpenses)
+                DebugTravelPlan(uiState.data.currentTravelPlan)
             }
 
             is Result.Error -> {
@@ -127,42 +123,25 @@ private fun ActualHomeScreen(
 }
 
 
-@OptIn(ExperimentalTime::class)
 @Composable
 private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
     Card {
-        Column(modifier = Modifier.padding(8.dp)) {
+        Column(modifier = modifier.padding(8.dp)) {
 
             Text(user.id, fontFamily = FontFamily.Monospace)
             Text(user.name)
+            Text(user.email)
+            Text(user.phone)
+
             Text(user.role.titleCase())
             Text(user.status.titleCase())
-            Text(user.location.toString())
-            Text(
-                user.createdAt.toLocalDateTime(TimeZone.currentSystemDefault())
-                    .format(LocalDateTime.Format {
-                        day()
-                        char('/')
-                        monthName(MonthNames.ENGLISH_ABBREVIATED)
-                        char('/')
-                        year()
-                    })
-            )
 
-            user.updatedAt?.let {
-                Text(
-                    it.toLocalDateTime(TimeZone.currentSystemDefault())
-                        .format(LocalDateTime.Format {
-                            day()
-                            char('/')
-                            monthName(MonthNames.ENGLISH_ABBREVIATED)
-                            char('/')
-                            year()
-                        })
-                )
-            }
+            Text(user.tier?.fullForm.toString())
+            Text(user.hqId.toString())
 
-            user.userInfo?.email?.let { Text(it) }
+            Text(user.createdAt)
+            Text(user.updatedAt.toString())
+
             user.userInfo?.lastSignInAt?.let {
                 Text(
                     it.toLocalDateTime(TimeZone.currentSystemDefault())
@@ -174,6 +153,28 @@ private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
                             year()
                         })
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DebugTravelPlan(travelPlan: TravelPlan?, modifier: Modifier = Modifier) {
+    Card {
+        Column(modifier = modifier.padding(8.dp)) {
+
+            if (travelPlan === null) {
+                Text("No Travel Plan")
+            } else {
+                Text(travelPlan.id, fontFamily = FontFamily.Monospace)
+                Text(travelPlan.employeeId)
+                Text(travelPlan.month)
+                Text(travelPlan.createdById)
+
+                Text(travelPlan.travelPlanEntries.size.toString())
+
+                Text(travelPlan.createdAt)
+                Text(travelPlan.updatedAt.toString())
             }
         }
     }
