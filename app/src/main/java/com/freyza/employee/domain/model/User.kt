@@ -49,7 +49,7 @@ enum class EmployeeTier(val fullForm: String) {
     ASM("Area Sales Manager");
 }
 
-fun dummyUser(): User = User(
+fun dummyUserEmployee(): User = User(
     id = "e599b508-cf9c-417d-99b5-08cf9ca17d31",
     name = "Mario Mario",
     email = "employee.sample@freyza.com",
@@ -61,6 +61,22 @@ fun dummyUser(): User = User(
     joiningDate = LocalDate.parse("2025-10-10"),
     resignDate = null,
     createdAt = Instant.parse("2025-10-10T18:15:03.410287+00"),
+    updatedAt = null,
+    userInfo = null,
+)
+
+fun dummyUserAdmin(): User = User(
+    id = "a97dea77-a611-403f-bdea-77a611203f43",
+    name = "Mario Admin",
+    email = "admin.sample@freyza.com",
+    phone = "8738339000",
+    role = UserRole.ADMIN,
+    status = UserStatus.ACTIVE,
+    tier = null,
+    hqId = null,
+    joiningDate = LocalDate.parse("2023-10-10"),
+    resignDate = null,
+    createdAt = Instant.parse("2023-10-09T18:15:03.410287+00"),
     updatedAt = null,
     userInfo = null,
 )

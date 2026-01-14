@@ -25,6 +25,7 @@ import kotlinx.datetime.Month
 @Composable
 fun TodayCard(today: LocalDateTime, modifier: Modifier = Modifier) {
     Card(
+        onClick = {},
         modifier = modifier,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {

@@ -1,6 +1,6 @@
 package com.freyza.employee.presentation.nav
 
-import androidx.compose.ui.graphics.vector.ImageVector
+import com.freyza.employee.R
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -39,15 +39,23 @@ sealed class NavigationRoutes {
     }
 }
 
-sealed class BottomNavItem(val route: NavigationRoutes, val icon: ImageVector?, val label: String) {
-    object Home : BottomNavItem(NavigationRoutes.Authenticated.Home, icon = null, label = "Home")
+sealed class BottomNavItem(val route: NavigationRoutes, val icon: Int?, val label: String) {
+    object Home : BottomNavItem(
+        NavigationRoutes.Authenticated.Home,
+        icon = R.drawable.home_24px,
+        label = "Home"
+    )
 
     object TravelPlan :
-        BottomNavItem(NavigationRoutes.Authenticated.TravelPlan, icon = null, label = "Travel Plan")
+        BottomNavItem(
+            NavigationRoutes.Authenticated.TravelPlan,
+            icon = R.drawable.calendar_month_24px,
+            label = "Travel Plan"
+        )
 
     object ExpenseHistory : BottomNavItem(
         NavigationRoutes.Authenticated.ExpenseHistory,
-        icon = null,
+        icon = R.drawable.empty_dashboard_24px,
         label = "History",
     )
 

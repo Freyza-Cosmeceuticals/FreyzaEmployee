@@ -20,6 +20,7 @@ data class TravelPlan(
 data class TravelPlanEntry(
     val id: String,
     val tpId: String,
+
     val date: LocalDate,
     val dayType: DayType,
     val routeId: String?,
@@ -46,7 +47,7 @@ fun dummyTravelPlan(): TravelPlan = TravelPlan(
             tpId = "2d201f46-0310-4a9a-a01f-4603108a9af5",
             date = LocalDate.parse("2026-01-01"),
             dayType = DayType.WORK,
-            routeId = "f138ed75-c8cf-4431-b8ed-75c8cf9431d2",
+            routeId = "69c07d79-d679-48f6-807d-79d67948f675",
             createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),
             updatedAt = Instant.parse("2026-01-10T08:05:02.681+00:00")
         ), TravelPlanEntry(
@@ -71,10 +72,31 @@ fun dummyTravelPlan(): TravelPlan = TravelPlan(
     updatedAt = Instant.parse("2026-01-10T08:05:02.681+00:00")
 )
 
-fun dummyTravelPlanEntry() = TravelPlanEntry(
-    id = "8dc07977-bb02-4a9e-8079-77bb02ba9ebe",
+fun dummyTravelPlanEntryWork() = TravelPlanEntry(
+    id = "680631fd-43d8-41c9-8631-fd43d821c9ca",
     tpId = "2d201f46-0310-4a9a-a01f-4603108a9af5",
     date = LocalDate.parse("2026-01-02"),
+    dayType = DayType.WORK,
+    routeId = "99fe0183-502d-4b2b-be01-83502ddb2b74",
+    createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),
+    updatedAt = Instant.parse("2026-01-10T08:05:02.681+00:00")
+)
+
+fun dummyTravelPlanEntryHoliday() = TravelPlanEntry(
+    id = "ee936123-4e68-4c01-9361-234e683c01e0",
+    tpId = "2d201f46-0310-4a9a-a01f-4603108a9af5",
+    date = LocalDate.parse("2026-01-03"),
+    dayType = DayType.HOLIDAY,
+    routeId = null,
+    createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),
+    updatedAt = Instant.parse("2026-01-10T08:05:02.681+00:00")
+)
+
+
+fun dummyTravelPlanEntryLeave() = TravelPlanEntry(
+    id = "8dc07977-bb02-4a9e-8079-77bb02ba9ebe",
+    tpId = "2d201f46-0310-4a9a-a01f-4603108a9af5",
+    date = LocalDate.parse("2026-01-04"),
     dayType = DayType.LEAVE,
     routeId = null,
     createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),

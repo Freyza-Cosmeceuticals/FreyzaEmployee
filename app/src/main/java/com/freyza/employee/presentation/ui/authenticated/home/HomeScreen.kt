@@ -39,9 +39,12 @@ import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyExpenses
+import com.freyza.employee.domain.model.dummyLocation
+import com.freyza.employee.domain.model.dummyLocationAlt
+import com.freyza.employee.domain.model.dummyRoute
 import com.freyza.employee.domain.model.dummyTravelPlan
-import com.freyza.employee.domain.model.dummyTravelPlanEntry
-import com.freyza.employee.domain.model.dummyUser
+import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
+import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
@@ -161,6 +164,18 @@ private fun ActualHomeScreen(
                 )
                 TodayPlanCard(
                     when (val data = uiState.todayTravelPlanEntry) {
+                        is UIState.Error -> null
+                        is UIState.Idle -> null
+                        is UIState.Loading -> null
+                        is UIState.Ready -> data.data
+                    },
+                    route = when (val data = uiState.todayPlanEntryRoute) {
+                        is UIState.Error -> null
+                        is UIState.Idle -> null
+                        is UIState.Loading -> null
+                        is UIState.Ready -> data.data
+                    },
+                    srcDestPair = when (val data = uiState.todayPlanEntrySrcDest) {
                         is UIState.Error -> null
                         is UIState.Idle -> null
                         is UIState.Loading -> null
@@ -374,7 +389,10 @@ fun ExpenseList(expenses: List<Expense>) {
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(
+    showSystemUi = true,
+    showBackground = true
+)
 @Composable
 fun HomeScreenPreview() {
     FreyzaEmployeeTheme {
@@ -382,11 +400,13 @@ fun HomeScreenPreview() {
             HomeScreenUiState(
                 UIState.Ready(dummyExpenses()),
                 currentTravelPlan = UIState.Ready(dummyTravelPlan()),
-                todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntry())
+                todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
+                todayPlanEntryRoute = UIState.Ready(dummyRoute()),
+                todayPlanEntrySrcDest = UIState.Ready(dummyLocation() to dummyLocationAlt())
             ),
             MainUiState(
                 hasValidSession = true,
-                user = dummyUser(),
+                user = dummyUserEmployee(),
                 today = LocalDateTime(
                     year = 2026,
                     month = Month.JANUARY,

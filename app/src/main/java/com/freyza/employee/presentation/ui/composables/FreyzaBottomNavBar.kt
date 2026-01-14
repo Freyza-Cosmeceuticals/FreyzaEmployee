@@ -1,5 +1,6 @@
 package com.freyza.employee.presentation.ui.composables
 
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
@@ -8,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -16,9 +18,9 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.freyza.employee.core.util.Logger
 import com.freyza.employee.presentation.nav.BottomNavItem
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
-import com.freyza.employee.core.util.Logger
 
 private const val TAG = "BOTTOM_BAR"
 private const val ROUTE_PREFIX = "com.freyza.employee.presentation.nav."
@@ -63,7 +65,14 @@ private fun ActualNavBar(
         screens.forEach { screen ->
             NavigationBarItem(
                 label = { Text(screen.label) },
-                icon = { screen.icon },
+                icon = {
+                    screen.icon?.let {
+                        Icon(
+                            painter = painterResource(it),
+                            contentDescription = null
+                        )
+                    }
+                },
                 selected = currentDestination?.hierarchy?.any {
                     it.hasRoute(screen.route::class)
                 } == true,

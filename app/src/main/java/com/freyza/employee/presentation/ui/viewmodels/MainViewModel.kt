@@ -180,7 +180,7 @@ class MainViewModel(
                            SessionStatus: Authenticated
                            Access Token: $token
                            Session expiry:${status.session.expiresAt.toLocalDateTime(TimeZone.currentSystemDefault())}
-                    """
+                    """.trimIndent()
                         )
                         _toastMessageFlow.emit("Authenticated")
                     }
