@@ -2,6 +2,7 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.UserRole
@@ -21,10 +22,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
-const val TAG = "MainViewModel/AUTH"
+const val TAG = "MAIN_VIEW_MODEL"
 
 class MainViewModel(
     private val auth: Auth, val getUserUseCase: GetUserUseCase, val logoutUseCase: LogoutUseCase
@@ -89,17 +92,26 @@ class MainViewModel(
 
                         _uiState.update {
                             UIState.Ready(
-                                it.data?.copy(hasValidSession = true, user = user) ?: MainUiState(
-                                    hasValidSession = true, user = user
+                                it.data?.copy(
+                                    hasValidSession = true,
+                                    user = user,
+                                    today = getTodayDate()
+                                ) ?: MainUiState(
+                                    hasValidSession = true, user = user, today = getTodayDate()
                                 )
                             )
                         }
                     } else {
                         _uiState.update {
                             UIState.Ready(
-                                it.data?.copy(hasValidSession = false, user = null) ?: MainUiState(
-                                    hasValidSession = false, user = null
+                                it.data?.copy(
+                                    hasValidSession = false,
+                                    user = null,
+                                    today = getTodayDate()
                                 )
+                                    ?: MainUiState(
+                                        hasValidSession = false, user = null, getTodayDate()
+                                    )
                             )
                         }
                     }
@@ -108,11 +120,20 @@ class MainViewModel(
                 _uiState.update {
                     UIState.Error(
                         e.message.toString(),
-                        data = it.data?.copy(hasValidSession = false, user = null)
+                        data = it.data?.copy(
+                            hasValidSession = false,
+                            user = null,
+                            today = getTodayDate()
+                        )
                     )
                 }
             }
         }
+    }
+
+    private fun getTodayDate(): LocalDateTime {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.of(Constants.TIMEZONE))
+        return today
     }
 
     fun logout() {
@@ -123,9 +144,13 @@ class MainViewModel(
                 is LogoutUseCase.Output.Success -> {
                     _uiState.update {
                         UIState.Ready(
-                            it.data?.copy(hasValidSession = false, user = null) ?: MainUiState(
+                            it.data?.copy(
                                 hasValidSession = false,
-                                user = null
+                                user = null,
+                                today = getTodayDate()
+                            ) ?: MainUiState(
+                                hasValidSession = false,
+                                user = null, today = getTodayDate()
                             )
                         )
                     }

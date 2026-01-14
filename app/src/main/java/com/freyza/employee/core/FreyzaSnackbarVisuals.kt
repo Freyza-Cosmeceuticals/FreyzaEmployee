@@ -1,4 +1,4 @@
-package com.freyza.employee
+package com.freyza.employee.core
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration

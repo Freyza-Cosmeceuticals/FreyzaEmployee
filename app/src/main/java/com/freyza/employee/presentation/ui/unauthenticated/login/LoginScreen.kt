@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -39,12 +41,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
-import com.freyza.employee.SnackbarType
+import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
-import com.freyza.employee.showTypedSnackbar
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
@@ -94,6 +96,7 @@ private fun ActualLoginScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(it)
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center,

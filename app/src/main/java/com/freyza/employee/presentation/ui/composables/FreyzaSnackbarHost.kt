@@ -8,9 +8,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.freyza.employee.FreyzaSnackbarVisuals
-import com.freyza.employee.SnackbarType
-import com.freyza.employee.asSnackbarColors
+import com.freyza.employee.core.FreyzaSnackbarVisuals
+import com.freyza.employee.core.SnackbarType
+import com.freyza.employee.core.asSnackbarColors
 
 @Composable
 fun FreyzaSnackbarHost(

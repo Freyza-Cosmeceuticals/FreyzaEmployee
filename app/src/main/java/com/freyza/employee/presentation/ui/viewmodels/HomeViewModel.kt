@@ -9,7 +9,6 @@ import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetTodayTravelPlanEntryUseCase
 import com.freyza.employee.domain.usecase.user.GetCurrentUserUseCase
-import com.freyza.employee.domain.usecase.user.GetCurrentUserUseCase.Input
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,61 +52,38 @@ class HomeViewModel(
         }
     }
 
-    fun loadCurrentTravelPlan() {
+    fun loadCurrentTravelPlan(employeeId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(currentTravelPlan = UIState.Loading(it.currentTravelPlan.data)) }
-
-            when (val employeeInfo = getCurrentUserUseCase.execute(Input())) {
-                is GetCurrentUserUseCase.Output.Success -> {
-                    if (employeeInfo.user !== null) {
-
-                        when (val result = getCurrentTravelPlanUseCase.execute(
-                            GetCurrentTravelPlanUseCase.Input(
-                                employeeInfo.user.id
-                            )
-                        )) {
-                            is GetCurrentTravelPlanUseCase.Output.Success -> {
-                                _uiState.update {
-                                    it.copy(currentTravelPlan = UIState.Ready(result.travelPlan))
-                                }
-                                Logger.d(
-                                    TAG,
-                                    "${result.travelPlan?.id} Current Travel Plan Fetched Successfully"
-                                )
-
-                                // fetch today's entry
-                                if (result.travelPlan?.id !== null) loadTodayTravelPlanEntry(result.travelPlan.id)
-                            }
-
-                            is GetCurrentTravelPlanUseCase.Output.Failure -> {
-                                _uiState.update {
-                                    it.copy(
-                                        currentTravelPlan = UIState.Error(message = "Unable to fetch current travel plan")
-                                    )
-                                }
-                                Logger.e(TAG, "Cannot fetch current travel plan: ${result.message}")
-                            }
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                currentTravelPlan = UIState.Error(message = "Unable to fetch employee id")
-                            )
-                        }
-                        Logger.e(TAG, "Current User is null")
+            when (val result = getCurrentTravelPlanUseCase.execute(
+                GetCurrentTravelPlanUseCase.Input(
+                    employeeId
+                )
+            )) {
+                is GetCurrentTravelPlanUseCase.Output.Success -> {
+                    _uiState.update {
+                        it.copy(currentTravelPlan = UIState.Ready(result.travelPlan))
                     }
+                    Logger.d(
+                        TAG,
+                        "${result.travelPlan?.id} Current Travel Plan Fetched Successfully"
+                    )
+
+                    // fetch today's entry
+                    if (result.travelPlan?.id !== null) loadTodayTravelPlanEntry(result.travelPlan.id)
                 }
 
-                is GetCurrentUserUseCase.Output.Failure -> {
+                is GetCurrentTravelPlanUseCase.Output.Failure -> {
                     _uiState.update {
                         it.copy(
-                            currentTravelPlan = UIState.Error(message = "Unable to fetch employee id")
+                            currentTravelPlan = UIState.Error(message = "Unable to fetch current travel plan")
                         )
                     }
-                    Logger.e(TAG, "Cannot get current user id")
+                    Logger.e(TAG, "Cannot fetch current travel plan: ${result.message}")
                 }
             }
         }
+
     }
 
     fun loadTodayTravelPlanEntry(tpId: String) {
