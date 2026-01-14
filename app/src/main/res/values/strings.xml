@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">Freyza Employee</string>
-    <string name="title_activity_login">LoginActivity</string>
+    <string name="app_title">Freyza Cosmeceuticals</string>
+    <string name="login_title">Employee Login</string>
+    <string name="email_placeholder">Email</string>
+    <string name="password_placeholder">Password</string>
+    <string name="login_button">Login</string>
+    <string name="error_unknown">An error has occurred, please try again.</string>
+    <string name="error_blank_email_pass">Please enter email and password</string>
 </resources>

@@ -3,8 +3,6 @@ package com.freyza.employee.presentation.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.UIState
-import com.freyza.employee.core.UIState.Error
-import com.freyza.employee.core.UIState.Ready
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.usecase.auth.LoginUseCase
 import com.freyza.employee.domain.usecase.auth.LoginUseCase.Input
@@ -28,10 +26,18 @@ class LoginViewModel(
     val uiState = _uiState.asStateFlow()
 
     fun loginWithEmail(email: String, password: String) {
-        _uiState.value = UIState.Loading()
+        if (email.isBlank() || password.isBlank()) {
+            _uiState.update {
+                // TODO: Replace with R.string.error_blank_email_pass
+                UIState.Error("Please enter email and password", null)
+            }
 
+            return
+        }
+
+        _uiState.value = UIState.Loading()
         viewModelScope.launch {
-            when (val result = loginUseCase.execute(Input(email, password))) {
+            when (val result = loginUseCase.execute(Input(email.trim(), password.trim()))) {
                 is LoginUseCase.Output.Success -> {
                     _uiState.update {
                         UIState.Ready(result.userInfo)
@@ -62,14 +68,14 @@ class LoginViewModel(
             when (val result = loginWithGoogleUseCase.execute(LoginWithGoogleUseCase.Input())) {
                 is LoginWithGoogleUseCase.Output.Success -> {
                     _uiState.update {
-                        Ready(result.userInfo)
+                        UIState.Ready(result.userInfo)
                     }
                     Logger.d(TAG, "Login with google success")
                 }
 
                 is LoginWithGoogleUseCase.Output.Failure -> {
                     _uiState.update {
-                        Error("Login  failed ${result.message}", null)
+                        UIState.Error("Login  failed ${result.message}", null)
                     }
                     Logger.d(TAG, "Login with google failed ${result.message}")
                 }
