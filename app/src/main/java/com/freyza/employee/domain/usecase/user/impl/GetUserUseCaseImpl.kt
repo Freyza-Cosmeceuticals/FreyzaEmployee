@@ -9,8 +9,7 @@ import kotlinx.coroutines.withContext
 class GetUserUseCaseImpl(val userRepository: UserRepository) : GetUserUseCase {
     override suspend fun execute(input: GetUserUseCase.Input): GetUserUseCase.Output {
         return withContext(Dispatchers.IO) {
-            val result = userRepository.getUserById(input.id)
-            when (result) {
+            when (val result = userRepository.getUserById(input.id)) {
                 is Result.Success -> {
                     GetUserUseCase.Output.Success(result.data)
                 }

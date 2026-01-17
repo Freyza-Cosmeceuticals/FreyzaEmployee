@@ -11,8 +11,7 @@ class LoginWithGoogleUseCaseImpl(private val authRepository: AuthenticationRepos
     LoginWithGoogleUseCase {
     override suspend fun execute(input: LoginWithGoogleUseCase.Input): Output {
         return withContext(Dispatchers.IO) {
-            val result = authRepository.loginWithGoogle()
-            when (result) {
+            when (val result = authRepository.loginWithGoogle()) {
                 is AuthResponse.Success -> {
                     Output.Success(result.userInfo)
                 }

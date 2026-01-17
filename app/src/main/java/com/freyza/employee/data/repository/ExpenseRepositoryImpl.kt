@@ -2,8 +2,8 @@ package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
 import com.freyza.employee.data.network.dto.ExpenseEntryDto
-import com.freyza.employee.domain.repository.ExpenseRepository
 import com.freyza.employee.domain.model.Expense
+import com.freyza.employee.domain.repository.ExpenseRepository
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -61,7 +61,7 @@ class ExpenseRepositoryImpl(private val postrest: Postgrest) : ExpenseRepository
     override suspend fun getRecentExpenses(numExpenses: Long): Result<List<Expense>> {
         return try {
             withContext(Dispatchers.IO) {
-                val expensesDto = postrest.from("expenses").select() {
+                val expensesDto = postrest.from("expenses").select {
                     limit(count = numExpenses)
                 }.decodeList<ExpenseEntryDto>()
                 val expenses = expensesDto.map {

@@ -17,23 +17,23 @@ object DateFormatter {
     }
 
     val dateFormatter = LocalDate.Format {
-        year(); char('-'); monthNumber(); char('-'); day();
+        year(); char('-'); monthNumber(); char('-'); day()
     }
 
     val humanDateFormatter = LocalDate.Format {
-        monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year();
+        monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
     }
 
     val dateTimeFormatter = LocalDateTime.Format {
-        year(); char('-'); monthNumber(); char('-'); day();
+        year(); char('-'); monthNumber(); char('-'); day()
         char('T')
         hour(); char(':'); minute(); char(':'); second(); char('.'); secondFraction(3)
     }
 
     val humanDateTimeFormatter = LocalDateTime.Format {
-        monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year();
+        monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
         char(' ')
-        amPmHour(); char(':'); minute(); amPmMarker("AM", "PM");
+        amPmHour(); char(':'); minute(); amPmMarker("AM", "PM")
     }
 
     fun format(it: LocalDate, formattingType: FormattingType = FormattingType.HUMAN): String {

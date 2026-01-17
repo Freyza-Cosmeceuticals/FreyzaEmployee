@@ -20,7 +20,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
             withContext(Dispatchers.IO) {
                 Logger.d(TAG, "Querying route with ID: $routeId")
 
-                val routeDto = postgrest.from("route").select() {
+                val routeDto = postgrest.from("route").select {
                     filter {
                         RouteDto::id eq routeId
                     }

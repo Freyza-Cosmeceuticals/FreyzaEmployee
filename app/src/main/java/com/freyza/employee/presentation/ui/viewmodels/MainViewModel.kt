@@ -219,7 +219,7 @@ class MainViewModel(
 
                     else -> {
                         Logger.d(TAG, "Unhandled event: $event")
-                        _toastMessageFlow.emit("Unhandled event: ${event}")
+                        _toastMessageFlow.emit("Unhandled event: $event")
                     }
                 }
             }

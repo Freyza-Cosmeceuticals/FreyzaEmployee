@@ -10,8 +10,7 @@ class GetAllExpensesUseCaseImpl(private val expenseRepository: ExpenseRepository
     GetAllExpensesUseCase {
     override suspend fun execute(input: GetAllExpensesUseCase.Input): GetAllExpensesUseCase.Output {
         return withContext(Dispatchers.IO) {
-            val result = expenseRepository.getAllExpenses()
-            when (result) {
+            when (val result = expenseRepository.getAllExpenses()) {
                 is Result.Success -> {
                     GetAllExpensesUseCase.Output.Success(result.data ?: listOf())
                 }

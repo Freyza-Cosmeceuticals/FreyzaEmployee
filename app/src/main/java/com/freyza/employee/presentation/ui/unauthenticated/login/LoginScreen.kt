@@ -92,7 +92,7 @@ private fun ActualLoginScreen(
 
     val unknownErrorString = stringResource(R.string.error_unknown)
 
-    Scaffold(snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) {
+    Scaffold(snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { it ->
         Column(
             modifier = modifier
                 .fillMaxSize()

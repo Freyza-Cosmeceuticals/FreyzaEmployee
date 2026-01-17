@@ -10,8 +10,7 @@ class GetTravelPlanUseCaseImpl(val travelPlanRepository: TravelPlanRepository) :
     GetTravelPlanUseCase {
     override suspend fun execute(input: GetTravelPlanUseCase.Input): GetTravelPlanUseCase.Output {
         return withContext(Dispatchers.IO) {
-            val result = travelPlanRepository.getTravelPlan(input.id)
-            when (result) {
+            when (val result = travelPlanRepository.getTravelPlan(input.id)) {
                 is Result.Success -> {
                     GetTravelPlanUseCase.Output.Success(result.data)
                 }

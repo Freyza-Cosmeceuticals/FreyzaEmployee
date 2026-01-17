@@ -40,7 +40,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
             withContext(Dispatchers.IO) {
                 Logger.d(TAG, "Querying travelPlan for current employee and month: $thisMonth")
 
-                val travelPlanDto = postgrest.from("travelPlan").select() {
+                val travelPlanDto = postgrest.from("travelPlan").select {
                     filter {
                         TravelPlanDto::employeeId eq employeeId
                         TravelPlanDto::month eq thisMonth
@@ -76,7 +76,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
             withContext(Dispatchers.IO) {
                 Logger.d(TAG, "Querying travelPlanEntry for current employee and day: $thisDay")
 
-                val travelPlanEntryDto = postgrest.from("travelPlanEntry").select() {
+                val travelPlanEntryDto = postgrest.from("travelPlanEntry").select {
                     filter {
                         TravelPlanEntryDto::tpId eq tpId
                         TravelPlanEntryDto::date eq thisDay
@@ -107,7 +107,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
     override suspend fun getTravelPlan(id: String): Result<TravelPlan> {
         return try {
             withContext(Dispatchers.IO) {
-                val travelPlanDto = postgrest.from("travelPlan").select() {
+                val travelPlanDto = postgrest.from("travelPlan").select {
                     filter { TravelPlanDto::id eq id }
                 }.decodeSingleOrNull<TravelPlanDto>()
 

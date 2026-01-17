@@ -141,8 +141,8 @@ fun RouteArrow(
     srcText: String,
     destText: String,
     padding: Int,
-    strokeWidth: Dp = 3.dp,
     modifier: Modifier = Modifier,
+    strokeWidth: Dp = 3.dp,
     lineColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     // Create a text measurer for dynamic text measurement

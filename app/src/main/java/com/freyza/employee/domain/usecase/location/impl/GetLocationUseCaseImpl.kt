@@ -9,8 +9,7 @@ import kotlinx.coroutines.withContext
 class GetLocationUseCaseImpl(val locationRepository: LocationRepository) : GetLocationUseCase {
     override suspend fun execute(input: GetLocationUseCase.Input): GetLocationUseCase.Output {
         return withContext(Dispatchers.IO) {
-            val result = locationRepository.getLocation(input.id)
-            when (result) {
+            when (val result = locationRepository.getLocation(input.id)) {
                 is Result.Success -> GetLocationUseCase.Output.Success(result.data)
                 is Result.Error -> GetLocationUseCase.Output.Failure(result.message ?: "")
                 else -> GetLocationUseCase.Output.Failure(result.message ?: "")

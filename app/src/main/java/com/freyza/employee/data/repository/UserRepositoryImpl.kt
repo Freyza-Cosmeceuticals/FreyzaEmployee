@@ -24,7 +24,7 @@ class UserRepositoryImpl(
     override suspend fun getUserById(id: String): Result<User> {
         return try {
             withContext(Dispatchers.IO) {
-                val userDto = postgres.from("user").select() {
+                val userDto = postgres.from("user").select {
                     filter {
                         UserDto::id eq id
                     }

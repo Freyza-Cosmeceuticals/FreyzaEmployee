@@ -10,8 +10,7 @@ class GetRecentExpensesUseCaseImpl(private val expenseRepository: ExpenseReposit
     GetRecentExpensesUseCase {
     override suspend fun execute(input: GetRecentExpensesUseCase.Input): GetRecentExpensesUseCase.Output {
         return withContext(Dispatchers.IO) {
-            val result = expenseRepository.getRecentExpenses(input.numExpense)
-            when (result) {
+            when (val result = expenseRepository.getRecentExpenses(input.numExpense)) {
                 is Result.Success -> {
                     GetRecentExpensesUseCase.Output.Success(result.data ?: listOf())
                 }

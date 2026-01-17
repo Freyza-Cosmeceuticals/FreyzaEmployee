@@ -9,8 +9,7 @@ import kotlinx.coroutines.withContext
 class LoginUseCaseImpl(private val authRepository: AuthenticationRepository) : LoginUseCase {
     override suspend fun execute(input: LoginUseCase.Input): LoginUseCase.Output {
         return withContext(Dispatchers.IO) {
-            val result = authRepository.login(input.email, input.password)
-            when (result) {
+            when (val result = authRepository.login(input.email, input.password)) {
                 is AuthResponse.Success -> {
                     LoginUseCase.Output.Success(result.userInfo)
                 }

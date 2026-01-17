@@ -20,7 +20,7 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
             withContext(Dispatchers.IO) {
                 Logger.d(TAG, "Querying location with ID: $locationId")
 
-                val locationDto = postgrest.from("location").select() {
+                val locationDto = postgrest.from("location").select {
                     filter {
                         LocationDto::id eq locationId
                     }

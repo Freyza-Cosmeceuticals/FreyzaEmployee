@@ -9,8 +9,7 @@ import kotlinx.coroutines.withContext
 class GetRouteUseCaseImpl(val routeRepository: RouteRepository) : GetRouteUseCase {
     override suspend fun execute(input: GetRouteUseCase.Input): GetRouteUseCase.Output {
         return withContext(Dispatchers.IO) {
-            val result = routeRepository.getRoute(input.id)
-            when (result) {
+            when (val result = routeRepository.getRoute(input.id)) {
                 is Result.Success -> GetRouteUseCase.Output.Success(result.data)
                 is Result.Error -> GetRouteUseCase.Output.Failure(result.message ?: "")
                 else -> GetRouteUseCase.Output.Failure(result.message ?: "")
