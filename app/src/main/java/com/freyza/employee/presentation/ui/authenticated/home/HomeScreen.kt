@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -73,7 +71,6 @@ fun HomeScreenRoute(
 ) {
 
   val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
-  val onLogoutClicked = { mainViewModel.logout() }
 
   when (mainUiState) {
     is UIState.Loading -> {
@@ -96,8 +93,6 @@ fun HomeScreenRoute(
       HomeScreen(
         uiState,
         data,
-        onNavigateToUnauthenticated,
-        onLogoutClicked,
         modifier
       )
     }
@@ -110,16 +105,12 @@ fun HomeScreenRoute(
       HomeScreenSkeleton()
     }
   }
-
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 private fun HomeScreen(
   uiState: HomeScreenUiState,
   mainUiState: MainUiState,
-  onNavigateToUnauthenticated: () -> Unit,
-  onLogoutClicked: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val scope = rememberCoroutineScope()
@@ -308,10 +299,6 @@ private fun HomeScreen(
 //
 //                else -> {}
 //            }
-
-      item {
-        Button(onClick = onLogoutClicked) { Text("Logout") }
-      }
     }
   }
 }
@@ -427,10 +414,12 @@ fun HomeScreenPreview() {
         todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
         todayPlanEntryRoute = UIState.Ready(dummyRoute()),
         todayPlanEntrySrcDest = UIState.Ready(dummyLocation() to dummyLocationAlt())
-      ), MainUiState(
+      ),
+      MainUiState(
         hasValidSession = true, user = dummyUserEmployee(), today = LocalDateTime(
           year = 2026, month = Month.JANUARY, day = 1, hour = 5, minute = 59, second = 59
         )
-      ), {}, {})
+      )
+    )
   }
 }

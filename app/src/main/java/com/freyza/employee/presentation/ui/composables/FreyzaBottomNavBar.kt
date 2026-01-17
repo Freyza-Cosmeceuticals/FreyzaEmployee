@@ -27,78 +27,81 @@ private const val ROUTE_PREFIX = "com.freyza.employee.presentation.nav."
 
 @Composable
 fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifier) {
-    val screens = setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory)
+  val screens = setOf(
+    BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory,
+    BottomNavItem.Profile
+  )
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
+  val navBackStackEntry by navController.currentBackStackEntryAsState()
 
-    Logger.d(
-        TAG,
-        "Current Screen Changed: ${
-            navBackStackEntry?.destination?.route.toString()
-                .replace(ROUTE_PREFIX, "")
-        }"
-    )
+  Logger.d(
+    TAG,
+    "Current Screen Changed: ${
+      navBackStackEntry?.destination?.route.toString()
+        .replace(ROUTE_PREFIX, "")
+    }"
+  )
 
-    val currentDestination = navBackStackEntry?.destination
+  val currentDestination = navBackStackEntry?.destination
 
-    val bottomBarDestination = screens.any { screen ->
-        currentDestination?.hierarchy?.any {
-            it.hasRoute(screen.route::class)
-        } == true
-    }
+  val bottomBarDestination = screens.any { screen ->
+    currentDestination?.hierarchy?.any {
+      it.hasRoute(screen.route::class)
+    } == true
+  }
 
-    // Show the Bottom Bar only if current destination is a bottom bar one (i.e. Authenticated)
-    if (bottomBarDestination) {
-        ActualNavBar(screens, navController, currentDestination, modifier)
-    }
+  // Show the Bottom Bar only if current destination is a bottom bar one (i.e. Authenticated)
+  if (bottomBarDestination) {
+    ActualNavBar(screens, navController, currentDestination, modifier)
+  }
 }
 
 @Composable
 private fun ActualNavBar(
-    screens: Set<BottomNavItem>,
-    navController: NavController,
-    currentDestination: NavDestination?,
-    modifier: Modifier = Modifier
+  screens: Set<BottomNavItem>,
+  navController: NavController,
+  currentDestination: NavDestination?,
+  modifier: Modifier = Modifier,
 ) {
-    NavigationBar(windowInsets = NavigationBarDefaults.windowInsets, modifier = modifier) {
+  NavigationBar(windowInsets = NavigationBarDefaults.windowInsets, modifier = modifier) {
 
-        screens.forEach { screen ->
-            NavigationBarItem(
-                label = { Text(screen.label) },
-                icon = {
-                    screen.icon?.let {
-                        Icon(
-                            painter = painterResource(it),
-                            contentDescription = null
-                        )
-                    }
-                },
-                selected = currentDestination?.hierarchy?.any {
-                    it.hasRoute(screen.route::class)
-                } == true,
-                onClick = {
-                    navController.navigate(screen.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                colors = NavigationBarItemDefaults.colors(),
+    screens.forEach { screen ->
+      NavigationBarItem(
+        label = { Text(screen.label) },
+        icon = {
+          screen.icon?.let {
+            Icon(
+              painter = painterResource(it),
+              contentDescription = null
             )
-        }
+          }
+        },
+        selected = currentDestination?.hierarchy?.any {
+          it.hasRoute(screen.route::class)
+        } == true,
+        onClick = {
+          navController.navigate(screen.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+              saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+          }
+        },
+        colors = NavigationBarItemDefaults.colors(),
+      )
     }
+  }
 }
 
 @Composable
 @Preview
 fun FreyzaNavBarPreview() {
-    FreyzaEmployeeTheme {
-        ActualNavBar(
-            setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory),
-            rememberNavController(),
-            NavDestination("")
-        )
-    }
+  FreyzaEmployeeTheme {
+    ActualNavBar(
+      setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory),
+      rememberNavController(),
+      NavDestination("")
+    )
+  }
 }

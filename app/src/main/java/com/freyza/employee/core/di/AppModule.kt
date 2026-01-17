@@ -44,6 +44,7 @@ import com.freyza.employee.domain.usecase.user.impl.GetUserUseCaseImpl
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
+import com.freyza.employee.presentation.ui.viewmodels.ProfileViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.FlowType
@@ -56,75 +57,76 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    single<AppConfig> {
-        AppConfig(
-            BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_PUBLISHABLE_KEY
-        )
-    }
+  single<AppConfig> {
+    AppConfig(
+      BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_PUBLISHABLE_KEY
+    )
+  }
 
-    single<SessionManager> {
-        SessionManager()
-    }
+  single<SessionManager> {
+    SessionManager()
+  }
 }
 
 val repositoryModule = module {
-    single<AuthenticationRepository> { AuthenticationRepositoryImpl(get()) }
-    single<ExpenseRepository> { ExpenseRepositoryImpl(get()) }
-    single<TravelPlanRepository> { TravelPlanRepositoryImpl(get()) }
-    single<UserRepository> { UserRepositoryImpl(get(), get()) }
-    single<LocationRepository> { LocationRepositoryImpl(get()) }
-    single<RouteRepository> { RouteRepositoryImpl(get()) }
+  single<AuthenticationRepository> { AuthenticationRepositoryImpl(get()) }
+  single<ExpenseRepository> { ExpenseRepositoryImpl(get()) }
+  single<TravelPlanRepository> { TravelPlanRepositoryImpl(get()) }
+  single<UserRepository> { UserRepositoryImpl(get(), get()) }
+  single<LocationRepository> { LocationRepositoryImpl(get()) }
+  single<RouteRepository> { RouteRepositoryImpl(get()) }
 }
 
 val supabaseModule = module {
-    single<SupabaseClient> {
-        createSupabaseClient(
-            supabaseUrl = get<AppConfig>().supabaseUrl,
-            supabaseKey = get<AppConfig>().supabasePublishableKey
-        ) {
-            install(Auth) {
-                flowType = FlowType.PKCE
-                scheme = "app"
-                host = "supabase.com"
-            }
-            install(Postgrest) {
-                propertyConversionMethod = PropertyConversionMethod.NONE
-            }
-        }
+  single<SupabaseClient> {
+    createSupabaseClient(
+      supabaseUrl = get<AppConfig>().supabaseUrl,
+      supabaseKey = get<AppConfig>().supabasePublishableKey
+    ) {
+      install(Auth) {
+        flowType = FlowType.PKCE
+        scheme = "app"
+        host = "supabase.com"
+      }
+      install(Postgrest) {
+        propertyConversionMethod = PropertyConversionMethod.NONE
+      }
     }
+  }
 
-    single<Auth> {
-        get<SupabaseClient>().auth
-    }
+  single<Auth> {
+    get<SupabaseClient>().auth
+  }
 
-    single<Postgrest> {
-        get<SupabaseClient>().postgrest
-    }
+  single<Postgrest> {
+    get<SupabaseClient>().postgrest
+  }
 
 }
 
 val useCaseModule = module {
-    single<LoginUseCase> { LoginUseCaseImpl(get()) }
-    single<RegisterUseCase> { RegisterUseCaseImpl(get()) }
-    single<LoginWithGoogleUseCase> { LoginWithGoogleUseCaseImpl(get()) }
-    single<LogoutUseCase> { LogoutUseCaseImpl(get()) }
+  single<LoginUseCase> { LoginUseCaseImpl(get()) }
+  single<RegisterUseCase> { RegisterUseCaseImpl(get()) }
+  single<LoginWithGoogleUseCase> { LoginWithGoogleUseCaseImpl(get()) }
+  single<LogoutUseCase> { LogoutUseCaseImpl(get()) }
 
-    single<GetUserUseCase> { GetUserUseCaseImpl(get()) }
-    single<GetCurrentUserUseCase> { GetCurrentUserUseCaseImpl(get()) }
+  single<GetUserUseCase> { GetUserUseCaseImpl(get()) }
+  single<GetCurrentUserUseCase> { GetCurrentUserUseCaseImpl(get()) }
 
-    single<GetAllExpensesUseCase> { GetAllExpensesUseCaseImpl(get()) }
-    single<GetRecentExpensesUseCase> { GetRecentExpensesUseCaseImpl(get()) }
+  single<GetAllExpensesUseCase> { GetAllExpensesUseCaseImpl(get()) }
+  single<GetRecentExpensesUseCase> { GetRecentExpensesUseCaseImpl(get()) }
 
-    single<GetTravelPlanUseCase> { GetTravelPlanUseCaseImpl(get()) }
-    single<GetCurrentTravelPlanUseCase> { GetCurrentTravelPlanUseCaseImpl(get()) }
-    single<GetTodayTravelPlanEntryUseCase> { GetTodayTravelPlanEntryUseCaseImpl(get()) }
+  single<GetTravelPlanUseCase> { GetTravelPlanUseCaseImpl(get()) }
+  single<GetCurrentTravelPlanUseCase> { GetCurrentTravelPlanUseCaseImpl(get()) }
+  single<GetTodayTravelPlanEntryUseCase> { GetTodayTravelPlanEntryUseCaseImpl(get()) }
 
-    single<GetLocationUseCase> { GetLocationUseCaseImpl(get()) }
-    single<GetRouteUseCase> { GetRouteUseCaseImpl(get()) }
+  single<GetLocationUseCase> { GetLocationUseCaseImpl(get()) }
+  single<GetRouteUseCase> { GetRouteUseCaseImpl(get()) }
 }
 
 val viewModelModule = module {
-    viewModel { MainViewModel(get(), get(), get(), get()) }
-    viewModel { LoginViewModel(get(), get()) }
-    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
+  viewModel { MainViewModel(get(), get(), get(), get()) }
+  viewModel { LoginViewModel(get(), get()) }
+  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
+  viewModel { ProfileViewModel(get()) }
 }
