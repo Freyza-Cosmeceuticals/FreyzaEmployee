@@ -2,6 +2,7 @@ package com.freyza.employee.core.di
 
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.core.AppConfig
+import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.data.repository.AuthenticationRepositoryImpl
 import com.freyza.employee.data.repository.ExpenseRepositoryImpl
 import com.freyza.employee.data.repository.LocationRepositoryImpl
@@ -54,11 +55,15 @@ import io.github.jan.supabase.postgrest.postgrest
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
-val appConfigModule = module {
+val appModule = module {
     single<AppConfig> {
         AppConfig(
             BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_PUBLISHABLE_KEY
         )
+    }
+
+    single<SessionManager> {
+        SessionManager()
     }
 }
 
@@ -119,7 +124,7 @@ val useCaseModule = module {
 }
 
 val viewModelModule = module {
-    viewModel { MainViewModel(get(), get(), get()) }
+    viewModel { MainViewModel(get(), get(), get(), get()) }
     viewModel { LoginViewModel(get(), get()) }
-    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
 }

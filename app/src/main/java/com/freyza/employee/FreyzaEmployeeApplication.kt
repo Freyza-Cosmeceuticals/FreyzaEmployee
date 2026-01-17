@@ -1,7 +1,7 @@
 package com.freyza.employee
 
 import android.app.Application
-import com.freyza.employee.core.di.appConfigModule
+import com.freyza.employee.core.di.appModule
 import com.freyza.employee.core.di.repositoryModule
 import com.freyza.employee.core.di.supabaseModule
 import com.freyza.employee.core.di.useCaseModule
@@ -18,7 +18,7 @@ class FreyzaEmployeeApplication : Application() {
             androidLogger(Level.ERROR)
             androidContext(this@FreyzaEmployeeApplication)
             modules(
-                appConfigModule,
+                appModule,
                 repositoryModule,
                 supabaseModule,
                 useCaseModule,

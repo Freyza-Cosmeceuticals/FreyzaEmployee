@@ -4,9 +4,9 @@ import com.freyza.employee.R
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class NavigationRoutes {
+sealed class NavRoutes {
     @Serializable
-    sealed class Unauthenticated() : NavigationRoutes() {
+    sealed class Unauthenticated() : NavRoutes() {
         @Serializable
         object NavigationRoute : Unauthenticated()
 
@@ -18,7 +18,7 @@ sealed class NavigationRoutes {
     }
 
     @Serializable
-    sealed class Authenticated() : NavigationRoutes() {
+    sealed class Authenticated() : NavRoutes() {
         @Serializable
         object NavigationRoute : Authenticated()
 
@@ -39,22 +39,22 @@ sealed class NavigationRoutes {
     }
 }
 
-sealed class BottomNavItem(val route: NavigationRoutes, val icon: Int?, val label: String) {
+sealed class BottomNavItem(val route: NavRoutes, val icon: Int?, val label: String) {
     object Home : BottomNavItem(
-        NavigationRoutes.Authenticated.Home,
+        NavRoutes.Authenticated.Home,
         icon = R.drawable.home_24px,
         label = "Home"
     )
 
     object TravelPlan :
         BottomNavItem(
-            NavigationRoutes.Authenticated.TravelPlan,
+            NavRoutes.Authenticated.TravelPlan,
             icon = R.drawable.calendar_month_24px,
             label = "Travel Plan"
         )
 
     object ExpenseHistory : BottomNavItem(
-        NavigationRoutes.Authenticated.ExpenseHistory,
+        NavRoutes.Authenticated.ExpenseHistory,
         icon = R.drawable.empty_dashboard_24px,
         label = "History",
     )

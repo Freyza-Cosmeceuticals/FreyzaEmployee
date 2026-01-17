@@ -80,7 +80,7 @@ fun HomeScreenRoute(
         is UIState.Ready -> {
             val data = mainUiState.data
 
-            if (data != null && (!data.hasValidSession || data.user == null)) {
+            if (data == null || (!data.hasValidSession || data.user == null)) {
                 LoadingIndicator(message = "Signing Out...", modifier = Modifier.fillMaxSize())
                 LaunchedEffect(mainUiState) {
                     onNavigateToUnauthenticated()
@@ -88,10 +88,11 @@ fun HomeScreenRoute(
                 return
             }
 
+            // ensured valid user exists at this point
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             HomeScreen(
                 uiState,
-                mainUiState.data!!,
+                data,
                 onNavigateToUnauthenticated,
                 onLogoutClicked,
                 loadTravelPlan,

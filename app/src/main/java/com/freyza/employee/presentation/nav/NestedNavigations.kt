@@ -16,19 +16,19 @@ import com.freyza.employee.presentation.ui.unauthenticated.login.LoginScreenRout
 */
 fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 
-    navigation<NavigationRoutes.Unauthenticated.NavigationRoute>(
-        startDestination = NavigationRoutes.Unauthenticated.Login
+    navigation<NavRoutes.Unauthenticated.NavigationRoute>(
+        startDestination = NavRoutes.Unauthenticated.Login
     ) {
 
-        composable<NavigationRoutes.Unauthenticated.Login> {
+        composable<NavRoutes.Unauthenticated.Login> {
             LoginScreenRoute(
                 // We will never navigate to registration, although
                 onNavigateToRegistration = {
-                    navController.navigate(NavigationRoutes.Unauthenticated.Register)
+                    navController.navigate(NavRoutes.Unauthenticated.Register)
                 },
                 onNavigateToAuthenticatedRoute = {
-                    navController.navigate(NavigationRoutes.Authenticated.NavigationRoute) {
-                        popUpTo(route = NavigationRoutes.Unauthenticated.NavigationRoute) {
+                    navController.navigate(NavRoutes.Authenticated.NavigationRoute) {
+                        popUpTo(route = NavRoutes.Unauthenticated.NavigationRoute) {
                             inclusive = true
                         }
                     }
@@ -36,7 +36,7 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
             )
         }
 
-        composable<NavigationRoutes.Unauthenticated.Register> {
+        composable<NavRoutes.Unauthenticated.Register> {
             Column {
 
                 Text("Register Screen is not available on Employee App")
@@ -53,35 +53,35 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
  */
 fun NavGraphBuilder.authenticatedGraph(navController: NavController) {
 
-    navigation<NavigationRoutes.Authenticated.NavigationRoute>(
-        startDestination = NavigationRoutes.Authenticated.Home
+    navigation<NavRoutes.Authenticated.NavigationRoute>(
+        startDestination = NavRoutes.Authenticated.Home
     ) {
 
-        composable<NavigationRoutes.Authenticated.Home> {
+        composable<NavRoutes.Authenticated.Home> {
             HomeScreenRoute(onNavigateToUnauthenticated = {
-                navController.navigate(route = NavigationRoutes.Unauthenticated.NavigationRoute) {
-                    popUpTo(route = NavigationRoutes.Authenticated.NavigationRoute) {
+                navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
+                    popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
                         inclusive = true
                     }
                 }
             })
         }
 
-        composable<NavigationRoutes.Authenticated.TravelPlan> {
+        composable<NavRoutes.Authenticated.TravelPlan> {
             Text("Current Travel Plan Here")
         }
 
-        composable<NavigationRoutes.Authenticated.ExpenseHistory> {
+        composable<NavRoutes.Authenticated.ExpenseHistory> {
             Text("Expense History Here")
         }
 
-        composable<NavigationRoutes.Authenticated.AddExpense> {
+        composable<NavRoutes.Authenticated.AddExpense> {
             Text("Add Expense Route")
         }
 
-        composable<NavigationRoutes.Authenticated.ExpenseDetail> { navBackStackEntry ->
+        composable<NavRoutes.Authenticated.ExpenseDetail> { navBackStackEntry ->
             val expenseId =
-                navBackStackEntry.toRoute<NavigationRoutes.Authenticated.ExpenseDetail>().expenseId
+                navBackStackEntry.toRoute<NavRoutes.Authenticated.ExpenseDetail>().expenseId
             Text("Expense detail Route for $expenseId")
         }
     }

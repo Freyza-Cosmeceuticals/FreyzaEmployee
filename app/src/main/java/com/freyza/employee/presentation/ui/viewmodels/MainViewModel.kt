@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.usecase.auth.LogoutUseCase
@@ -31,7 +32,10 @@ const val TAG = "MAIN_VIEW_MODEL"
 
 // TODO: Scope MainViewModel to NavGraph
 class MainViewModel(
-    private val auth: Auth, val getUserUseCase: GetUserUseCase, val logoutUseCase: LogoutUseCase
+    private val auth: Auth,
+    val getUserUseCase: GetUserUseCase,
+    val logoutUseCase: LogoutUseCase,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<UIState<MainUiState>>(UIState.Idle())
     val uiState = _uiState.asStateFlow()
@@ -42,6 +46,8 @@ class MainViewModel(
 
 
     init {
+        sessionManager.clearSession()
+
         initializeSession()
         listenToAuthEvents()
     }
@@ -104,6 +110,8 @@ class MainViewModel(
                                 )
                             )
                         }
+
+                        sessionManager.setCurrentEmployee(user)
                     } else {
                         _uiState.update {
                             UIState.Ready(
@@ -117,6 +125,8 @@ class MainViewModel(
                                     )
                             )
                         }
+
+                        sessionManager.clearSession()
                     }
                 }
             } catch (e: Exception) {
@@ -130,6 +140,8 @@ class MainViewModel(
                         )
                     )
                 }
+
+                sessionManager.clearSession()
             }
         }
     }
@@ -157,6 +169,7 @@ class MainViewModel(
                             )
                         )
                     }
+                    sessionManager.clearSession()
                     Logger.d("AUTH", "Logout success")
                 }
 

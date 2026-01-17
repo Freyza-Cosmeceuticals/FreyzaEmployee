@@ -4,13 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetRouteUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetTodayTravelPlanEntryUseCase
-import com.freyza.employee.domain.usecase.user.GetCurrentUserUseCase
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -23,8 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
-    private val mainViewModel: MainViewModel,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val sessionManager: SessionManager,
     private val getRecentExpensesUseCase: GetRecentExpensesUseCase,
     private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
     private val getTodayTravelPlanEntryUseCase: GetTodayTravelPlanEntryUseCase,
@@ -39,7 +38,7 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeScreenUiState())
     val uiState = _uiState
         .onStart {
-            val employeeId = mainViewModel.uiState.value.data?.user?.id
+            val employeeId = sessionManager.currentEmployee.value?.id
             if (employeeId != null) loadCurrentTravelPlan(employeeId)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeScreenUiState())
 
@@ -67,6 +66,7 @@ class HomeViewModel(
     }
 
     fun loadCurrentTravelPlan(employeeId: String) {
+        Logger.i(TAG, "Fetching current travel plan for $employeeId")
         viewModelScope.launch {
             _uiState.update { it.copy(currentTravelPlan = UIState.Loading(it.currentTravelPlan.data)) }
             when (val result = getCurrentTravelPlanUseCase.execute(
@@ -99,6 +99,7 @@ class HomeViewModel(
     }
 
     private fun loadTodayTravelPlanEntry(tpId: String) {
+        Logger.i(TAG, "Fetching today travel plan entry for tp:$tpId")
         viewModelScope.launch {
             _uiState.update { it.copy(todayTravelPlanEntry = UIState.Loading(it.todayTravelPlanEntry.data)) }
 
@@ -131,6 +132,7 @@ class HomeViewModel(
     }
 
     private fun loadCurrentRoute(routeId: String) {
+        Logger.i(TAG, "Fetching route with $routeId")
         viewModelScope.launch {
             _uiState.update { it.copy(todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data)) }
             when (val result = getRouteUseCase.execute(GetRouteUseCase.Input(routeId))) {
@@ -162,6 +164,7 @@ class HomeViewModel(
     }
 
     private fun loadLocationPair(srcLocId: String, destLocId: String) {
+        Logger.i(TAG, "Fetching location pair for $srcLocId -> $destLocId")
         viewModelScope.launch {
             _uiState.update { it.copy(todayPlanEntrySrcDest = UIState.Loading(it.todayPlanEntrySrcDest.data)) }
 
@@ -186,6 +189,11 @@ class HomeViewModel(
                             )
                         )
                     }
+
+                    Logger.d(
+                        TAG,
+                        "${srcResult.location?.id} -> ${destResult.location?.id} Location Pair Fetched Successfully ${srcResult.location} -> ${destResult.location}"
+                    )
                 } else {
                     _uiState.update {
                         it.copy(
@@ -194,6 +202,11 @@ class HomeViewModel(
                             )
                         )
                     }
+
+                    if (srcResult is GetLocationUseCase.Output.Failure)
+                        Logger.e(TAG, "Cannot fetch location pair: ${srcResult.message}")
+                    if (destResult is GetLocationUseCase.Output.Failure)
+                        Logger.e(TAG, "Cannot fetch location pair: ${destResult.message}")
                 }
             }
         }

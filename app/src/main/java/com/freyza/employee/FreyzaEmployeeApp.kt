@@ -20,7 +20,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.freyza.employee.core.UIState
-import com.freyza.employee.presentation.nav.NavigationRoutes
+import com.freyza.employee.presentation.nav.NavRoutes
 import com.freyza.employee.presentation.nav.authenticatedGraph
 import com.freyza.employee.presentation.nav.unauthenticatedGraph
 import com.freyza.employee.presentation.ui.composables.FreyzaAppBar
@@ -53,7 +53,7 @@ fun FreyzaEmployeeApp(
         is UIState.Ready -> {
             // if valid login found, start with the Authenticated route, otherwise the UnAuthenticated route.
             val startDestination =
-                if (res.data?.hasValidSession == true && res.data.user != null) NavigationRoutes.Authenticated.NavigationRoute else NavigationRoutes.Unauthenticated.NavigationRoute
+                if (res.data?.hasValidSession == true && res.data.user != null) NavRoutes.Authenticated.NavigationRoute else NavRoutes.Unauthenticated.NavigationRoute
 
             Scaffold(
                 topBar = { FreyzaAppBar() },
