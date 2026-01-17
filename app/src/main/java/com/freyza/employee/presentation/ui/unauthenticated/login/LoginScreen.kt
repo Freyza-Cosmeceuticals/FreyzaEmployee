@@ -32,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentType
@@ -95,8 +94,6 @@ private fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val unknownErrorString = stringResource(R.string.error_unknown)
-
-    val autofillManager = LocalAutofillManager.current
 
     Scaffold(snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { it ->
         Column(

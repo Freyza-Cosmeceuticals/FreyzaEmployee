@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -20,7 +20,7 @@ fun Skeleton(modifier: Modifier = Modifier) {
         modifier = modifier
             .padding(2.dp)
             .clip(RoundedCornerShape(15))
-            .background(Color.DarkGray.copy(alpha = 0.2f))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
     )
 }
 
