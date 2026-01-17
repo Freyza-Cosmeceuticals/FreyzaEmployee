@@ -60,14 +60,13 @@ import kotlinx.datetime.Month
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun HomeScreen(
+fun HomeScreenRoute(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
     mainViewModel: MainViewModel = koinViewModel(),
     onNavigateToUnauthenticated: () -> Unit
 ) {
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
     val onLogoutClicked = { mainViewModel.logout() }
@@ -89,7 +88,8 @@ fun HomeScreen(
                 return
             }
 
-            ActualHomeScreen(
+            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            HomeScreen(
                 uiState,
                 mainUiState.data!!,
                 onNavigateToUnauthenticated,
@@ -111,7 +111,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun ActualHomeScreen(
+private fun HomeScreen(
     uiState: HomeScreenUiState,
     mainUiState: MainUiState,
     onNavigateToUnauthenticated: () -> Unit,
@@ -136,9 +136,9 @@ private fun ActualHomeScreen(
                 .padding(it)
                 .padding(horizontal = 16.dp)
         ) {
-            LaunchedEffect(mainUiState) {
-                loadTravelPlan(mainUiState.user.id)
-            }
+//            LaunchedEffect(mainUiState) {
+//                loadTravelPlan(mainUiState.user.id)
+//            }
 
             Text(
                 mainUiState.today.timedGreeting(mainUiState.user.name),
@@ -396,7 +396,7 @@ fun ExpenseList(expenses: List<Expense>) {
 @Composable
 fun HomeScreenPreview() {
     FreyzaEmployeeTheme {
-        ActualHomeScreen(
+        HomeScreen(
             HomeScreenUiState(
                 UIState.Ready(dummyExpenses()),
                 currentTravelPlan = UIState.Ready(dummyTravelPlan()),

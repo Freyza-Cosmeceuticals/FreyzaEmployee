@@ -16,11 +16,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
+    private val mainViewModel: MainViewModel,
     private val getCurrentUserUseCase: GetCurrentUserUseCase,
     private val getRecentExpensesUseCase: GetRecentExpensesUseCase,
     private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
@@ -34,7 +37,11 @@ class HomeViewModel(
     }
 
     private val _uiState = MutableStateFlow(HomeScreenUiState())
-    val uiState = _uiState.asStateFlow()
+    val uiState = _uiState
+        .onStart {
+            val employeeId = mainViewModel.uiState.value.data?.user?.id
+            if (employeeId != null) loadCurrentTravelPlan(employeeId)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeScreenUiState())
 
     fun loadRecentExpenses() {
         viewModelScope.launch {
@@ -91,7 +98,7 @@ class HomeViewModel(
         }
     }
 
-    fun loadTodayTravelPlanEntry(tpId: String) {
+    private fun loadTodayTravelPlanEntry(tpId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(todayTravelPlanEntry = UIState.Loading(it.todayTravelPlanEntry.data)) }
 
@@ -123,7 +130,7 @@ class HomeViewModel(
         }
     }
 
-    fun loadCurrentRoute(routeId: String) {
+    private fun loadCurrentRoute(routeId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data)) }
             when (val result = getRouteUseCase.execute(GetRouteUseCase.Input(routeId))) {
@@ -132,7 +139,8 @@ class HomeViewModel(
                         it.copy(todayPlanEntryRoute = UIState.Ready(result.route))
                     }
                     Logger.d(
-                        TAG, "${result.route?.id} Current Route Fetched Successfully ${result.route}"
+                        TAG,
+                        "${result.route?.id} Current Route Fetched Successfully ${result.route}"
                     )
 
                     // fetch both locations if route exists
@@ -153,7 +161,7 @@ class HomeViewModel(
         }
     }
 
-    fun loadLocationPair(srcLocId: String, destLocId: String) {
+    private fun loadLocationPair(srcLocId: String, destLocId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(todayPlanEntrySrcDest = UIState.Loading(it.todayPlanEntrySrcDest.data)) }
 

@@ -29,6 +29,7 @@ import kotlin.time.Clock
 
 const val TAG = "MAIN_VIEW_MODEL"
 
+// TODO: Scope MainViewModel to NavGraph
 class MainViewModel(
     private val auth: Auth, val getUserUseCase: GetUserUseCase, val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
@@ -46,12 +47,14 @@ class MainViewModel(
     }
 
     private suspend fun awaitSessionInit() {
+        Logger.d(TAG, "Awaiting Session Init")
         auth.sessionStatus.first { status ->
             status !is SessionStatus.Initializing
         }
     }
 
     fun initializeSession() {
+        Logger.i(TAG, "Initializing Session")
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = UIState.Loading()
 
@@ -169,6 +172,7 @@ class MainViewModel(
 
     @OptIn(SupabaseExperimental::class)
     private fun listenToAuthEvents() {
+        Logger.d(TAG, "Listening to AUTH Events")
         viewModelScope.launch(Dispatchers.IO) {
             auth.sessionStatus.collect { status ->
                 when (status) {

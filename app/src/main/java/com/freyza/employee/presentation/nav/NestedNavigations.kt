@@ -8,8 +8,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
-import com.freyza.employee.presentation.ui.authenticated.home.HomeScreen
-import com.freyza.employee.presentation.ui.unauthenticated.login.LoginScreen
+import com.freyza.employee.presentation.ui.authenticated.home.HomeScreenRoute
+import com.freyza.employee.presentation.ui.unauthenticated.login.LoginScreenRoute
 
 /*
 * Builds the unauthenticated navigation graph
@@ -21,7 +21,7 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
     ) {
 
         composable<NavigationRoutes.Unauthenticated.Login> {
-            LoginScreen(
+            LoginScreenRoute(
                 // We will never navigate to registration, although
                 onNavigateToRegistration = {
                     navController.navigate(NavigationRoutes.Unauthenticated.Register)
@@ -58,7 +58,7 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController) {
     ) {
 
         composable<NavigationRoutes.Authenticated.Home> {
-            HomeScreen(onNavigateToUnauthenticated = {
+            HomeScreenRoute(onNavigateToUnauthenticated = {
                 navController.navigate(route = NavigationRoutes.Unauthenticated.NavigationRoute) {
                     popUpTo(route = NavigationRoutes.Authenticated.NavigationRoute) {
                         inclusive = true

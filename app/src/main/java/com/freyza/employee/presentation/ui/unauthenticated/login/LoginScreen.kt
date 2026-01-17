@@ -30,9 +30,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,7 +56,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun LoginScreen(
+fun LoginScreenRoute(
     modifier: Modifier = Modifier,
     viewModel: LoginViewModel = koinViewModel(),
     onNavigateToRegistration: () -> Unit,
@@ -66,7 +70,7 @@ fun LoginScreen(
     }
     val onLoginWithGoogleClicked = { viewModel.loginWithGoogle() }
 
-    ActualLoginScreen(
+    LoginScreen(
         uiState,
         onLoginWithEmailClicked,
         onLoginWithGoogleClicked,
@@ -76,7 +80,7 @@ fun LoginScreen(
 }
 
 @Composable
-private fun ActualLoginScreen(
+private fun LoginScreen(
     uiState: UIState<UserInfo>,
     onLoginWithEmailClicked: (email: String, password: String) -> Unit,
     onLoginWithGoogleClicked: () -> Unit,
@@ -91,6 +95,8 @@ private fun ActualLoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val unknownErrorString = stringResource(R.string.error_unknown)
+
+    val autofillManager = LocalAutofillManager.current
 
     Scaffold(snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { it ->
         Column(
@@ -166,6 +172,7 @@ private fun ActualLoginScreen(
                 shape = RoundedCornerShape(32),
                 value = email,
                 onValueChange = { email = it },
+                modifier = Modifier.semantics { contentType = ContentType.EmailAddress }
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
@@ -228,7 +235,7 @@ private fun ActualLoginScreen(
 @Composable
 fun LoginScreenPreview() {
     FreyzaEmployeeTheme {
-        ActualLoginScreen(
+        LoginScreen(
             uiState = UIState.Idle(),
             onLoginWithEmailClicked = { _, _ -> },
             onLoginWithGoogleClicked = {},
