@@ -77,6 +77,19 @@ fun FreyzaHomeAppBar(scrollBehavior: TopAppBarScrollBehavior, modifier: Modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun FreyzaTpAppBar(modifier: Modifier = Modifier) {
+  TopAppBar(
+    title = {
+      Text("Travel Plan", maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }, colors = TopAppBarDefaults.topAppBarColors(
+      containerColor = MaterialTheme.colorScheme.primaryContainer,
+      titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
+    ), modifier = modifier
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun FreyzaProfileAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
     title = {
@@ -104,6 +117,15 @@ fun FreyzaHomeAppBarPreview() {
     FreyzaHomeAppBar(TopAppBarDefaults.enterAlwaysScrollBehavior())
   }
 }
+
+@Composable
+@Preview
+fun FreyzaTpAppBarPreview() {
+  FreyzaEmployeeTheme {
+    FreyzaTpAppBar()
+  }
+}
+
 
 @Composable
 @Preview

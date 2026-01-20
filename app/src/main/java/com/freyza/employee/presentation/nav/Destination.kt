@@ -59,7 +59,7 @@ sealed class BottomNavItem(val route: NavRoutes, val icon: Int?, val label: Stri
   object ExpenseHistory : BottomNavItem(
     NavRoutes.Authenticated.ExpenseHistory,
     icon = R.drawable.empty_dashboard_24px,
-    label = "History",
+    label = "Reports",
   )
 
   object Profile : BottomNavItem(

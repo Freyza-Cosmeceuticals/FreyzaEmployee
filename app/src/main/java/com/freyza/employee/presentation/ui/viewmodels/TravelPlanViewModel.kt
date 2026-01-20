@@ -1,0 +1,78 @@
+package com.freyza.employee.presentation.ui.viewmodels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.freyza.employee.core.UIState
+import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.util.Logger
+import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
+import com.freyza.employee.presentation.ui.state.TravelPlanUiState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+class TravelPlanViewModel(
+  private val sessionManager: SessionManager,
+  private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
+) :
+  ViewModel() {
+
+  companion object {
+    const val TAG = "TRAVEL_PLAN_VIEWMODEL"
+  }
+
+  private val _uiState = MutableStateFlow(TravelPlanUiState())
+  val uiState = _uiState.onStart {
+    val employeeId = sessionManager.currentEmployee.value?.id
+    if (employeeId != null) loadCurrentTravelPlan(employeeId)
+  }.stateIn(
+    viewModelScope, SharingStarted.WhileSubscribed(5_000), TravelPlanUiState()
+  )
+
+  fun loadCurrentTravelPlan(employeeId: String) {
+    Logger.i(TAG, "Fetching current travel plan for $employeeId")
+
+    _uiState.update {
+      it.copy(
+        currentTravelPlan = UIState.Loading(it.currentTravelPlan.data)
+      )
+    }
+    viewModelScope.launch {
+//      delay(1500)
+
+      when (val result = getCurrentTravelPlanUseCase.execute(
+        GetCurrentTravelPlanUseCase.Input(
+          employeeId
+        )
+      )) {
+        is GetCurrentTravelPlanUseCase.Output.Success -> {
+          _uiState.update {
+            it.copy(currentTravelPlan = UIState.Ready(result.travelPlan))
+          }
+          Logger.d(
+            TAG, "${result.travelPlan?.id} Current Travel Plan Fetched Successfully"
+          )
+
+          // fetch all entries
+          if (result.travelPlan?.id !== null) loadTravelPlanEntries(result.travelPlan.id)
+        }
+
+        is GetCurrentTravelPlanUseCase.Output.Failure -> {
+          _uiState.update {
+            it.copy(
+              currentTravelPlan = UIState.Error(message = "Unable to fetch current travel plan")
+            )
+          }
+          Logger.e(TAG, "Cannot fetch current travel plan: ${result.message}")
+        }
+      }
+    }
+  }
+
+  private fun loadTravelPlanEntries(tpId: String) {
+
+  }
+}

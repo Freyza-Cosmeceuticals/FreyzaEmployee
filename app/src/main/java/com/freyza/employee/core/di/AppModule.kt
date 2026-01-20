@@ -45,6 +45,7 @@ import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import com.freyza.employee.presentation.ui.viewmodels.ProfileViewModel
+import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.FlowType
@@ -128,5 +129,6 @@ val viewModelModule = module {
   viewModel { MainViewModel(get(), get(), get(), get()) }
   viewModel { LoginViewModel(get(), get()) }
   viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
+  viewModel { TravelPlanViewModel(get(), get()) }
   viewModel { ProfileViewModel(get()) }
 }

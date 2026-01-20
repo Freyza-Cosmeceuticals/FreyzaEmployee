@@ -67,7 +67,7 @@ fun FreyzaEmployeeApp(
             startDestination = startDestination
           ) {
             unauthenticatedGraph(navController = navController)
-            authenticatedGraph(navController = navController)
+            authenticatedGraph(navController = navController, mainViewModel = mainViewModel)
           }
         }
       }

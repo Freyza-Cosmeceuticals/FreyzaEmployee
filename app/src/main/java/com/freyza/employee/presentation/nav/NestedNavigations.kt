@@ -10,10 +10,13 @@ import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.freyza.employee.presentation.ui.authenticated.home.HomeScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.profile.ProfileScreenRoute
+import com.freyza.employee.presentation.ui.authenticated.travelplan.TravelPlanScreenRoute
 import com.freyza.employee.presentation.ui.unauthenticated.login.LoginScreenRoute
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
+import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import com.freyza.employee.presentation.ui.viewmodels.ProfileViewModel
+import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import org.koin.androidx.compose.koinViewModel
 
 /*
@@ -56,15 +59,14 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 /*
 * Builds the Authenticated Navigation Graph
  */
-fun NavGraphBuilder.authenticatedGraph(navController: NavController) {
+fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainViewModel: MainViewModel) {
 
   navigation<NavRoutes.Authenticated.NavigationRoute>(
     startDestination = NavRoutes.Authenticated.Home
   ) {
-
     composable<NavRoutes.Authenticated.Home> {
       val vm = koinViewModel<HomeViewModel>()
-      HomeScreenRoute(viewModel = vm, onNavigateToUnauthenticated = {
+      HomeScreenRoute(viewModel = vm, mainViewModel = mainViewModel, onNavigateToUnauthenticated = {
         navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
           popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
             inclusive = true
@@ -74,18 +76,31 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController) {
     }
 
     composable<NavRoutes.Authenticated.TravelPlan> {
-      Text("Current Travel Plan Here")
+      val vm = koinViewModel<TravelPlanViewModel>()
+      TravelPlanScreenRoute(
+        viewModel = vm,
+        mainViewModel = mainViewModel,
+        onNavigateToUnauthenticated = {
+          navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
+            popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
+              inclusive = true
+            }
+          }
+        })
     }
 
     composable<NavRoutes.Authenticated.Profile> {
       val vm = koinViewModel<ProfileViewModel>()
-      ProfileScreenRoute(viewModel = vm, onNavigateToUnauthenticated = {
-        navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
-          popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
-            inclusive = true
+      ProfileScreenRoute(
+        viewModel = vm,
+        mainViewModel = mainViewModel,
+        onNavigateToUnauthenticated = {
+          navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
+            popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
+              inclusive = true
+            }
           }
-        }
-      })
+        })
     }
 
     composable<NavRoutes.Authenticated.ExpenseHistory> {
