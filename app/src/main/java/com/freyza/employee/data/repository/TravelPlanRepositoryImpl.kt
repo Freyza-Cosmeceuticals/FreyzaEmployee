@@ -70,7 +70,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
 
     override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry> {
         return try {
-            val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)).plus(5, DateTimeUnit.DateBased.DayBased(1))
+            val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)).plus(3, DateTimeUnit.DateBased.DayBased(1))
             val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
             withContext(Dispatchers.IO) {

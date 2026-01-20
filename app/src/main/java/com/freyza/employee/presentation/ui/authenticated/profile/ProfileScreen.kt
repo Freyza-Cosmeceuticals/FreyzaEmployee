@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.domain.model.dummyUserEmployee
+import com.freyza.employee.presentation.ui.composables.FreyzaProfileAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.Skeleton
@@ -107,6 +109,7 @@ fun ProfileScreen(
   val snackbarHostState = remember { SnackbarHostState() }
 
   Scaffold(
+    topBar = { FreyzaProfileAppBar() },
     snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
@@ -117,21 +120,25 @@ fun ProfileScreen(
     }
 
     LazyColumn(
-      contentPadding = PaddingValues(bottom = 32.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+      contentPadding = PaddingValues(
+        vertical = dimensionResource(R.dimen.default_spacing).times(8),
+        horizontal = dimensionResource(R.dimen.default_spacing).times(4)
+      ),
+      verticalArrangement = Arrangement.spacedBy(
+        dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
+      ),
       horizontalAlignment = Alignment.CenterHorizontally,
       modifier = modifier
         .fillMaxSize()
         .padding(it)
-        .padding(horizontal = 16.dp)
     ) {
-      item {
-        Text(
-          "Profile and Settings",
-          style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
-        )
-        Spacer(Modifier.height(16.dp))
-      }
+//      item {
+//        Text(
+//          "Profile and Settings",
+//          style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold)
+//        )
+//        Spacer(Modifier.height(16.dp))
+//      }
 
       when (val data = uiS5tate.user) {
         is UIState.Ready -> {
@@ -145,14 +152,16 @@ fun ProfileScreen(
                 .clip(CircleShape)
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
           }
 
           item {
             Text(
               user.name,
-              style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+              style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+              modifier = Modifier.padding(bottom = dimensionResource(R.dimen.default_spacing))
             )
+
             Text(
               "Medical Representative".uppercase(),
               style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.primary)
@@ -160,7 +169,8 @@ fun ProfileScreen(
 
             Row(
               horizontalArrangement = Arrangement.spacedBy(
-                2.dp, alignment = Alignment.CenterHorizontally
+                dimensionResource(R.dimen.default_spacing).div(2),
+                alignment = Alignment.CenterHorizontally
               ), verticalAlignment = Alignment.CenterVertically
             ) {
               Text(
@@ -174,7 +184,7 @@ fun ProfileScreen(
               )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(6)))
           }
 
           item {
@@ -183,21 +193,24 @@ fun ProfileScreen(
                 color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Start
               ), modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .padding(
+                  horizontal = dimensionResource(R.dimen.default_spacing).times(2),
+                  vertical = dimensionResource(R.dimen.default_spacing)
+                )
             )
             ListItem(
-              headlineContent = { Text(user.email) },
-              trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              headlineContent = { Text(user.email) }, trailingContent = {
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                .clip(
+                  RoundedCornerShape(
+                    topStart = dimensionResource(R.dimen.default_spacing).times(4),
+                    topEnd = dimensionResource(R.dimen.default_spacing).times(4)
+                  )
                 )
-              },
-              tonalElevation = 8.dp,
-              shadowElevation = 0.dp,
-              modifier = Modifier
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                .clickable {}
-            )
+                .clickable {})
 
             HorizontalDivider()
 
@@ -210,19 +223,20 @@ fun ProfileScreen(
             HorizontalDivider()
 
             ListItem(
-              headlineContent = { Text("Change Password") },
-              trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              headlineContent = { Text("Change Password") }, trailingContent = {
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                .clip(
+                  RoundedCornerShape(
+                    bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
+                    bottomEnd = dimensionResource(R.dimen.default_spacing).times(4)
+                  )
                 )
-              },
-              tonalElevation = 8.dp,
-              shadowElevation = 0.dp,
-              modifier = Modifier
-                .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
                 .clickable {})
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
           }
 
           item {
@@ -231,20 +245,24 @@ fun ProfileScreen(
                 color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Start
               ), modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .padding(
+                  horizontal = dimensionResource(R.dimen.default_spacing).times(2),
+                  vertical = dimensionResource(R.dimen.default_spacing)
+                )
             )
 
             ListItem(
-              headlineContent = { Text("Language") },
-              trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              headlineContent = { Text("Language") }, trailingContent = {
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                .clip(
+                  RoundedCornerShape(
+                    topStart = dimensionResource(R.dimen.default_spacing).times(4),
+                    topEnd = dimensionResource(R.dimen.default_spacing).times(4)
+                  )
                 )
-              },
-              tonalElevation = 8.dp,
-              shadowElevation = 0.dp,
-              modifier = Modifier
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                 .clickable {})
 
             HorizontalDivider()
@@ -258,36 +276,37 @@ fun ProfileScreen(
             HorizontalDivider()
 
             ListItem(
-              headlineContent = { Text("Permissions") },
-              trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              headlineContent = { Text("Permissions") }, trailingContent = {
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                .clip(
+                  RoundedCornerShape(
+                    bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
+                    bottomEnd = dimensionResource(R.dimen.default_spacing).times(4)
+                  )
                 )
-              },
-              tonalElevation = 8.dp,
-              shadowElevation = 0.dp,
-              modifier = Modifier
-                .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
                 .clickable {})
           }
 
           item {
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(8)))
             Button(
               onClick = onLogoutClicked,
-              shape = RoundedCornerShape(16.dp),
+              shape = RoundedCornerShape(dimensionResource(R.dimen.default_spacing).times(4)),
               colors = ButtonDefaults.filledTonalButtonColors().copy(
                 containerColor = MaterialTheme.colorScheme.error,
                 contentColor = MaterialTheme.colorScheme.onError
               ),
               modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = dimensionResource(R.dimen.default_spacing).times(4))
             ) { Text("Logout") }
           }
 
           item {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
             Text(
               "Freyza Employee App", style = MaterialTheme.typography.labelMedium.copy(
                 color = MaterialTheme.colorScheme.tertiary

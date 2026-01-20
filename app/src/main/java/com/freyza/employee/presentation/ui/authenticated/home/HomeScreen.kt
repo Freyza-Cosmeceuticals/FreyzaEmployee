@@ -16,11 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,11 +31,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.timedGreeting
@@ -48,9 +54,10 @@ import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
-import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanCardSkeleton
+import com.freyza.employee.presentation.ui.composables.FreyzaFabButton
+import com.freyza.employee.presentation.ui.composables.FreyzaHomeAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
@@ -69,7 +76,6 @@ fun HomeScreenRoute(
   mainViewModel: MainViewModel = koinViewModel(),
   onNavigateToUnauthenticated: () -> Unit,
 ) {
-
   val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
   when (mainUiState) {
@@ -91,9 +97,7 @@ fun HomeScreenRoute(
       // ensured valid user exists at this point
       val uiState by viewModel.uiState.collectAsStateWithLifecycle()
       HomeScreen(
-        uiState,
-        data,
-        modifier
+        uiState, data, modifier
       )
     }
 
@@ -107,6 +111,7 @@ fun HomeScreenRoute(
   }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeScreen(
   uiState: HomeScreenUiState,
@@ -115,25 +120,31 @@ private fun HomeScreen(
 ) {
   val scope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
+  val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
   Scaffold(
+    topBar = { FreyzaHomeAppBar(scrollBehavior) },
     snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-    )
+    ),
+    floatingActionButton = { FreyzaFabButton() },
+    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
   ) {
     if (mainUiState.user == null || mainUiState.today == null) {
       return@Scaffold
     }
 
     LazyColumn(
-      contentPadding = PaddingValues(bottom = 16.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Top),
+      contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.screen_padding)),
+      verticalArrangement = Arrangement.spacedBy(
+        dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
+      ),
       horizontalAlignment = Alignment.CenterHorizontally,
       modifier = modifier
         .fillMaxSize()
         .padding(it)
-        .padding(horizontal = 16.dp)
+        .padding(horizontal = dimensionResource(R.dimen.screen_padding))
     ) {
       item {
         Text(
@@ -142,7 +153,7 @@ private fun HomeScreen(
           color = MaterialTheme.colorScheme.onSurface,
           modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
         )
       }
 
@@ -152,14 +163,16 @@ private fun HomeScreen(
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
             .heightIn(min = 108.dp),
-          horizontalArrangement = Arrangement.spacedBy(16.dp),
+          horizontalArrangement = Arrangement.spacedBy(
+            dimensionResource(R.dimen.default_spacing).times(4)
+          ),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          TodayCard(
-            mainUiState.today, modifier = Modifier
-              .weight(1f)
-              .fillMaxSize()
-          )
+//          TodayCard(
+//            mainUiState.today, modifier = Modifier
+//              .weight(1f)
+//              .fillMaxSize()
+//          )
 
           when (uiState.todayTravelPlanEntry) {
             is UIState.Ready -> {
@@ -193,7 +206,7 @@ private fun HomeScreen(
           }
         }
 
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
       }
 
       item {
@@ -201,9 +214,11 @@ private fun HomeScreen(
           modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .heightIn(min = 128.dp), horizontalArrangement = Arrangement.spacedBy(
+            .heightIn(min = 128.dp),
+          horizontalArrangement = Arrangement.spacedBy(
             16.dp, Alignment.CenterHorizontally
-          ), verticalAlignment = Alignment.CenterVertically
+          ),
+          verticalAlignment = Alignment.CenterVertically
         ) {
           Card(
             modifier = Modifier
@@ -220,9 +235,11 @@ private fun HomeScreen(
           modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .heightIn(min = 128.dp), horizontalArrangement = Arrangement.spacedBy(
+            .heightIn(min = 128.dp),
+          horizontalArrangement = Arrangement.spacedBy(
             16.dp, Alignment.CenterHorizontally
-          ), verticalAlignment = Alignment.CenterVertically
+          ),
+          verticalAlignment = Alignment.CenterVertically
         ) {
           Card(
             modifier = Modifier
@@ -241,8 +258,8 @@ private fun HomeScreen(
           color = MaterialTheme.colorScheme.onSurface,
           modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .padding(top = 4.dp)
+            .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
+            .padding(top = dimensionResource(R.dimen.default_spacing))
         )
       }
 
@@ -251,18 +268,27 @@ private fun HomeScreen(
           modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .heightIn(min = 164.dp), horizontalArrangement = Arrangement.spacedBy(
-            16.dp, Alignment.CenterHorizontally
-          ), verticalAlignment = Alignment.CenterVertically
+            .heightIn(min = 164.dp),
+          horizontalArrangement = Arrangement.spacedBy(
+            dimensionResource(R.dimen.default_spacing).times(4), Alignment.CenterHorizontally
+          ),
+          verticalAlignment = Alignment.CenterVertically
         ) {
           Card(
             modifier = Modifier
               .weight(1f)
               .fillMaxSize()
           ) {
-            Text("Daily Report Data", modifier = Modifier.padding(16.dp))
+            Text(
+              "Daily Report Data",
+              modifier = Modifier.padding(dimensionResource(R.dimen.default_spacing).times(4))
+            )
           }
         }
+      }
+
+      item {
+        DebugUserInfo(mainUiState.user)
       }
 
       // DebugUserInfo(mainUiState.user)
@@ -414,8 +440,7 @@ fun HomeScreenPreview() {
         todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
         todayPlanEntryRoute = UIState.Ready(dummyRoute()),
         todayPlanEntrySrcDest = UIState.Ready(dummyLocation() to dummyLocationAlt())
-      ),
-      MainUiState(
+      ), MainUiState(
         hasValidSession = true, user = dummyUserEmployee(), today = LocalDateTime(
           year = 2026, month = Month.JANUARY, day = 1, hour = 5, minute = 59, second = 59
         )

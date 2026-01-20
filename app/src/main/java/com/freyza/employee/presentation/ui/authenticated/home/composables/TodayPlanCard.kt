@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.toPx
 import com.freyza.employee.core.util.toTitleCase
@@ -57,15 +59,24 @@ fun TodayPlanCard(
   Card(
     onClick = {},
     modifier = modifier,
-    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    elevation = CardDefaults.outlinedCardElevation(),
+    colors = CardDefaults.outlinedCardColors(),
+    border = CardDefaults.outlinedCardBorder()
   ) {
     Column(
       verticalArrangement = Arrangement.Top,
       horizontalAlignment = Alignment.Start,
-      modifier = modifier.padding(vertical = 12.dp, horizontal = 16.dp)
+      modifier = modifier.padding(
+        vertical = dimensionResource(R.dimen.default_spacing).times(3),
+        horizontal = dimensionResource(R.dimen.default_spacing).times(4)
+      )
     ) {
-      Text("Travel Plan", style = MaterialTheme.typography.labelLarge)
-      Spacer(Modifier.height(8.dp))
+      Text(
+        "Travel Plan".uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.secondary
+      )
+      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
 
       if (planEntry == null) {
         Text("No travel plan for today", style = MaterialTheme.typography.bodyMedium)
@@ -87,7 +98,7 @@ fun TodayPlanCard(
           Box(contentAlignment = Alignment.CenterEnd) {
             Column(
               verticalArrangement = Arrangement.spacedBy(
-                12.dp, Alignment.CenterVertically
+                dimensionResource(R.dimen.default_spacing).times(3), Alignment.CenterVertically
               ), horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()
             ) {
 
@@ -134,14 +145,14 @@ fun TodayPlanCard(
               is UIState.Ready -> RouteArrow(
                 srcText = srcDestPair.data?.first?.name ?: "???",
                 destText = srcDestPair.data?.second?.name ?: "???",
-                padding = 8.dp.toPx(),
+                padding = dimensionResource(R.dimen.default_spacing).times(2).toPx(),
                 strokeWidth = 3.dp
               )
 
               is UIState.Loading -> RouteArrow(
                 srcText = "???????",
                 destText = "?????",
-                padding = 8.dp.toPx(),
+                padding = dimensionResource(R.dimen.default_spacing).times(2).toPx(),
                 strokeWidth = 3.dp,
                 lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
               )
@@ -193,15 +204,24 @@ fun TravelPlanCardSkeleton(modifier: Modifier = Modifier) {
   Card(
     onClick = {},
     modifier = modifier,
-    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    elevation = CardDefaults.outlinedCardElevation(),
+    colors = CardDefaults.outlinedCardColors(),
+    border = CardDefaults.outlinedCardBorder()
   ) {
     Column(
       verticalArrangement = Arrangement.Top,
       horizontalAlignment = Alignment.Start,
-      modifier = modifier.padding(vertical = 12.dp, horizontal = 16.dp)
+      modifier = modifier.padding(
+        vertical = dimensionResource(R.dimen.default_spacing).times(3),
+        horizontal = dimensionResource(R.dimen.default_spacing).times(4)
+      )
     ) {
-      Text("Travel Plan", style = MaterialTheme.typography.labelLarge)
-      Spacer(Modifier.height(8.dp))
+      Text(
+        "Travel Plan".uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.secondary
+      )
+      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
 
       Row(
         horizontalArrangement = Arrangement.Start,
@@ -217,7 +237,7 @@ fun TravelPlanCardSkeleton(modifier: Modifier = Modifier) {
       Box(contentAlignment = Alignment.CenterEnd) {
         Column(
           verticalArrangement = Arrangement.spacedBy(
-            12.dp, Alignment.CenterVertically
+            dimensionResource(R.dimen.default_spacing).times(3), Alignment.CenterVertically
           ), horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()
         ) {
           Skeleton(
@@ -236,7 +256,7 @@ fun TravelPlanCardSkeleton(modifier: Modifier = Modifier) {
         RouteArrow(
           srcText = "???????",
           destText = "?????",
-          padding = 8.dp.toPx(),
+          padding = dimensionResource(R.dimen.default_spacing).times(2).toPx(),
           strokeWidth = 3.dp,
           lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
         )

@@ -24,53 +24,57 @@ import kotlinx.datetime.Month
 
 @Composable
 fun TodayCard(today: LocalDateTime, modifier: Modifier = Modifier) {
-    Card(
-        onClick = {},
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+  Card(
+    onClick = {},
+    modifier = modifier,
+    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+  ) {
+    Column(
+      verticalArrangement = Arrangement.Top,
+      horizontalAlignment = Alignment.Start,
+      modifier = modifier
+        .padding(vertical = 12.dp, horizontal = 16.dp)
     ) {
-        Column(
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start,
-            modifier = modifier
-                .padding(vertical = 12.dp, horizontal = 16.dp)
-        ) {
-            Text("Today", style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.height(8.dp))
-            Row(
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "${today.day} ${today.month.name.toTitleCase()} ",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium),
-                    modifier = Modifier.alignBy(FirstBaseline)
-                )
-                Text(
-                    "${today.year}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.alignBy(FirstBaseline)
-                )
-            }
+      Text(
+        "Today".uppercase(),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.secondary
+      )
+      Spacer(Modifier.height(8.dp))
+      Row(
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Text(
+          "${today.day} ${today.month.name.toTitleCase()} ",
+          style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium),
+          modifier = Modifier.alignBy(FirstBaseline)
+        )
+        Text(
+          "${today.year}",
+          style = MaterialTheme.typography.bodyMedium,
+          modifier = Modifier.alignBy(FirstBaseline)
+        )
+      }
 
-            Text(today.dayOfWeek.name.toTitleCase(), style = MaterialTheme.typography.bodyMedium)
-        }
+      Text(today.dayOfWeek.name.toTitleCase(), style = MaterialTheme.typography.bodyMedium)
     }
+  }
 }
 
 @Preview
 @Composable
 fun TodayCardPreview() {
-    FreyzaEmployeeTheme {
-        TodayCard(
-            today = LocalDateTime(
-                year = 2026,
-                month = Month.JANUARY,
-                day = 1,
-                hour = 5,
-                minute = 59,
-                second = 59
-            )
-        )
-    }
+  FreyzaEmployeeTheme {
+    TodayCard(
+      today = LocalDateTime(
+        year = 2026,
+        month = Month.JANUARY,
+        day = 1,
+        hour = 5,
+        minute = 59,
+        second = 59
+      )
+    )
+  }
 }
