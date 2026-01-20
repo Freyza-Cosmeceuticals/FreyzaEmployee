@@ -3,14 +3,19 @@ package com.freyza.employee.presentation.ui.unauthenticated.login
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,13 +36,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,6 +59,7 @@ import com.freyza.employee.R
 import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.showTypedSnackbar
+import com.freyza.employee.presentation.ui.composables.FreyzaDefaultAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
@@ -56,186 +69,213 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun LoginScreenRoute(
-    modifier: Modifier = Modifier,
-    viewModel: LoginViewModel = koinViewModel(),
-    onNavigateToRegistration: () -> Unit,
-    onNavigateToAuthenticatedRoute: () -> Unit,
+  modifier: Modifier = Modifier,
+  viewModel: LoginViewModel = koinViewModel(),
+  onNavigateToRegistration: () -> Unit,
+  onNavigateToAuthenticatedRoute: () -> Unit,
 ) {
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val onLoginWithEmailClicked = { email: String, password: String ->
-        viewModel.loginWithEmail(email, password)
-    }
-    val onLoginWithGoogleClicked = { viewModel.loginWithGoogle() }
+  val onLoginWithEmailClicked = { email: String, password: String ->
+    viewModel.loginWithEmail(email, password)
+  }
+  val onLoginWithGoogleClicked = { viewModel.loginWithGoogle() }
 
-    LoginScreen(
-        uiState,
-        onLoginWithEmailClicked,
-        onLoginWithGoogleClicked,
-        onNavigateToAuthenticatedRoute,
-        modifier
-    )
+  LoginScreen(
+    uiState,
+    onLoginWithEmailClicked,
+    onLoginWithGoogleClicked,
+    onNavigateToAuthenticatedRoute,
+    modifier
+  )
 }
 
 @Composable
 private fun LoginScreen(
-    uiState: UIState<UserInfo>,
-    onLoginWithEmailClicked: (email: String, password: String) -> Unit,
-    onLoginWithGoogleClicked: () -> Unit,
-    onNavigateToAuthenticatedRoute: () -> Unit,
-    modifier: Modifier = Modifier
+  uiState: UIState<UserInfo>,
+  onLoginWithEmailClicked: (email: String, password: String) -> Unit,
+  onLoginWithGoogleClicked: () -> Unit,
+  onNavigateToAuthenticatedRoute: () -> Unit,
+  modifier: Modifier = Modifier,
 ) {
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var error by rememberSaveable { mutableStateOf<String?>(null) }
+  var email by rememberSaveable { mutableStateOf("") }
+  var password by rememberSaveable { mutableStateOf("") }
+  var error by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+  val scope = rememberCoroutineScope()
+  val snackbarHostState = remember { SnackbarHostState() }
 
-    val unknownErrorString = stringResource(R.string.error_unknown)
+  val unknownErrorString = stringResource(R.string.error_unknown)
 
-    Scaffold(snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { it ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(it)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            LaunchedEffect(uiState) {
-                when (uiState) {
-                    is UIState.Ready -> {
-                        onNavigateToAuthenticatedRoute()
-                    }
+  val focusManager = LocalFocusManager.current
+  val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
 
-                    is UIState.Error -> {
-                        error = uiState.message
-                        scope.launch {
-                            snackbarHostState.currentSnackbarData?.dismiss()
+  Scaffold(
+    topBar = { FreyzaDefaultAppBar() },
+    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { it ->
+    Column(
+      modifier = modifier
+        .fillMaxSize()
+        .verticalScroll(rememberScrollState())
+        .padding(it)
+        .padding(dimensionResource(R.dimen.screen_padding)),
+      verticalArrangement = Arrangement.Center,
+      horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+      LaunchedEffect(uiState) {
+        when (uiState) {
+          is UIState.Ready -> {
+            onNavigateToAuthenticatedRoute()
+          }
 
-                            snackbarHostState.showTypedSnackbar(
-                                message = uiState.message?.trim()?.lines()?.first()
-                                    ?: unknownErrorString,
-                                type = SnackbarType.ERROR,
-                                withDismissAction = true
-                            )
-                        }
-                    }
+          is UIState.Error -> {
+            error = uiState.message
+            scope.launch {
+              snackbarHostState.currentSnackbarData?.dismiss()
 
-                    is UIState.Loading -> {
-                        error = null
-                    }
-
-                    is UIState.Idle -> {
-                        error = null
-                    }
-                }
+              snackbarHostState.showTypedSnackbar(
+                message = uiState.message?.trim()?.lines()?.first() ?: unknownErrorString,
+                type = SnackbarType.ERROR,
+                withDismissAction = true
+              )
             }
+          }
 
-            Text(
-                stringResource(R.string.app_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.login_title),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.secondary
-            )
+          is UIState.Loading -> {
+            error = null
+          }
 
-            HorizontalDivider(
-                Modifier
-                    .padding(horizontal = 64.dp)
-                    .padding(top = 36.dp, bottom = 32.dp),
-                thickness = Dp.Hairline
-            )
-
-            OutlinedTextField(
-                label = {
-                    Text(
-                        stringResource(R.string.email_placeholder),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                },
-                singleLine = true,
-                isError = uiState is UIState.Error,
-                shape = RoundedCornerShape(32),
-                value = email,
-                onValueChange = { email = it },
-                modifier = Modifier.semantics { contentType = ContentType.EmailAddress }
-            )
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(
-                label = {
-                    Text(
-                        stringResource(R.string.password_placeholder),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                },
-                singleLine = true,
-                isError = uiState is UIState.Error,
-                shape = RoundedCornerShape(32),
-                visualTransformation = PasswordVisualTransformation(),
-                value = password,
-                onValueChange = { password = it },
-            )
-            Spacer(Modifier.height(32.dp))
-
-            val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
-            Button(
-                onClick = {
-                    localSoftwareKeyboardController?.hide()
-                    onLoginWithEmailClicked(email, password)
-                },
-                shape = RoundedCornerShape(32),
-                enabled = uiState !is UIState.Loading
-            ) {
-                if (uiState is UIState.Loading) {
-                    CircularProgressIndicator(
-                        gapSize = 4.dp,
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                }
-
-                Text(
-                    if (uiState is UIState.Loading) "Logging in..." else stringResource(R.string.login_button),
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Box(Modifier.height(40.dp)) {
-                if (error.isNullOrBlank().not()) {
-                    Text(text = "Error: $error", color = Color.Red)
-                }
-            }
-
-            //        Spacer(Modifier.height(16.dp))
-            //        ElevatedButton(onClick = onLoginWithGoogleClicked) {
-            //            Text("Login with Google")
-            //        }
+          is UIState.Idle -> {
+            error = null
+          }
         }
+      }
+
+      Text(
+        stringResource(R.string.app_title), style = MaterialTheme.typography.displayMedium.copy(
+          fontSize = dimensionResource(R.dimen.title_font_size).value.sp,
+          fontWeight = FontWeight.Bold,
+          textAlign = TextAlign.Center
+        ), color = MaterialTheme.colorScheme.onPrimaryContainer
+      )
+      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
+      Text(
+        stringResource(R.string.login_title), style = MaterialTheme.typography.titleLarge.copy(
+          fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center
+        ), color = MaterialTheme.colorScheme.secondary
+      )
+
+      HorizontalDivider(
+        Modifier
+          .padding(horizontal = 64.dp)
+          .padding(top = 36.dp, bottom = 32.dp),
+        thickness = Dp.Hairline
+      )
+
+      OutlinedTextField(
+        label = {
+          Text(
+            stringResource(R.string.email_placeholder), style = MaterialTheme.typography.titleMedium
+          )
+        },
+        singleLine = true,
+        isError = uiState is UIState.Error,
+        shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+        value = email,
+        onValueChange = { email = it },
+        keyboardOptions = KeyboardOptions(
+          imeAction = ImeAction.Next,
+          keyboardType = KeyboardType.Email
+        ),
+        keyboardActions = KeyboardActions(
+          onNext = {
+            focusManager.moveFocus(FocusDirection.Down)
+          }
+        ),
+        modifier = Modifier
+          .semantics { contentType = ContentType.EmailAddress }
+          .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
+          .fillMaxWidth())
+
+      Spacer(Modifier.height(8.dp))
+
+      OutlinedTextField(
+        label = {
+          Text(
+            stringResource(R.string.password_placeholder),
+            style = MaterialTheme.typography.titleMedium
+          )
+        },
+        singleLine = true,
+        isError = uiState is UIState.Error,
+        shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+        visualTransformation = PasswordVisualTransformation(),
+        value = password,
+        onValueChange = { password = it },
+        keyboardOptions = KeyboardOptions(
+          imeAction = ImeAction.Done,
+          keyboardType = KeyboardType.Password
+        ),
+        keyboardActions = KeyboardActions(
+          onDone = {
+            focusManager.clearFocus()
+          }
+        ),
+        modifier = Modifier
+          .semantics { contentType = ContentType.Password }
+          .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
+          .fillMaxWidth())
+      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(8)))
+
+      Button(
+        onClick = {
+          localSoftwareKeyboardController?.hide()
+          onLoginWithEmailClicked(email, password)
+        },
+        shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+        enabled = uiState !is UIState.Loading,
+        contentPadding = PaddingValues(dimensionResource(R.dimen.default_spacing).times(4)),
+        modifier = Modifier
+          .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
+          .fillMaxWidth()
+      ) {
+        if (uiState is UIState.Loading) {
+          CircularProgressIndicator(
+            gapSize = 4.dp, strokeWidth = 2.dp, modifier = Modifier.size(18.dp)
+          )
+          Spacer(Modifier.width(dimensionResource(R.dimen.default_spacing).times(3)))
+        }
+
+        Text(
+          if (uiState is UIState.Loading) "Logging in..." else stringResource(R.string.login_button),
+          style = MaterialTheme.typography.bodyLarge
+        )
+      }
+
+      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
+      Box(Modifier.height(40.dp)) {
+        if (error.isNullOrBlank().not()) {
+          Text(text = "Error: $error", color = Color.Red)
+        }
+      }
+
+      //        Spacer(Modifier.height(16.dp))
+      //        ElevatedButton(onClick = onLoginWithGoogleClicked) {
+      //            Text("Login with Google")
+      //        }
     }
+  }
 }
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
-    FreyzaEmployeeTheme {
-        LoginScreen(
-            uiState = UIState.Idle(),
-            onLoginWithEmailClicked = { _, _ -> },
-            onLoginWithGoogleClicked = {},
-            onNavigateToAuthenticatedRoute = {})
-    }
+  FreyzaEmployeeTheme {
+    LoginScreen(
+      uiState = UIState.Idle(),
+      onLoginWithEmailClicked = { _, _ -> },
+      onLoginWithGoogleClicked = {},
+      onNavigateToAuthenticatedRoute = {})
+  }
 }

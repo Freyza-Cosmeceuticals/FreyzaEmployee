@@ -1,5 +1,6 @@
 package com.freyza.employee
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,7 +24,6 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.presentation.nav.NavRoutes
 import com.freyza.employee.presentation.nav.authenticatedGraph
 import com.freyza.employee.presentation.nav.unauthenticatedGraph
-import com.freyza.employee.presentation.ui.composables.FreyzaAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaBottomNavBar
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
@@ -31,64 +31,65 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun FreyzaEmployeeApp(
-    navController: NavHostController = rememberNavController(),
-    mainViewModel: MainViewModel = koinViewModel()
+  navController: NavHostController = rememberNavController(),
+  mainViewModel: MainViewModel = koinViewModel(),
 ) {
-    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+  val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
-    ToastDebug(mainViewModel = mainViewModel)
+  ToastDebug(mainViewModel = mainViewModel)
 
-    // Change UI based on initial loading state
-    when (val res = uiState) {
-        is UIState.Loading -> {
-            Scaffold { paddingValues ->
-                LoadingIndicator(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                )
-            }
-        }
-
-        is UIState.Ready -> {
-            // if valid login found, start with the Authenticated route, otherwise the UnAuthenticated route.
-            val startDestination =
-                if (res.data?.hasValidSession == true && res.data.user != null) NavRoutes.Authenticated.NavigationRoute else NavRoutes.Unauthenticated.NavigationRoute
-
-            Scaffold(
-                topBar = { FreyzaAppBar() },
-                bottomBar = { FreyzaBottomNavBar(navController) }) { paddingValues ->
-                Surface(modifier = Modifier.padding(paddingValues)) {
-                    NavHost(
-                        navController = navController,
-                        startDestination = startDestination
-                    ) {
-                        unauthenticatedGraph(navController = navController)
-                        authenticatedGraph(navController = navController)
-                    }
-                }
-            }
-        }
-
-        is UIState.Error -> {
-            Scaffold { paddingValues ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("An Unexpected Error has Occurred!")
-                    Text(res.message.toString())
-                    Button(onClick = { mainViewModel.initializeSession() }) { Text("Retry") }
-                    Button(onClick = { mainViewModel.logout() }) { Text("Logout") }
-                }
-            }
-        }
-
-        else -> {}
+  // Change UI based on initial loading state
+  when (val res = uiState) {
+    is UIState.Loading -> {
+      Scaffold { paddingValues ->
+        LoadingIndicator(
+          Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+        )
+      }
     }
+
+    is UIState.Ready -> {
+      // if valid login found, start with the Authenticated route, otherwise the UnAuthenticated route.
+      val startDestination =
+        if (res.data?.hasValidSession == true && res.data.user != null) NavRoutes.Authenticated.NavigationRoute else NavRoutes.Unauthenticated.NavigationRoute
+
+      @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+      Scaffold(
+        bottomBar = { FreyzaBottomNavBar(navController) }
+      ) {
+        Surface {
+          NavHost(
+            navController = navController,
+            startDestination = startDestination
+          ) {
+            unauthenticatedGraph(navController = navController)
+            authenticatedGraph(navController = navController)
+          }
+        }
+      }
+    }
+
+    is UIState.Error -> {
+      Scaffold { paddingValues ->
+        Column(
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+          verticalArrangement = Arrangement.Center,
+          horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+          Text("An Unexpected Error has Occurred!")
+          Text(res.message.toString())
+          Button(onClick = { mainViewModel.initializeSession() }) { Text("Retry") }
+          Button(onClick = { mainViewModel.logout() }) { Text("Logout") }
+        }
+      }
+    }
+
+    else -> {}
+  }
 }
 
 
@@ -97,10 +98,10 @@ fun FreyzaEmployeeApp(
 */
 @Composable
 fun ToastDebug(mainViewModel: MainViewModel) {
-    val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        mainViewModel.toastMessageFlow.collect { message ->
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-        }
+  val context = LocalContext.current
+  LaunchedEffect(Unit) {
+    mainViewModel.toastMessageFlow.collect { message ->
+      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
+  }
 }
