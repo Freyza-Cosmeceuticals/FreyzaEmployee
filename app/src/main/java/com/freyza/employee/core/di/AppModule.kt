@@ -33,9 +33,11 @@ import com.freyza.employee.domain.usecase.route.GetRouteUseCase
 import com.freyza.employee.domain.usecase.route.impl.GetRouteUseCaseImpl
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetTodayTravelPlanEntryUseCase
+import com.freyza.employee.domain.usecase.travelplan.GetTravelPlanEntriesUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetTravelPlanUseCase
 import com.freyza.employee.domain.usecase.travelplan.impl.GetCurrentTravelPlanUseCaseImpl
 import com.freyza.employee.domain.usecase.travelplan.impl.GetTodayTravelPlanEntryUseCaseImpl
+import com.freyza.employee.domain.usecase.travelplan.impl.GetTravelPlanEntriesUseCaseImpl
 import com.freyza.employee.domain.usecase.travelplan.impl.GetTravelPlanUseCaseImpl
 import com.freyza.employee.domain.usecase.user.GetCurrentUserUseCase
 import com.freyza.employee.domain.usecase.user.GetUserUseCase
@@ -120,6 +122,7 @@ val useCaseModule = module {
   single<GetTravelPlanUseCase> { GetTravelPlanUseCaseImpl(get()) }
   single<GetCurrentTravelPlanUseCase> { GetCurrentTravelPlanUseCaseImpl(get()) }
   single<GetTodayTravelPlanEntryUseCase> { GetTodayTravelPlanEntryUseCaseImpl(get()) }
+  single<GetTravelPlanEntriesUseCase> { GetTravelPlanEntriesUseCaseImpl(get()) }
 
   single<GetLocationUseCase> { GetLocationUseCaseImpl(get()) }
   single<GetRouteUseCase> { GetRouteUseCaseImpl(get()) }
@@ -129,6 +132,6 @@ val viewModelModule = module {
   viewModel { MainViewModel(get(), get(), get(), get()) }
   viewModel { LoginViewModel(get(), get()) }
   viewModel { HomeViewModel(get(), get(), get(), get(), get(), get()) }
-  viewModel { TravelPlanViewModel(get(), get()) }
+  viewModel { TravelPlanViewModel(get(), get(), get()) }
   viewModel { ProfileViewModel(get()) }
 }

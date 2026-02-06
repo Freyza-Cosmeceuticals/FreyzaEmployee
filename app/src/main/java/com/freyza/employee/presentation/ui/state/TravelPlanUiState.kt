@@ -6,5 +6,5 @@ import com.freyza.employee.domain.model.TravelPlanEntry
 
 data class TravelPlanUiState(
   val currentTravelPlan: UIState<TravelPlan?> = UIState.Idle(),
-  val travelPlanEntries: UIState<Array<TravelPlanEntry>> = UIState.Idle(),
+  val travelPlanEntries: UIState<List<TravelPlanEntry>> = UIState.Idle(),
 )

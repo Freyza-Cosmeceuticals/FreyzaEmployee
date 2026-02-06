@@ -16,6 +16,8 @@ supabase-bom = "3.3.0"
 ktor = "3.3.3"
 googleid = "1.1.1"
 credentials = "1.5.0"
+composeCalendar = "2.10.0"
+timber = "5.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -50,6 +52,9 @@ ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+
+kizitonwose-calendar = { group = "com.kizitonwose.calendar", name = "compose", version.ref = "composeCalendar" }
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

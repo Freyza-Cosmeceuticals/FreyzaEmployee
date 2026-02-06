@@ -6,6 +6,7 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
+import com.freyza.employee.domain.usecase.travelplan.GetTravelPlanEntriesUseCase
 import com.freyza.employee.presentation.ui.state.TravelPlanUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 class TravelPlanViewModel(
   private val sessionManager: SessionManager,
   private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
+  private val getTravelPlanEntries: GetTravelPlanEntriesUseCase,
 ) :
   ViewModel() {
 
@@ -77,6 +79,37 @@ class TravelPlanViewModel(
   }
 
   private fun loadTravelPlanEntries(tpId: String) {
+    Logger.i(TAG, "Fetching plan Entries plan for tpId:$tpId")
 
+    _uiState.update {
+      it.copy(
+        travelPlanEntries = UIState.Loading(it.travelPlanEntries.data)
+      )
+    }
+
+    viewModelScope.launch {
+      when (val result = getTravelPlanEntries.execute(
+        GetTravelPlanEntriesUseCase.Input(tpId)
+      )) {
+        is GetTravelPlanEntriesUseCase.Output.Success -> {
+          _uiState.update {
+            it.copy(travelPlanEntries = UIState.Ready(result.travelPlanEntries))
+          }
+
+          Logger.d(
+            TAG, "${result.travelPlanEntries.size} Travel Plans Fetched Successfully"
+          )
+        }
+
+        is GetTravelPlanEntriesUseCase.Output.Failure -> {
+          _uiState.update {
+            it.copy(
+              travelPlanEntries = UIState.Error(message = "Unable to fetch travel plans")
+            )
+          }
+          Logger.e(TAG, "Cannot fetch travel plans: ${result.message}")
+        }
+      }
+    }
   }
 }

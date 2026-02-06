@@ -22,113 +22,146 @@ import kotlin.time.Instant
 
 class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRepository {
 
-    companion object {
-        const val TAG: String = "TRAVEL_PLAN_REPO"
-    }
+  companion object {
+    const val TAG: String = "TRAVEL_PLAN_REPO"
+  }
 
-    override suspend fun getCurrentTravelPlan(
-        employeeId: String,
-        withEntries: Boolean
-    ): Result<TravelPlan> {
-        return try {
-            val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
-            val thisMonth = DateFormatter.format(
-                LocalDate(year = today.year, month = today.month, day = 1),
-                DateFormatter.FormattingType.MACHINE
-            )
+  override suspend fun getCurrentTravelPlan(
+    employeeId: String,
+    withEntries: Boolean,
+  ): Result<TravelPlan> {
+    return try {
+      val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
+      val thisMonth = DateFormatter.format(
+        LocalDate(year = today.year, month = today.month, day = 1),
+        DateFormatter.FormattingType.MACHINE
+      )
 
-            withContext(Dispatchers.IO) {
-                Logger.d(TAG, "Querying travelPlan for current employee and month: $thisMonth")
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying travelPlan for current employee and month: $thisMonth")
 
-                val travelPlanDto = postgrest.from("travelPlan").select {
-                    filter {
-                        TravelPlanDto::employeeId eq employeeId
-                        TravelPlanDto::month eq thisMonth
-                    }
-                }.decodeSingleOrNull<TravelPlanDto>()
+        val travelPlanDto = postgrest.from("travelPlan").select {
+          filter {
+            TravelPlanDto::employeeId eq employeeId
+            TravelPlanDto::month eq thisMonth
+          }
+        }.decodeSingleOrNull<TravelPlanDto>()
 
-                val travelPlan = travelPlanDto?.let {
-                    TravelPlan(
-                        id = it.id,
-                        employeeId = it.employeeId,
-                        month = LocalDate.parse(it.month),
-                        createdById = it.createdById,
-                        travelPlanEntries = listOf(),
-                        createdAt = Instant.parse(it.createdAt),
-                        updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-                    )
-                }
-
-                Result.Success(travelPlan)
-            }
-
-        } catch (e: Exception) {
-            Logger.e(TAG, e.message.toString())
-            Result.Error(e.message.toString())
+        val travelPlan = travelPlanDto?.let {
+          TravelPlan(
+            id = it.id,
+            employeeId = it.employeeId,
+            month = LocalDate.parse(it.month),
+            createdById = it.createdById,
+            travelPlanEntries = listOf(),
+            createdAt = Instant.parse(it.createdAt),
+            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
+          )
         }
+
+        Result.Success(travelPlan)
+      }
+
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
     }
+  }
 
-    override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry> {
-        return try {
-            val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)).plus(3, DateTimeUnit.DateBased.DayBased(1))
-            val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
+  override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry> {
+    return try {
+      // TODO: Reset to 0 after testing
+      val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
+        .plus(0, DateTimeUnit.DateBased.DayBased(1))
+      val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
-            withContext(Dispatchers.IO) {
-                Logger.d(TAG, "Querying travelPlanEntry for current employee and day: $thisDay")
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying travelPlanEntry for current employee and day: $thisDay")
 
-                val travelPlanEntryDto = postgrest.from("travelPlanEntry").select {
-                    filter {
-                        TravelPlanEntryDto::tpId eq tpId
-                        TravelPlanEntryDto::date eq thisDay
-                    }
-                }.decodeSingleOrNull<TravelPlanEntryDto>()
+        val travelPlanEntryDto = postgrest.from("travelPlanEntry").select {
+          filter {
+            TravelPlanEntryDto::tpId eq tpId
+            TravelPlanEntryDto::date eq thisDay
+          }
+        }.decodeSingleOrNull<TravelPlanEntryDto>()
 
-                val travelPlanEntry = travelPlanEntryDto?.let {
-                    TravelPlanEntry(
-                        id = it.id,
-                        tpId = it.tpId,
-                        date = LocalDate.parse(it.date),
-                        dayType = it.dayType,
-                        routeId = it.routeId,
-                        createdAt = Instant.parse(it.createdAt),
-                        updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-                    )
-                }
-
-                Result.Success(travelPlanEntry)
-            }
-
-        } catch (e: Exception) {
-            Logger.e(TAG, e.message.toString())
-            Result.Error(e.message.toString())
+        val travelPlanEntry = travelPlanEntryDto?.let {
+          TravelPlanEntry(
+            id = it.id,
+            tpId = it.tpId,
+            date = LocalDate.parse(it.date),
+            dayType = it.dayType,
+            routeId = it.routeId,
+            createdAt = Instant.parse(it.createdAt),
+            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
+          )
         }
+
+        Result.Success(travelPlanEntry)
+      }
+
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
     }
+  }
 
-    override suspend fun getTravelPlan(id: String): Result<TravelPlan> {
-        return try {
-            withContext(Dispatchers.IO) {
-                val travelPlanDto = postgrest.from("travelPlan").select {
-                    filter { TravelPlanDto::id eq id }
-                }.decodeSingleOrNull<TravelPlanDto>()
+  override suspend fun getTravelPlanEntries(tpId: String): Result<List<TravelPlanEntry>> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying travelPlanEntries for current employee and tpId: $tpId")
 
-                val travelPlan = travelPlanDto?.let {
-                    TravelPlan(
-                        id = it.id,
-                        employeeId = it.employeeId,
-                        month = LocalDate.parse(it.month),
-                        createdById = it.createdById,
-                        travelPlanEntries = listOf(),
-                        createdAt = Instant.parse(it.createdAt),
-                        updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-                    )
-                }
+        val travelPlanEntriesDto = postgrest.from("travelPlanEntry").select {
+          filter {
+            TravelPlanEntryDto::tpId eq tpId
+          }
+        }.decodeList<TravelPlanEntryDto>()
 
-                Result.Success(travelPlan)
-            }
-
-        } catch (e: Exception) {
-            Logger.e(TAG, e.message.toString())
-            Result.Error(e.message.toString())
+        val travelPlanEntries = travelPlanEntriesDto.map {
+          TravelPlanEntry(
+            id = it.id,
+            tpId = it.tpId,
+            date = LocalDate.parse(it.date),
+            dayType = it.dayType,
+            routeId = it.routeId,
+            createdAt = Instant.parse(it.createdAt),
+            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
+          )
         }
+
+        Result.Success(travelPlanEntries)
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
     }
+  }
+
+  override suspend fun getTravelPlan(id: String): Result<TravelPlan> {
+    return try {
+      withContext(Dispatchers.IO) {
+        val travelPlanDto = postgrest.from("travelPlan").select {
+          filter { TravelPlanDto::id eq id }
+        }.decodeSingleOrNull<TravelPlanDto>()
+
+        val travelPlan = travelPlanDto?.let {
+          TravelPlan(
+            id = it.id,
+            employeeId = it.employeeId,
+            month = LocalDate.parse(it.month),
+            createdById = it.createdById,
+            travelPlanEntries = listOf(),
+            createdAt = Instant.parse(it.createdAt),
+            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
+          )
+        }
+
+        Result.Success(travelPlan)
+      }
+
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
 }
