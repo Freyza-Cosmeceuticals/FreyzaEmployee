@@ -11,10 +11,10 @@ import androidx.navigation.toRoute
 import com.freyza.employee.presentation.ui.authenticated.home.HomeScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.profile.ProfileScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.travelplan.TravelPlanScreenRoute
+import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.unauthenticated.login.LoginScreenRoute
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
-import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import com.freyza.employee.presentation.ui.viewmodels.ProfileViewModel
 import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -46,7 +46,6 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 
     composable<NavRoutes.Unauthenticated.Register> {
       Column {
-
         Text("Register Screen is not available on Employee App")
         Button(onClick = { navController.navigateUp() }) { Text("Back") }
       }
@@ -59,14 +58,15 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 /*
 * Builds the Authenticated Navigation Graph
  */
-fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainViewModel: MainViewModel) {
+fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState: MainUiState) {
 
   navigation<NavRoutes.Authenticated.NavigationRoute>(
     startDestination = NavRoutes.Authenticated.Home
   ) {
     composable<NavRoutes.Authenticated.Home> {
       val vm = koinViewModel<HomeViewModel>()
-      HomeScreenRoute(viewModel = vm, mainViewModel = mainViewModel, onNavigateToUnauthenticated = {
+
+      HomeScreenRoute(mainUiState = mainUiState, viewModel = vm, onNavigateToUnauthenticated = {
         navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
           popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
             inclusive = true
@@ -78,8 +78,8 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainViewMod
     composable<NavRoutes.Authenticated.TravelPlan> {
       val vm = koinViewModel<TravelPlanViewModel>()
       TravelPlanScreenRoute(
+        mainUiState = mainUiState,
         viewModel = vm,
-        mainViewModel = mainViewModel,
         onNavigateToUnauthenticated = {
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
             popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
@@ -92,8 +92,8 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainViewMod
     composable<NavRoutes.Authenticated.Profile> {
       val vm = koinViewModel<ProfileViewModel>()
       ProfileScreenRoute(
+        mainUiState = mainUiState,
         viewModel = vm,
-        mainViewModel = mainViewModel,
         onNavigateToUnauthenticated = {
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
             popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {

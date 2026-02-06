@@ -26,7 +26,6 @@ import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -41,15 +40,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.dummyUserEmployee
+import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.composables.FreyzaProfileAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
-import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.ProfileScreenUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
-import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import com.freyza.employee.presentation.ui.viewmodels.ProfileViewModel
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
@@ -57,45 +56,24 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ProfileScreenRoute(
+  mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   viewModel: ProfileViewModel = koinViewModel(),
-  mainViewModel: MainViewModel = koinViewModel(),
   onNavigateToUnauthenticated: () -> Unit,
 ) {
-  val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
 
-  val onLogoutClicked = { mainViewModel.logout() }
-
-  when (mainUiState) {
-    is UIState.Loading -> {
-      ProfileScreenSkeleton()
-    }
-
-    is UIState.Ready -> {
-      val data = mainUiState.data
-
-      if (data == null || (!data.hasValidSession || data.user == null)) {
-        LoadingIndicator(message = "Signing Out...", modifier = Modifier.fillMaxSize())
-        LaunchedEffect(mainUiState) {
-          onNavigateToUnauthenticated()
-        }
-        return
-      }
-
-      // ensured valid user exists at this point
-      val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-      ProfileScreen(
-        uiState, data, onLogoutClicked, modifier
-      )
-    }
-
-    is UIState.Error -> {
-      Text("Error")
-    }
-
-    else -> {
-      ProfileScreenSkeleton()
-    }
+  AuthenticatedRouteWrapper(
+    mainUiState, onNavigateToUnauthenticated,
+    loading = {
+      Logger.e("ProfileScreenRoute", "Invalid User/Session on profile screen, waiting for 5seconds")
+      ProfileScreenSkeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
+    },
+    5_000,
+  ) { mainUiState ->
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    ProfileScreen(
+      uiState, mainUiState, onNavigateToUnauthenticated, modifier
+    )
   }
 }
 
@@ -200,10 +178,10 @@ fun ProfileScreen(
             )
             ListItem(
               headlineContent = { Text(user.email) }, trailingContent = {
-              Icon(
-                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-              )
-            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                Icon(
+                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+                )
+              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     topStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -224,10 +202,10 @@ fun ProfileScreen(
 
             ListItem(
               headlineContent = { Text("Change Password") }, trailingContent = {
-              Icon(
-                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-              )
-            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                Icon(
+                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+                )
+              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -253,10 +231,10 @@ fun ProfileScreen(
 
             ListItem(
               headlineContent = { Text("Language") }, trailingContent = {
-              Icon(
-                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-              )
-            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                Icon(
+                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+                )
+              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     topStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -277,10 +255,10 @@ fun ProfileScreen(
 
             ListItem(
               headlineContent = { Text("Permissions") }, trailingContent = {
-              Icon(
-                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-              )
-            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+                Icon(
+                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+                )
+              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -341,7 +319,7 @@ fun ProfileScreenSkeleton(modifier: Modifier = Modifier) {
 
 @Preview(showSystemUi = true, showBackground = true)
 @Composable
-fun ProfileScreenPreview() {
+private fun ProfileScreenPreview() {
   FreyzaEmployeeTheme {
     ProfileScreen(
       uiS5tate = ProfileScreenUiState(user = UIState.Ready(dummyUserEmployee())),

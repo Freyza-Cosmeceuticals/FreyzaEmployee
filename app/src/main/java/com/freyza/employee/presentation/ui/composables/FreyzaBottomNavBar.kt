@@ -22,7 +22,7 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.presentation.nav.BottomNavItem
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
-private const val TAG = "BOTTOM_BAR"
+private const val TAG = "BottomNavBar"
 private const val ROUTE_PREFIX = "com.freyza.employee.presentation.nav."
 
 @Composable
@@ -96,7 +96,7 @@ private fun ActualNavBar(
 
 @Composable
 @Preview
-fun FreyzaNavBarPreview() {
+private fun FreyzaNavBarPreview() {
   FreyzaEmployeeTheme {
     ActualNavBar(
       setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory),

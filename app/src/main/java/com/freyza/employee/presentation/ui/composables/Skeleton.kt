@@ -26,7 +26,7 @@ fun Skeleton(modifier: Modifier = Modifier) {
 
 @Preview(showBackground = true, showSystemUi = false)
 @Composable
-fun SkeletonPreview() {
+private fun SkeletonPreview() {
     FreyzaEmployeeTheme {
         Skeleton(modifier = Modifier
             .width(100.dp)

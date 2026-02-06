@@ -64,7 +64,7 @@ fun TodayCard(today: LocalDateTime, modifier: Modifier = Modifier) {
 
 @Preview
 @Composable
-fun TodayCardPreview() {
+private fun TodayCardPreview() {
   FreyzaEmployeeTheme {
     TodayCard(
       today = LocalDateTime(

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class SessionManager {
 
     companion object {
-        const val TAG = "SESSION_MANAGER"
+        const val TAG = "SessionManager"
     }
 
     private val _currentEmployee = MutableStateFlow<User?>(null)

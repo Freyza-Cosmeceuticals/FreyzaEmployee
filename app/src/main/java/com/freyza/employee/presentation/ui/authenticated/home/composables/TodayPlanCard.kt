@@ -217,7 +217,7 @@ fun TravelPlanCardSkeleton(modifier: Modifier = Modifier) {
       )
     ) {
       Text(
-        "Travel Plan".uppercase(),
+        "Travel Plan Loading".uppercase(),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.secondary
       )
@@ -410,7 +410,7 @@ fun TodayPlanCardPreviewLeave() {
 
 @Preview
 @Composable
-fun TodayPlanCardNullPreview() {
+private fun TodayPlanCardNullPreview() {
   FreyzaEmployeeTheme {
     TodayPlanCard(null, UIState.Ready(null), UIState.Ready(null))
   }

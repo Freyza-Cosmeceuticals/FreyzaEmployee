@@ -12,18 +12,18 @@ import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 
 class FreyzaEmployeeApplication : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        startKoin {
-            androidLogger(Level.ERROR)
-            androidContext(this@FreyzaEmployeeApplication)
-            modules(
-                appModule,
-                repositoryModule,
-                supabaseModule,
-                useCaseModule,
-                viewModelModule
-            )
-        }
+  override fun onCreate() {
+    super.onCreate()
+    startKoin {
+      androidLogger(Level.ERROR)
+      androidContext(this@FreyzaEmployeeApplication)
+      modules(
+        appModule,
+        repositoryModule,
+        supabaseModule,
+        useCaseModule,
+        viewModelModule
+      )
     }
+  }
 }

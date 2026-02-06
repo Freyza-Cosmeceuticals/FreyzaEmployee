@@ -3,6 +3,8 @@ package com.freyza.employee.core.util
 import android.content.res.Resources.getSystem
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.util.fastRoundToInt
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 
 fun String.toTitleCase() = this.split(' ')
     .joinToString(" ") { word ->
@@ -16,3 +18,5 @@ fun String.toTitleCase() = this.split(' ')
 val Int.px: Int get() = (this * getSystem().displayMetrics.density).toInt()
 
 fun Dp.toPx(): Int = (this.value * getSystem().displayMetrics.density).fastRoundToInt()
+
+fun LocalDateTime.toLocalDate(): LocalDate = LocalDate(this.year, this.month, this.day)

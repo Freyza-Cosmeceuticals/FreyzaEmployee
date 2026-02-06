@@ -20,7 +20,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.freyza.employee.R
+import com.freyza.employee.core.Constants
+import com.freyza.employee.core.util.DateFormatter
+import com.freyza.employee.core.util.toLocalDate
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +44,19 @@ fun FreyzaDefaultAppBar(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FreyzaHomeAppBar(scrollBehavior: TopAppBarScrollBehavior, modifier: Modifier = Modifier) {
+fun FreyzaHomeAppBar(
+  today: LocalDateTime?,
+  scrollBehavior: TopAppBarScrollBehavior,
+  modifier: Modifier = Modifier,
+) {
+  var today = today
+  if (today == null) {
+    today = Clock.System.now().toLocalDateTime(
+      TimeZone.of(
+        Constants.TIMEZONE
+      )
+    )
+  }
   TopAppBar(
     title = {
       Column(
@@ -46,7 +65,7 @@ fun FreyzaHomeAppBar(scrollBehavior: TopAppBarScrollBehavior, modifier: Modifier
         )
       ) {
         Text(
-          "Tuesday".uppercase(),
+          today.dayOfWeek.name.uppercase(),
           style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
           color = MaterialTheme.colorScheme.secondary,
           maxLines = 1,
@@ -54,7 +73,7 @@ fun FreyzaHomeAppBar(scrollBehavior: TopAppBarScrollBehavior, modifier: Modifier
         )
 
         Text(
-          "January 20",
+          DateFormatter.format(today.toLocalDate(), DateFormatter.FormattingType.HUMAN, true),
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.primary,
           maxLines = 1,
@@ -103,7 +122,7 @@ fun FreyzaProfileAppBar(modifier: Modifier = Modifier) {
 
 @Composable
 @Preview
-fun FreyzaDefaultAppBarPreview() {
+private fun FreyzaDefaultAppBarPreview() {
   FreyzaEmployeeTheme {
     FreyzaDefaultAppBar()
   }
@@ -112,15 +131,15 @@ fun FreyzaDefaultAppBarPreview() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Preview
-fun FreyzaHomeAppBarPreview() {
+private fun FreyzaHomeAppBarPreview() {
   FreyzaEmployeeTheme {
-    FreyzaHomeAppBar(TopAppBarDefaults.enterAlwaysScrollBehavior())
+    FreyzaHomeAppBar(today = null, scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior())
   }
 }
 
 @Composable
 @Preview
-fun FreyzaTpAppBarPreview() {
+private fun FreyzaTpAppBarPreview() {
   FreyzaEmployeeTheme {
     FreyzaTpAppBar()
   }
@@ -129,7 +148,7 @@ fun FreyzaTpAppBarPreview() {
 
 @Composable
 @Preview
-fun FreyzaProfileAppBarPreview() {
+private fun FreyzaProfileAppBarPreview() {
   FreyzaEmployeeTheme {
     FreyzaProfileAppBar()
   }

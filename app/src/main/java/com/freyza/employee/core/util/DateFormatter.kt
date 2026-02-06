@@ -11,62 +11,76 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
 object DateFormatter {
-    enum class FormattingType {
-        MACHINE,
-        HUMAN,
-    }
+  enum class FormattingType {
+    MACHINE,
+    HUMAN,
+  }
 
-    val dateFormatter = LocalDate.Format {
-        year(); char('-'); monthNumber(); char('-'); day()
-    }
+  val dateFormatter = LocalDate.Format {
+    year(); char('-'); monthNumber(); char('-'); day()
+  }
 
-    val humanDateFormatter = LocalDate.Format {
-        monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
-    }
+  val humanDateFormatter = LocalDate.Format {
+    monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
+  }
 
-    val dateTimeFormatter = LocalDateTime.Format {
-        year(); char('-'); monthNumber(); char('-'); day()
-        char('T')
-        hour(); char(':'); minute(); char(':'); second(); char('.'); secondFraction(3)
-    }
+  val humanShortDateFormatter = LocalDate.Format {
+    monthName(MonthNames.ENGLISH_FULL); char(' '); day(Padding.ZERO)
+  }
 
-    val humanDateTimeFormatter = LocalDateTime.Format {
-        monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
-        char(' ')
-        amPmHour(); char(':'); minute(); amPmMarker("AM", "PM")
-    }
+  val dateTimeFormatter = LocalDateTime.Format {
+    year(); char('-'); monthNumber(); char('-'); day()
+    char('T')
+    hour(); char(':'); minute(); char(':'); second(); char('.'); secondFraction(3)
+  }
 
-    fun format(it: LocalDate, formattingType: FormattingType = FormattingType.HUMAN): String {
-        return when (formattingType) {
-            FormattingType.MACHINE -> dateFormatter.format(it)
-            FormattingType.HUMAN -> humanDateFormatter.format(it)
-        }
-    }
+  val humanDateTimeFormatter = LocalDateTime.Format {
+    monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
+    char(' ')
+    amPmHour(); char(':'); minute(); amPmMarker("AM", "PM")
+  }
 
-    fun format(it: LocalDateTime, formattingType: FormattingType = FormattingType.HUMAN): String {
-        return when (formattingType) {
-            FormattingType.MACHINE -> dateTimeFormatter.format(it)
-            FormattingType.HUMAN -> humanDateTimeFormatter.format(it)
-        }
+  /**
+   * `short: Boolean = false` Keep formatted date short (omit year)
+   */
+  fun format(
+    it: LocalDate,
+    formattingType: FormattingType = FormattingType.HUMAN,
+    short: Boolean = false,
+  ): String {
+    return when (formattingType) {
+      FormattingType.MACHINE -> dateFormatter.format(it)
+      FormattingType.HUMAN -> {
+        if (short) humanShortDateFormatter.format(it)
+        else humanDateFormatter.format(it)
+      }
     }
+  }
 
-    fun format(it: Instant, formattingType: FormattingType = FormattingType.HUMAN): String {
-        return when (formattingType) {
-            FormattingType.MACHINE -> dateTimeFormatter.format(
-                it.toLocalDateTime(
-                    TimeZone.of(
-                        Constants.TIMEZONE
-                    )
-                )
-            )
-
-            FormattingType.HUMAN -> humanDateTimeFormatter.format(
-                it.toLocalDateTime(
-                    TimeZone.of(
-                        Constants.TIMEZONE
-                    )
-                )
-            )
-        }
+  fun format(it: LocalDateTime, formattingType: FormattingType = FormattingType.HUMAN): String {
+    return when (formattingType) {
+      FormattingType.MACHINE -> dateTimeFormatter.format(it)
+      FormattingType.HUMAN -> humanDateTimeFormatter.format(it)
     }
+  }
+
+  fun format(it: Instant, formattingType: FormattingType = FormattingType.HUMAN): String {
+    return when (formattingType) {
+      FormattingType.MACHINE -> dateTimeFormatter.format(
+        it.toLocalDateTime(
+          TimeZone.of(
+            Constants.TIMEZONE
+          )
+        )
+      )
+
+      FormattingType.HUMAN -> humanDateTimeFormatter.format(
+        it.toLocalDateTime(
+          TimeZone.of(
+            Constants.TIMEZONE
+          )
+        )
+      )
+    }
+  }
 }

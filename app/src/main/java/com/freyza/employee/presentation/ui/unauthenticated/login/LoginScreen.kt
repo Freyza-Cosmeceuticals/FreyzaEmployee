@@ -22,6 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -45,6 +47,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
@@ -52,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -113,6 +117,8 @@ private fun LoginScreen(
 
   val focusManager = LocalFocusManager.current
   val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
+
+  var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
   Scaffold(
     topBar = { FreyzaDefaultAppBar() },
@@ -187,6 +193,12 @@ private fun LoginScreen(
         },
         singleLine = true,
         isError = uiState is UIState.Error,
+        leadingIcon = {
+          Icon(
+            painter = painterResource(R.drawable.mail_24px),
+            contentDescription = null
+          )
+        },
         shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
         value = email,
         onValueChange = { email = it },
@@ -215,8 +227,25 @@ private fun LoginScreen(
         },
         singleLine = true,
         isError = uiState is UIState.Error,
+        leadingIcon = {
+          Icon(
+            painter = painterResource(R.drawable.password_24px),
+            contentDescription = null
+          )
+        },
+        trailingIcon = {
+          IconButton(
+            onClick = { passwordVisible = !passwordVisible }) {
+            Icon(
+              painter = if (passwordVisible) painterResource(R.drawable.visibility_24px) else painterResource(
+                R.drawable.visibility_off_24px
+              ),
+              contentDescription = if (passwordVisible) "Hide password" else "Show password",
+            )
+          }
+        },
         shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
-        visualTransformation = PasswordVisualTransformation(),
+        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         value = password,
         onValueChange = { password = it },
         keyboardOptions = KeyboardOptions(
@@ -277,10 +306,34 @@ private fun LoginScreen(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun LoginScreenPreview() {
+private fun LoginScreenPreview() {
   FreyzaEmployeeTheme {
     LoginScreen(
       uiState = UIState.Idle(),
+      onLoginWithEmailClicked = { _, _ -> },
+      onLoginWithGoogleClicked = {},
+      onNavigateToAuthenticatedRoute = {})
+  }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun LoginScreenLoadingPreview() {
+  FreyzaEmployeeTheme {
+    LoginScreen(
+      uiState = UIState.Loading(),
+      onLoginWithEmailClicked = { _, _ -> },
+      onLoginWithGoogleClicked = {},
+      onNavigateToAuthenticatedRoute = {})
+  }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun LoginScreenErrorPreview() {
+  FreyzaEmployeeTheme {
+    LoginScreen(
+      uiState = UIState.Error("Error message"),
       onLoginWithEmailClicked = { _, _ -> },
       onLoginWithGoogleClicked = {},
       onNavigateToAuthenticatedRoute = {})

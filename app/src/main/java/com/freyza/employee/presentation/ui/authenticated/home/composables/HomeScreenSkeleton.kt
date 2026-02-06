@@ -82,7 +82,7 @@ fun HomeScreenSkeleton(modifier: Modifier = Modifier) {
 
 @Preview(showSystemUi = false, showBackground = true)
 @Composable
-fun HomeScreenSkeletonPreview() {
+private fun HomeScreenSkeletonPreview() {
     FreyzaEmployeeTheme {
         HomeScreenSkeleton(modifier = Modifier.padding(8.dp, top = 16.dp))
     }

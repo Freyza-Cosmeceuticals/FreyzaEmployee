@@ -25,7 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
+import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.timedGreeting
 import com.freyza.employee.domain.model.Expense
 import com.freyza.employee.domain.model.TravelPlan
@@ -53,61 +53,40 @@ import com.freyza.employee.domain.model.dummyRoute
 import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
 import com.freyza.employee.domain.model.dummyUserEmployee
+import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanCardSkeleton
 import com.freyza.employee.presentation.ui.composables.FreyzaFabButton
 import com.freyza.employee.presentation.ui.composables.FreyzaHomeAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
-import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
-import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreenRoute(
+  mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = koinViewModel(),
-  mainViewModel: MainViewModel = koinViewModel(),
   onNavigateToUnauthenticated: () -> Unit,
 ) {
-  val mainUiState by mainViewModel.uiState.collectAsStateWithLifecycle()
-
-  when (mainUiState) {
-    is UIState.Loading -> {
-      HomeScreenSkeleton()
-    }
-
-    is UIState.Ready -> {
-      val data = mainUiState.data
-
-      if (data == null || (!data.hasValidSession || data.user == null)) {
-        LoadingIndicator(message = "Signing Out...", modifier = Modifier.fillMaxSize())
-        LaunchedEffect(mainUiState) {
-          onNavigateToUnauthenticated()
-        }
-        return
-      }
-
-      // ensured valid user exists at this point
-      val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-      HomeScreen(
-        uiState, data, modifier
-      )
-    }
-
-    is UIState.Error -> {
-      Text("Error")
-    }
-
-    else -> {
-      HomeScreenSkeleton()
-    }
+  AuthenticatedRouteWrapper(
+    mainUiState, onNavigateToUnauthenticated,
+    loading = {
+      Logger.e("HomeScreenRoute", "Invalid User/Session on home screen, waiting for 5seconds")
+      HomeScreenSkeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
+    },
+    5_000,
+  ) { mainUiState ->
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    HomeScreen(
+      uiState, mainUiState, modifier
+    )
   }
 }
 
@@ -123,7 +102,7 @@ private fun HomeScreen(
   val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
   Scaffold(
-    topBar = { FreyzaHomeAppBar(scrollBehavior) },
+    topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
     snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
@@ -431,7 +410,7 @@ fun ExpenseList(expenses: List<Expense>) {
   showSystemUi = true, showBackground = true
 )
 @Composable
-fun HomeScreenPreview() {
+private fun HomeScreenPreview() {
   FreyzaEmployeeTheme {
     HomeScreen(
       HomeScreenUiState(

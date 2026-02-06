@@ -37,7 +37,7 @@ fun LoadingIndicator(
 
 @Preview(showSystemUi = false, showBackground = true)
 @Composable
-fun LoadingIndicatorPreview() {
+private fun LoadingIndicatorPreview() {
     FreyzaEmployeeTheme {
         LoadingIndicator(message = "Preview Loading")
     }

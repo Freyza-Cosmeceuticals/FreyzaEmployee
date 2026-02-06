@@ -21,7 +21,7 @@ class TravelPlanViewModel(
   ViewModel() {
 
   companion object {
-    const val TAG = "TRAVEL_PLAN_VIEWMODEL"
+    const val TAG = "TravelPlanViewModel"
   }
 
   private val _uiState = MutableStateFlow(TravelPlanUiState())
@@ -31,6 +31,10 @@ class TravelPlanViewModel(
   }.stateIn(
     viewModelScope, SharingStarted.WhileSubscribed(5_000), TravelPlanUiState()
   )
+
+  init {
+    Logger.d(TAG, "Init")
+  }
 
   fun loadCurrentTravelPlan(employeeId: String) {
     Logger.i(TAG, "Fetching current travel plan for $employeeId")

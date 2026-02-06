@@ -33,7 +33,7 @@ class HomeViewModel(
 ) : ViewModel() {
 
   companion object {
-    const val TAG = "HOME_VIEWMODEL"
+    const val TAG = "HomeViewModel"
   }
 
   private val _uiState = MutableStateFlow(HomeScreenUiState())
@@ -42,6 +42,10 @@ class HomeViewModel(
       val employeeId = sessionManager.currentEmployee.value?.id
       if (employeeId != null) loadCurrentTravelPlan(employeeId)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeScreenUiState())
+
+  init {
+    Logger.d(TAG, "Init")
+  }
 
   fun loadRecentExpenses() {
     viewModelScope.launch {
@@ -67,7 +71,7 @@ class HomeViewModel(
   }
 
   fun loadCurrentTravelPlan(employeeId: String) {
-    Logger.i(TAG, "Fetching current travel plan for $employeeId")
+    Logger.i(TAG, "Fetching current travel plan for emp:$employeeId")
 
     _uiState.update {
       it.copy(
@@ -89,12 +93,21 @@ class HomeViewModel(
           _uiState.update {
             it.copy(currentTravelPlan = UIState.Ready(result.travelPlan))
           }
-          Logger.d(
-            TAG, "${result.travelPlan?.id} Current Travel Plan Fetched Successfully"
-          )
+          Logger.d(TAG, "tpId:${result.travelPlan?.id} Current Travel Plan Fetched Successfully")
 
           // fetch today's entry
-          if (result.travelPlan?.id !== null) loadTodayTravelPlanEntry(result.travelPlan.id)
+          if (result.travelPlan?.id !== null) {
+            loadTodayTravelPlanEntry(result.travelPlan.id)
+          } else {
+            // since we can't fetch any further data, set these to ready
+            _uiState.update {
+              it.copy(
+                todayTravelPlanEntry = UIState.Ready(null),
+                todayPlanEntryRoute = UIState.Ready(null),
+                todayPlanEntrySrcDest = UIState.Ready(null)
+              )
+            }
+          }
         }
 
         is GetCurrentTravelPlanUseCase.Output.Failure -> {
@@ -135,7 +148,16 @@ class HomeViewModel(
           )
 
           // fetch plan's route
-          if (result.travelPlanEntry?.routeId !== null) loadCurrentRoute(result.travelPlanEntry.routeId)
+          if (result.travelPlanEntry?.routeId !== null)
+            loadCurrentRoute(result.travelPlanEntry.routeId)
+          else {
+            _uiState.update {
+              it.copy(
+                todayPlanEntryRoute = UIState.Ready(null),
+                todayPlanEntrySrcDest = UIState.Ready(null)
+              )
+            }
+          }
         }
 
         is GetTodayTravelPlanEntryUseCase.Output.Failure -> {
@@ -175,6 +197,12 @@ class HomeViewModel(
           // fetch both locations if route exists
           if (result.route !== null) {
             loadLocationPair(result.route.srcLocId, result.route.destLocId)
+          } else {
+            _uiState.update {
+              it.copy(
+                todayPlanEntrySrcDest = UIState.Ready(null)
+              )
+            }
           }
         }
 
