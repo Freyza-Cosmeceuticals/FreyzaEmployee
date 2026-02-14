@@ -1,5 +1,6 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -18,11 +19,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.FontFamily
@@ -38,14 +44,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
+import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.timedGreeting
+import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Expense
-import com.freyza.employee.domain.model.TravelPlan
-import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.domain.model.User
+import com.freyza.employee.domain.model.dayTypes
 import com.freyza.employee.domain.model.dummyExpenses
 import com.freyza.employee.domain.model.dummyLocation
 import com.freyza.employee.domain.model.dummyLocationAlt
@@ -54,16 +62,20 @@ import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
+import com.freyza.employee.presentation.ui.authenticated.home.composables.BeginDailyReportSheet
+import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportingFailedToLoadDialog
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanCardSkeleton
 import com.freyza.employee.presentation.ui.composables.FreyzaFabButton
 import com.freyza.employee.presentation.ui.composables.FreyzaHomeAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
+import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
 import org.koin.androidx.compose.koinViewModel
@@ -78,14 +90,18 @@ fun HomeScreenRoute(
   AuthenticatedRouteWrapper(
     mainUiState, onNavigateToUnauthenticated,
     loading = {
-      Logger.e("HomeScreenRoute", "Invalid User/Session on home screen, waiting for 5seconds")
+      Logger.e("HomeScreenRoute", "Invalid User/Session on home screen, waiting for 5 seconds")
       HomeScreenSkeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
     },
     5_000,
   ) { mainUiState ->
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
-      uiState, mainUiState, modifier
+      uiState,
+      mainUiState,
+      modifier,
+      onDailyReportBegin = viewModel::createCurrentDailyReport,
+      onDailyReportRetry = viewModel::loadCurrentDailyReport
     )
   }
 }
@@ -96,10 +112,17 @@ private fun HomeScreen(
   uiState: HomeScreenUiState,
   mainUiState: MainUiState,
   modifier: Modifier = Modifier,
+  onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
+  onDailyReportRetry: () -> Unit,
 ) {
   val scope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
   val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
+  val sheetState = rememberModalBottomSheetState(
+    confirmValueChange = { newValue -> newValue != SheetValue.Hidden },
+    skipPartiallyExpanded = true
+  )
 
   Scaffold(
     topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
@@ -112,6 +135,67 @@ private fun HomeScreen(
   ) {
     if (mainUiState.user == null || mainUiState.today == null) {
       return@Scaffold
+    }
+
+    // no daily report dialog
+    when (val result = uiState.currentDailyReport) {
+      is UIState.Ready -> {
+        if (result.data == null) {
+          BackHandler(enabled = true) {
+            scope.launch {
+              snackbarHostState.showTypedSnackbar(
+                "Please begin the daily report first",
+                SnackbarType.WARNING,
+                dismissCurrent = true
+              )
+            }
+          }
+          // no daily report, ask the user to create one in a blocking way.
+          ModalBottomSheet(
+            onDismissRequest = {},
+            sheetState = sheetState,
+            sheetGesturesEnabled = false,
+            scrimColor = Color.Black.copy(alpha = 0.75f),
+            properties = ModalBottomSheetProperties(
+              shouldDismissOnBackPress = false,
+              shouldDismissOnClickOutside = false
+            )
+          ) {
+            BeginDailyReportSheet(
+              dayTypes = dayTypes,
+              routes = uiState.routes,
+              todayTravelPlanEntry = uiState.todayTravelPlanEntry,
+              onDailyReportBegin = onDailyReportBegin
+            )
+          }
+        }
+      }
+
+      is UIState.Loading -> {
+        ModalBottomSheet(
+          onDismissRequest = {},
+          sheetState = sheetState,
+          sheetGesturesEnabled = true,
+          properties = ModalBottomSheetProperties(
+            shouldDismissOnBackPress = false,
+            shouldDismissOnClickOutside = false
+          )
+        ) {
+          LoadingIndicator(
+            Modifier
+              .fillMaxWidth()
+              .padding(dimensionResource(R.dimen.screen_padding).times(2)),
+            result.message ?: "Working on it..."
+          )
+        }
+      }
+
+      is UIState.Error -> {
+        // since loading daily report data failed, we cannot continue and ask the user to retry
+        DailyReportingFailedToLoadDialog(message = result.message, onRetry = onDailyReportRetry)
+      }
+
+      else -> {}
     }
 
     LazyColumn(
@@ -272,38 +356,6 @@ private fun HomeScreen(
 
       // DebugUserInfo(mainUiState.user)
       // ExpenseList(uiState.data!!.recentExpenses)
-
-//            when (val travelPlan = uiState.currentTravelPlan) {
-//                is UIState.Loading -> {
-//                    LoadingIndicator(message = "Loading Travel Plan..")
-//                }
-//
-//                is UIState.Ready -> {
-//                    DebugTravelPlan(travelPlan.data)
-//                }
-//
-//                is UIState.Error -> {
-//                    Text(travelPlan.message.toString())
-//                }
-//
-//                else -> {}
-//            }
-
-//            when (val travelPlanEntry = uiState.todayTravelPlanEntry) {
-//                is UIState.Loading -> {
-//                    LoadingIndicator(message = "Loading Travel Plan Entry...")
-//                }
-//
-//                is UIState.Ready -> {
-//                    DebugTravelPlanEntry(travelPlanEntry.data)
-//                }
-//
-//                is UIState.Error -> {
-//                    Text(travelPlanEntry.message.toString())
-//                }
-//
-//                else -> {}
-//            }
     }
   }
 }
@@ -338,53 +390,6 @@ private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DebugTravelPlan(travelPlan: TravelPlan?, modifier: Modifier = Modifier) {
-  Card {
-    Column(modifier = modifier.padding(8.dp)) {
-
-      if (travelPlan === null) {
-        Text("No Travel Plan")
-      } else {
-        Text(travelPlan.id, fontFamily = FontFamily.Monospace)
-        Text(travelPlan.employeeId)
-        Text(DateFormatter.format(travelPlan.month))
-        Text(travelPlan.createdById)
-
-        Text(travelPlan.travelPlanEntries.size.toString())
-
-        Text(DateFormatter.format(travelPlan.createdAt))
-        travelPlan.updatedAt?.let {
-          Text(DateFormatter.format(it))
-        }
-      }
-    }
-  }
-}
-
-@Composable
-private fun DebugTravelPlanEntry(travelPlanEntry: TravelPlanEntry?, modifier: Modifier = Modifier) {
-  Card {
-    Column(modifier = modifier.padding(8.dp)) {
-
-      if (travelPlanEntry === null) {
-        Text("No Travel Plan Entry")
-      } else {
-        Text(travelPlanEntry.id, fontFamily = FontFamily.Monospace)
-        Text(DateFormatter.format(travelPlanEntry.date))
-        Text(travelPlanEntry.dayType.titleCase())
-        Text(travelPlanEntry.routeId.toString())
-
-        Text(DateFormatter.format(travelPlanEntry.createdAt))
-        travelPlanEntry.updatedAt?.let {
-          Text(DateFormatter.format(it))
-        }
-      }
-    }
-  }
-}
-
-
-@Composable
 fun ExpenseList(expenses: List<Expense>) {
 
   if (expenses.isEmpty()) {
@@ -401,8 +406,6 @@ fun ExpenseList(expenses: List<Expense>) {
         Text(if (it.locked) "Locked" else "Open")
       }
     }
-
-
   }
 }
 
@@ -418,12 +421,15 @@ private fun HomeScreenPreview() {
         currentTravelPlan = UIState.Ready(dummyTravelPlan()),
         todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
         todayPlanEntryRoute = UIState.Ready(dummyRoute()),
-        todayPlanEntrySrcDest = UIState.Ready(dummyLocation() to dummyLocationAlt())
+        todayPlanEntrySrcDest = UIState.Ready(dummyLocation() to dummyLocationAlt()),
+        currentDailyReport = UIState.Ready(null)
       ), MainUiState(
         hasValidSession = true, user = dummyUserEmployee(), today = LocalDateTime(
           year = 2026, month = Month.JANUARY, day = 1, hour = 5, minute = 59, second = 59
         )
-      )
+      ),
+      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportRetry = {}
     )
   }
 }

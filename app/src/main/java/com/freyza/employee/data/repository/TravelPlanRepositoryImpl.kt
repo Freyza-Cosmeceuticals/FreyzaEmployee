@@ -23,7 +23,7 @@ import kotlin.time.Instant
 class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRepository {
 
   companion object {
-    const val TAG: String = "TRAVEL_PLAN_REPO"
+    const val TAG: String = "TravelPlanRepo"
   }
 
   override suspend fun getCurrentTravelPlan(
