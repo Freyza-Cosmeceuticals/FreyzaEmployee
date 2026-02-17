@@ -17,6 +17,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +33,7 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.authenticated.travelplan.composables.DayBottomSheetContent
@@ -46,7 +48,6 @@ import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.daysOfWeek
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinDayOfWeek
 import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.todayIn
@@ -73,7 +74,10 @@ fun TravelPlanScreenRoute(
   ) { mainUiState ->
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     TravelPlanScreen(
-      uiState, mainUiState, modifier
+      uiState,
+      mainUiState,
+      modifier,
+      loadSelectedPlanEntryRoute = viewModel::loadSelectedPlanEntryRoute
     )
   }
 }
@@ -84,6 +88,7 @@ fun TravelPlanScreen(
   uiState: TravelPlanUiState,
   mainUiState: MainUiState,
   modifier: Modifier = Modifier,
+  loadSelectedPlanEntryRoute: (tpEntryId: String) -> Unit,
 ) {
   val snackbarHostState = remember { SnackbarHostState() }
   val sheetState = rememberModalBottomSheetState()
@@ -94,6 +99,13 @@ fun TravelPlanScreen(
   val daysOfWeek = remember { daysOfWeek().map { it.toKotlinDayOfWeek() } }
 
   var selectedDate by remember { mutableStateOf<CalendarDay?>(null) }
+  val selectedPlanEntry by remember(selectedDate) {
+    derivedStateOf {
+      uiState.travelPlanEntries.data?.find {
+        it.date.equals(selectedDate!!.date.toKotlinLocalDate())
+      }
+    }
+  }
 
   Scaffold(
     topBar = { FreyzaTpAppBar() },
@@ -107,7 +119,7 @@ fun TravelPlanScreen(
     }
 
     selectedDate?.let {
-      when (val entries = uiState.travelPlanEntries) {
+      when (uiState.travelPlanEntries) {
         is UIState.Ready -> {
           ModalBottomSheet(
             onDismissRequest = {
@@ -117,12 +129,12 @@ fun TravelPlanScreen(
           ) {
             DayBottomSheetContent(
               selectedDate!!,
-              selectedPlanEntry = entries.data?.find {
-                Logger.d("BottomSheet", "${selectedDate!!.date} - ${it.date.toJavaLocalDate()}")
-                it.date.equals(selectedDate!!.date.toKotlinLocalDate())
-              },
+              selectedPlanEntry = selectedPlanEntry,
+              selectedRoute = uiState.selectedRoute,
+              selectedSrcDestPair = uiState.selectedSrcDestPair,
               onClickPrevious = {},
-              onClickNext = {})
+              onClickNext = {}
+            )
           }
         }
 
@@ -186,7 +198,12 @@ fun TravelPlanScreen(
                 currentMonth = currentMonth,
                 daysOfWeek = daysOfWeek,
                 selectedDate = selectedDate,
-                setSelectedDate = { selectedDate = it })
+                setSelectedDate = {
+                  selectedDate = it
+                  if (selectedPlanEntry != null && selectedPlanEntry!!.dayType == DayType.WORK) {
+                    loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
+                  }
+                })
             }
           }
 

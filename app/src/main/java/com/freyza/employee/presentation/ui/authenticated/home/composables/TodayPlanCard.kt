@@ -1,6 +1,7 @@
 package com.freyza.employee.presentation.ui.authenticated.home.composables
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,8 +58,7 @@ fun TodayPlanCard(
   modifier: Modifier = Modifier,
 ) {
   Card(
-    onClick = {},
-    modifier = modifier,
+    modifier = modifier.clickable {},
     elevation = CardDefaults.outlinedCardElevation(),
     colors = CardDefaults.outlinedCardColors(),
     border = CardDefaults.outlinedCardBorder()
@@ -285,6 +285,8 @@ fun RouteArrow(
   val textMeasurer = rememberTextMeasurer()
   val srcTextResult = textMeasurer.measure(text = srcText)
   val destTextResult = textMeasurer.measure(text = destText)
+
+  return
 
   Canvas(modifier = modifier.fillMaxWidth()) {
     val dashOnInterval1 = (strokeWidth * 4).toPx()
