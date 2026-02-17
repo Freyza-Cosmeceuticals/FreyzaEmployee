@@ -7,6 +7,9 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.blankLocation
+import com.freyza.employee.domain.model.routeName
+import com.freyza.employee.domain.model.toRouteWithLocation
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.impl.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
@@ -21,6 +24,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -46,18 +53,23 @@ class HomeViewModel(
   }
 
   private val _uiState = MutableStateFlow(HomeScreenUiState())
-  val uiState = _uiState
-    .onStart {
-      val employeeId = sessionManager.currentEmployee.value?.id
-      if (employeeId != null) {
-        loadCurrentDailyReport(employeeId, false)
-        loadAllRoutes()
-        loadCurrentTravelPlan(employeeId)
-      }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeScreenUiState())
+  val uiState = _uiState.onStart {
+    refresh()
+  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeScreenUiState())
 
   init {
     Logger.d(TAG, "Init")
+  }
+
+  fun refresh() {
+    Logger.d(TAG, "Refreshing data")
+
+    val employeeId = sessionManager.currentEmployee.value?.id
+    if (employeeId != null) {
+      loadCurrentDailyReport(employeeId, false)
+      loadAllRoutes()
+      loadCurrentTravelPlan(employeeId)
+    }
   }
 
   fun loadRecentExpenses() {
@@ -90,13 +102,10 @@ class HomeViewModel(
       it.copy(
         currentTravelPlan = UIState.Loading(it.currentTravelPlan.data),
         todayTravelPlanEntry = UIState.Loading(it.todayTravelPlanEntry.data),
-        todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data),
-        todayPlanEntrySrcDest = UIState.Loading(it.todayPlanEntrySrcDest.data)
+        todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data)
       )
     }
     viewModelScope.launch {
-//      delay(1500)
-
       when (val result = getCurrentTravelPlanUseCase.execute(
         GetCurrentTravelPlanUseCase.Input(
           employeeId
@@ -116,8 +125,7 @@ class HomeViewModel(
             _uiState.update {
               it.copy(
                 todayTravelPlanEntry = UIState.Ready(null),
-                todayPlanEntryRoute = UIState.Ready(null),
-                todayPlanEntrySrcDest = UIState.Ready(null)
+                todayPlanEntryRoute = UIState.Ready(null)
               )
             }
           }
@@ -141,13 +149,10 @@ class HomeViewModel(
     _uiState.update {
       it.copy(
         todayTravelPlanEntry = UIState.Loading(it.todayTravelPlanEntry.data),
-        todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data),
-        todayPlanEntrySrcDest = UIState.Loading(it.todayPlanEntrySrcDest.data)
+        todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data)
       )
     }
     viewModelScope.launch {
-//      delay(1500)
-
       when (val result = getTodayTravelPlanEntryUseCase.execute(
         GetTodayTravelPlanEntryUseCase.Input(tpId)
       )) {
@@ -156,18 +161,15 @@ class HomeViewModel(
             it.copy(todayTravelPlanEntry = UIState.Ready(result.travelPlanEntry))
           }
           Logger.d(
-            TAG,
-            "${result.travelPlanEntry?.id} Today Travel Plan Entry Fetched Successfully"
+            TAG, "${result.travelPlanEntry?.id} Today Travel Plan Entry Fetched Successfully"
           )
 
           // fetch plan's route
-          if (result.travelPlanEntry?.routeId !== null)
-            loadCurrentRoute(result.travelPlanEntry.routeId)
+          if (result.travelPlanEntry?.routeId !== null) loadCurrentRoute(result.travelPlanEntry.routeId)
           else {
             _uiState.update {
               it.copy(
-                todayPlanEntryRoute = UIState.Ready(null),
-                todayPlanEntrySrcDest = UIState.Ready(null)
+                todayPlanEntryRoute = UIState.Ready(null)
               )
             }
           }
@@ -190,21 +192,23 @@ class HomeViewModel(
 
     _uiState.update {
       it.copy(
-        todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data),
-        todayPlanEntrySrcDest = UIState.Loading(it.todayPlanEntrySrcDest.data)
+        todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data)
       )
     }
     viewModelScope.launch {
-//      delay(1500)
-
       when (val result = getRouteUseCase.execute(GetRouteUseCase.Input(routeId))) {
         is GetRouteUseCase.Output.Success -> {
           _uiState.update {
-            it.copy(todayPlanEntryRoute = UIState.Ready(result.route))
+            it.copy(
+              todayPlanEntryRoute = UIState.Loading(
+                result.route?.toRouteWithLocation(
+                  blankLocation(), blankLocation()
+                )
+              )
+            )
           }
           Logger.d(
-            TAG,
-            "${result.route?.id} Current Route Fetched Successfully ${result.route}"
+            TAG, "${result.route?.id} Current (Partial) Route Fetched Successfully ${result.route}"
           )
 
           // fetch both locations if route exists
@@ -213,7 +217,7 @@ class HomeViewModel(
           } else {
             _uiState.update {
               it.copy(
-                todayPlanEntrySrcDest = UIState.Ready(null)
+                todayPlanEntryRoute = UIState.Ready(it.todayPlanEntryRoute.data)
               )
             }
           }
@@ -234,10 +238,10 @@ class HomeViewModel(
   private fun loadLocationPair(srcLocId: String, destLocId: String) {
     Logger.i(TAG, "Fetching location pair for $srcLocId -> $destLocId")
 
-    _uiState.update { it.copy(todayPlanEntrySrcDest = UIState.Loading(it.todayPlanEntrySrcDest.data)) }
-    viewModelScope.launch {
-//      delay(1500)
+    // should already be in loading
+    _uiState.update { it.copy(todayPlanEntryRoute = UIState.Loading(it.todayPlanEntryRoute.data)) }
 
+    viewModelScope.launch {
       coroutineScope {
         val srcDeferred = async(Dispatchers.IO) {
           getLocationUseCase.execute(GetLocationUseCase.Input(srcLocId))
@@ -251,11 +255,14 @@ class HomeViewModel(
         val destResult = destDeferred.await()
 
         if (srcResult is GetLocationUseCase.Output.Success && destResult is GetLocationUseCase.Output.Success) {
+          val pair =
+            if (srcResult.location != null && destResult.location != null) srcResult.location to destResult.location else null
           _uiState.update {
             it.copy(
-              todayPlanEntrySrcDest = UIState.Ready(
-                if (srcResult.location != null && destResult.location != null) srcResult.location to destResult.location
-                else null
+              todayPlanEntryRoute = UIState.Ready(
+                if (pair != null) it.todayPlanEntryRoute.data?.copy(
+                  srcLoc = pair.first, destLoc = pair.second
+                ) else it.todayPlanEntryRoute.data
               )
             )
           }
@@ -267,16 +274,16 @@ class HomeViewModel(
         } else {
           _uiState.update {
             it.copy(
-              todayPlanEntrySrcDest = UIState.Error(
-                message = "Unable to fetch locations"
-              )
+              todayPlanEntryRoute = UIState.Error(message = "Unable to fetch locations")
             )
           }
 
-          if (srcResult is GetLocationUseCase.Output.Failure)
-            Logger.e(TAG, "Cannot fetch location pair: ${srcResult.message}")
-          if (destResult is GetLocationUseCase.Output.Failure)
-            Logger.e(TAG, "Cannot fetch location pair: ${destResult.message}")
+          if (srcResult is GetLocationUseCase.Output.Failure) Logger.e(
+            TAG, "Cannot fetch location pair: ${srcResult.message}"
+          )
+          if (destResult is GetLocationUseCase.Output.Failure) Logger.e(
+            TAG, "Cannot fetch location pair: ${destResult.message}"
+          )
         }
       }
     }
@@ -298,17 +305,22 @@ class HomeViewModel(
       _uiState.update {
         it.copy(
           currentDailyReport = UIState.Loading(
-            it.currentDailyReport.data,
-            "Loading Daily Report"
+            it.currentDailyReport.data, "Loading Daily Report"
           )
         )
       }
 
+    _uiState.update {
+      it.copy(
+        todayReportDayType = UIState.Loading(),
+        todayReportRoute = UIState.Loading()
+      )
+    }
+
     viewModelScope.launch {
       when (val result = getTodayDailyReportUseCase.execute(
         GetTodayDailyReportUseCase.Input(
-          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)),
-          employeeId
+          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId
         )
       )) {
         is GetTodayDailyReportUseCase.Output.Success -> {
@@ -316,8 +328,7 @@ class HomeViewModel(
             it.copy(currentDailyReport = UIState.Ready(result.dailyReport))
           }
           Logger.d(
-            TAG,
-            "dailyReportId:${result.dailyReport?.id} Today Daily Report Fetched Successfully"
+            TAG, "dailyReportId:${result.dailyReport?.id} Today Daily Report Fetched Successfully"
           )
 
           if (result.dailyReport?.id == null) {
@@ -325,18 +336,60 @@ class HomeViewModel(
               TAG,
               "Today's Daily Report does not exists, need to create one before proceeding, showing the bottom sheet"
             )
+
+            _uiState.update {
+              it.copy(
+                todayReportDayType = UIState.Idle(),
+                todayReportRoute = UIState.Idle()
+              )
+            }
+          } else {
+            // set the resolved dayType and route if a valid dailyReport is found
+            setReportDayType(result.dailyReport.dayType)
+            result.dailyReport.routeId?.let { setReportRoute(it) }
           }
         }
 
         is GetTodayDailyReportUseCase.Output.Failure -> {
           _uiState.update {
             it.copy(
-              currentDailyReport = UIState.Error(message = "Unable to fetch today's daily report")
+              currentDailyReport = UIState.Error(message = "Unable to fetch today's daily report"),
+              todayReportDayType = UIState.Error(message = "Unable to fetch today's daily report"),
+              todayReportRoute = UIState.Error(message = "Unable to fetch today's daily report")
             )
           }
           Logger.e(TAG, "Cannot fetch today's daily report: ${result.message}")
         }
       }
+    }
+  }
+
+  private fun setReportDayType(dayType: DayType) {
+    Logger.d(TAG, "Setting reportDayType to ${dayType.titleCase()}")
+    _uiState.update {
+      it.copy(todayReportDayType = UIState.Ready(dayType))
+    }
+  }
+
+  private fun setReportRoute(routeId: String) {
+    if (_uiState.value.routes.data?.isEmpty() != true) {
+      loadAllRoutes()
+    }
+
+    _uiState.update {
+      it.copy(todayReportRoute = UIState.Loading(it.todayReportRoute.data))
+    }
+
+    viewModelScope.launch {
+      _uiState.map { it.routes }.filterNotNull().filter { it.data.isNullOrEmpty().not() }.first()
+        .let { availableRoute ->
+          val route = availableRoute.data?.find { it.id == routeId }
+
+          Logger.d(TAG, "Setting reportRoute to ${route?.routeName()}")
+          _uiState.update {
+            it.copy(todayReportRoute = UIState.Ready(route))
+          }
+        }
     }
   }
 
@@ -351,8 +404,7 @@ class HomeViewModel(
     _uiState.update {
       it.copy(
         currentDailyReport = UIState.Loading(
-          it.currentDailyReport.data,
-          "Creating Daily Report"
+          it.currentDailyReport.data, "Creating Daily Report"
         )
       )
     }
@@ -360,10 +412,7 @@ class HomeViewModel(
     viewModelScope.launch {
       when (val result = createTodayDailyReportUseCase.execute(
         CreateTodayDailyReportUseCase.Input(
-          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)),
-          employeeId,
-          dayType,
-          routeId
+          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId, dayType, routeId
         )
       )) {
         is CreateTodayDailyReportUseCase.Output.Success -> {
@@ -371,15 +420,17 @@ class HomeViewModel(
             it.copy(currentDailyReport = UIState.Ready(result.dailyReport))
           }
           Logger.d(
-            TAG,
-            "dailyReportId:${result.dailyReport?.id} Today Daily Report Created Successfully"
+            TAG, "dailyReportId:${result.dailyReport?.id} Today Daily Report Created Successfully"
           )
 
           if (result.dailyReport?.id == null) {
             Logger.i(
-              TAG,
-              "Today's Daily Report was not created, check logs"
+              TAG, "Today's Daily Report was not created, check logs"
             )
+          } else {
+            // set the resolved dayType and route if a valid dailyReport is created
+            setReportDayType(result.dailyReport.dayType)
+            result.dailyReport.routeId?.let { setReportRoute(it) }
           }
         }
 
@@ -410,8 +461,7 @@ class HomeViewModel(
             it.copy(routes = UIState.Ready(result.routes))
           }
           Logger.d(
-            TAG,
-            "All routes fetched successfully: ${result.routes.size} routes"
+            TAG, "All routes fetched successfully: ${result.routes.size} routes"
           )
         }
 

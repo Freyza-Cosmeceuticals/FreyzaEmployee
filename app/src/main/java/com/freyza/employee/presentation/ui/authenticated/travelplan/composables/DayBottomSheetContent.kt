@@ -25,8 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.toTitleCase
-import com.freyza.employee.domain.model.Location
-import com.freyza.employee.domain.model.Route
+import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
 import com.kizitonwose.calendar.core.CalendarDay
@@ -36,8 +35,7 @@ import kotlinx.datetime.toKotlinLocalDate
 fun DayBottomSheetContent(
   selectedDate: CalendarDay,
   selectedPlanEntry: TravelPlanEntry?,
-  selectedRoute: UIState<Route?>,
-  selectedSrcDestPair: UIState<Pair<Location, Location>?>,
+  selectedRoute: UIState<RouteWithLocation?>,
   onClickPrevious: () -> Unit,
   onClickNext: () -> Unit,
   modifier: Modifier = Modifier,
@@ -95,7 +93,7 @@ fun DayBottomSheetContent(
 
     if (selectedPlanEntry != null) {
       TodayPlanCard(
-        selectedPlanEntry, selectedRoute, selectedSrcDestPair
+        selectedPlanEntry, selectedRoute
       )
     } else {
       Text("No Travel Plan Entry this day")

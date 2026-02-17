@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
-import com.freyza.employee.domain.model.Route
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetTravelPlanEntriesUseCase
@@ -151,8 +150,7 @@ class TravelPlanViewModel(
 
     _uiState.update {
       it.copy(
-        selectedRoute = UIState.Loading(it.selectedRoute.data),
-        selectedSrcDestPair = UIState.Loading(it.selectedSrcDestPair.data)
+        selectedRoute = UIState.Loading(it.selectedRoute.data)
       )
     }
 
@@ -164,18 +162,7 @@ class TravelPlanViewModel(
 
           if (thisRoute != null) {
             _uiState.update {
-              it.copy(
-                selectedRoute = UIState.Ready(
-                  Route(
-                    id = thisRoute.id,
-                    srcLocId = thisRoute.srcLoc.id,
-                    destLocId = thisRoute.destLoc.id,
-                    distanceKm = thisRoute.distanceKm,
-                    createdAt = thisRoute.createdAt,
-                    updatedAt = thisRoute.updatedAt
-                  )
-                ), selectedSrcDestPair = UIState.Ready(thisRoute.srcLoc to thisRoute.destLoc)
-              )
+              it.copy(selectedRoute = UIState.Ready(thisRoute))
             }
 
             Logger.d(
@@ -184,8 +171,7 @@ class TravelPlanViewModel(
           } else {
             _uiState.update {
               it.copy(
-                selectedRoute = UIState.Error("Route not found for plan entry"),
-                selectedSrcDestPair = UIState.Error("Route not found for plan entry")
+                selectedRoute = UIState.Error("Route not found for plan entry")
               )
             }
           }

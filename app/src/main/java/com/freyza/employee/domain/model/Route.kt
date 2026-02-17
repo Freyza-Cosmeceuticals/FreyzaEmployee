@@ -14,6 +14,15 @@ data class Route(
   val updatedAt: Instant?,
 )
 
+fun Route.toRouteWithLocation(srcLoc: Location, destLoc: Location) = RouteWithLocation(
+  id = id,
+  srcLoc = srcLoc,
+  destLoc = destLoc,
+  distanceKm = distanceKm,
+  createdAt = createdAt,
+  updatedAt = updatedAt
+)
+
 data class RouteWithLocation(
   val id: String,
 
@@ -24,15 +33,31 @@ data class RouteWithLocation(
 
   val createdAt: Instant,
   val updatedAt: Instant?,
-
-  )
+)
 
 fun RouteWithLocation.routeName(): String = "${srcLoc.name} -> ${destLoc.name}"
+fun RouteWithLocation.toRoute(): Route = Route(
+  id = id,
+  srcLocId = srcLoc.id,
+  destLocId = destLoc.id,
+  distanceKm = distanceKm,
+  createdAt = createdAt,
+  updatedAt = updatedAt
+)
 
 fun dummyRoute(): Route = Route(
   id = "3f6b851f-5c47-42b0-ab85-1f5c47c2b0d7",
   srcLocId = "9d119bf6-18ec-49e1-919b-f618eca9e10d",
   destLocId = "dc94c392-83b8-4a07-94c3-9283b89a07e0",
+  distanceKm = 32.0f,
+  createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),
+  updatedAt = Instant.parse("2026-01-10T08:05:02.681+00:00")
+)
+
+fun dummyRouteWithLocation(): RouteWithLocation = RouteWithLocation(
+  id = "3f6b851f-5c47-42b0-ab85-1f5c47c2b0d7",
+  srcLoc = dummyLocation(),
+  destLoc = dummyLocationAlt(),
   distanceKm = 32.0f,
   createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),
   updatedAt = Instant.parse("2026-01-10T08:05:02.681+00:00")

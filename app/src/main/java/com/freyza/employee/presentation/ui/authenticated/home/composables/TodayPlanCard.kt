@@ -1,5 +1,6 @@
 package com.freyza.employee.presentation.ui.authenticated.home.composables
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -38,12 +41,9 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.toPx
 import com.freyza.employee.core.util.toTitleCase
 import com.freyza.employee.domain.model.DayType
-import com.freyza.employee.domain.model.Location
-import com.freyza.employee.domain.model.Route
+import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlanEntry
-import com.freyza.employee.domain.model.dummyLocation
-import com.freyza.employee.domain.model.dummyLocationAlt
-import com.freyza.employee.domain.model.dummyRoute
+import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlanEntryHoliday
 import com.freyza.employee.domain.model.dummyTravelPlanEntryLeave
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
@@ -53,12 +53,16 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 @Composable
 fun TodayPlanCard(
   planEntry: TravelPlanEntry?,
-  route: UIState<Route?>,
-  srcDestPair: UIState<Pair<Location, Location>?>,
+  route: UIState<RouteWithLocation?>,
   modifier: Modifier = Modifier,
+  reportDayType: UIState<DayType>? = null,
+  reportRoute: UIState<RouteWithLocation?>? = null,
+  isPending: Boolean = false,
 ) {
   Card(
-    modifier = modifier.clickable {},
+    modifier = modifier
+      .clickable {}
+      .alpha(if (isPending) 0.6f else 1.0f),
     elevation = CardDefaults.outlinedCardElevation(),
     colors = CardDefaults.outlinedCardColors(),
     border = CardDefaults.outlinedCardBorder()
@@ -66,16 +70,44 @@ fun TodayPlanCard(
     Column(
       verticalArrangement = Arrangement.Top,
       horizontalAlignment = Alignment.Start,
-      modifier = modifier.padding(
-        vertical = dimensionResource(R.dimen.default_spacing).times(3),
-        horizontal = dimensionResource(R.dimen.default_spacing).times(4)
-      )
+      modifier = modifier
+        .padding(
+          vertical = dimensionResource(R.dimen.default_spacing).times(3),
+          horizontal = dimensionResource(R.dimen.default_spacing).times(4)
+        )
+        .animateContentSize()
     ) {
-      Text(
-        "Travel Plan".uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.secondary
-      )
+      Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+      ) {
+        Text(
+          "Travel Plan".uppercase(),
+          style = MaterialTheme.typography.labelMedium,
+          color = MaterialTheme.colorScheme.secondary
+        )
+
+        // does this card have a report override situation?
+        if (reportDayType != null && reportRoute != null) {
+          // is it loading, show stale info
+          if (isPending) {
+            Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
+              Text(
+                "Pending".uppercase(), // or PLANNED
+                style = MaterialTheme.typography.labelMedium
+              )
+            }
+          } else {
+            Badge(containerColor = MaterialTheme.colorScheme.primaryContainer) {
+              Text(
+                "Confirmed".uppercase(), // or remove this
+                style = MaterialTheme.typography.labelMedium
+              )
+            }
+          }
+        }
+      }
+
       Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
 
       if (planEntry == null) {
@@ -83,104 +115,23 @@ fun TodayPlanCard(
         return@Column
       }
 
+      val resolvedDayType =
+        (if (reportDayType is UIState.Ready?) reportDayType?.data else null) ?: planEntry.dayType
+      val resolvedRoute = (reportRoute ?: route)
+
       Row(
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Bottom,
       ) {
         Text(
-          planEntry.dayType.name.uppercase(),
+          resolvedDayType.name.uppercase(),
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium),
         )
       }
 
-      when (planEntry.dayType) {
+      when (resolvedDayType) {
         DayType.WORK -> {
-          Box(contentAlignment = Alignment.CenterEnd) {
-            Column(
-              verticalArrangement = Arrangement.spacedBy(
-                dimensionResource(R.dimen.default_spacing).times(3), Alignment.CenterVertically
-              ), horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()
-            ) {
-
-              when (srcDestPair) {
-                is UIState.Ready -> {
-                  Text(
-                    srcDestPair.data?.first?.name?.toTitleCase() ?: "???",
-                    style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
-                    modifier = Modifier.fillMaxWidth()
-                  )
-                  Text(
-                    srcDestPair.data?.second?.name?.toTitleCase() ?: "???",
-                    style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
-                    modifier = Modifier.fillMaxWidth()
-                  )
-                }
-
-                is UIState.Error -> Text(
-                  "Error loading travel plan data",
-                  style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
-                  modifier = Modifier.fillMaxWidth()
-                )
-
-                is UIState.Loading -> {
-                  Skeleton(
-                    modifier = Modifier
-                      .width(48.dp)
-                      .height(20.dp)
-                  )
-
-                  Skeleton(
-                    modifier = Modifier
-                      .width(32.dp)
-                      .height(20.dp)
-                  )
-                }
-
-                else -> {}
-
-              }
-            }
-
-            when (srcDestPair) {
-              is UIState.Ready -> RouteArrow(
-                srcText = srcDestPair.data?.first?.name ?: "???",
-                destText = srcDestPair.data?.second?.name ?: "???",
-                padding = dimensionResource(R.dimen.default_spacing).times(2).toPx(),
-                strokeWidth = 3.dp
-              )
-
-              is UIState.Loading -> RouteArrow(
-                srcText = "???????",
-                destText = "?????",
-                padding = dimensionResource(R.dimen.default_spacing).times(2).toPx(),
-                strokeWidth = 3.dp,
-                lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-              )
-
-              else -> {}
-            }
-
-            when (route) {
-              is UIState.Ready -> Text(
-                "${route.data?.distanceKm?.toInt() ?: "???"}km".uppercase(),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                  fontFamily = FontFamily.Monospace,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.tertiary
-                ),
-                modifier = Modifier.padding(end = 18.dp)
-              )
-
-              is UIState.Loading -> Skeleton(
-                Modifier
-                  .padding(end = 18.dp)
-                  .width(32.dp)
-                  .height(16.dp)
-              )
-
-              else -> {}
-            }
-          }
+          WorkStatusContent(resolvedRoute)
         }
 
         DayType.HOLIDAY -> {
@@ -195,6 +146,92 @@ fun TodayPlanCard(
           )
         }
       }
+    }
+  }
+}
+
+@Composable
+private fun WorkStatusContent(
+  resolvedRoute: UIState<RouteWithLocation?>,
+  modifier: Modifier = Modifier,
+) {
+  Box(contentAlignment = Alignment.CenterEnd) {
+    Column(
+      verticalArrangement = Arrangement.spacedBy(
+        dimensionResource(R.dimen.default_spacing).times(3), Alignment.CenterVertically
+      ), horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()
+    ) {
+
+      when (resolvedRoute) {
+        is UIState.Ready -> {
+          Text(
+            resolvedRoute.data?.srcLoc?.name?.toTitleCase() ?: "???",
+            style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
+            modifier = Modifier.fillMaxWidth()
+          )
+          Text(
+            resolvedRoute.data?.destLoc?.name?.toTitleCase() ?: "???",
+            style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+
+        is UIState.Loading -> {
+          Skeleton(
+            modifier = Modifier
+              .width(48.dp)
+              .height(20.dp)
+          )
+
+          Skeleton(
+            modifier = Modifier
+              .width(32.dp)
+              .height(20.dp)
+          )
+        }
+
+        else -> {}
+      }
+    }
+
+    when (resolvedRoute) {
+      is UIState.Ready -> {
+        RouteArrow(
+          srcText = resolvedRoute.data?.srcLoc?.name ?: "???",
+          destText = resolvedRoute.data?.destLoc?.name ?: "???",
+          padding = dimensionResource(R.dimen.default_spacing).times(2).toPx(),
+          strokeWidth = 3.dp
+        )
+
+        Text(
+          "${resolvedRoute.data?.distanceKm?.toInt() ?: "???"}km".uppercase(),
+          style = MaterialTheme.typography.bodyMedium.copy(
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.tertiary
+          ),
+          modifier = Modifier.padding(end = 18.dp)
+        )
+      }
+
+      is UIState.Loading -> {
+        RouteArrow(
+          srcText = "???????",
+          destText = "?????",
+          padding = dimensionResource(R.dimen.default_spacing).times(2).toPx(),
+          strokeWidth = 3.dp,
+          lineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+        )
+
+        Skeleton(
+          Modifier
+            .padding(end = 18.dp)
+            .width(32.dp)
+            .height(16.dp)
+        )
+      }
+
+      else -> {}
     }
   }
 }
@@ -356,8 +393,7 @@ fun TodayPlanCardPreviewWork() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryWork(),
-      route = UIState.Ready(dummyRoute()),
-      srcDestPair = UIState.Ready(dummyLocation() to dummyLocationAlt())
+      route = UIState.Ready(dummyRouteWithLocation())
     )
   }
 }
@@ -368,8 +404,7 @@ fun TodayPlanCardPreviewWorkLoading() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryWork(),
-      route = UIState.Loading(dummyRoute()),
-      srcDestPair = UIState.Loading(dummyLocation() to dummyLocationAlt())
+      route = UIState.Loading(dummyRouteWithLocation())
     )
   }
 }
@@ -380,8 +415,7 @@ fun TodayPlanCardPreviewWorkError() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryWork(),
-      route = UIState.Error("..."),
-      srcDestPair = UIState.Error("...")
+      route = UIState.Error("...")
     )
   }
 }
@@ -392,8 +426,7 @@ fun TodayPlanCardPreviewHoliday() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryHoliday(),
-      route = UIState.Ready(null),
-      srcDestPair = UIState.Ready(null)
+      route = UIState.Ready(null)
     )
   }
 }
@@ -404,8 +437,7 @@ fun TodayPlanCardPreviewLeave() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryLeave(),
-      route = UIState.Ready(null),
-      srcDestPair = UIState.Ready(null)
+      route = UIState.Ready(null)
     )
   }
 }
@@ -414,7 +446,7 @@ fun TodayPlanCardPreviewLeave() {
 @Composable
 private fun TodayPlanCardNullPreview() {
   FreyzaEmployeeTheme {
-    TodayPlanCard(null, UIState.Ready(null), UIState.Ready(null))
+    TodayPlanCard(null, UIState.Ready(null))
   }
 }
 

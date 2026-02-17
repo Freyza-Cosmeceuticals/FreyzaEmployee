@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -27,6 +26,8 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -44,9 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
-import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
-import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.timedGreeting
@@ -55,9 +54,7 @@ import com.freyza.employee.domain.model.Expense
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dayTypes
 import com.freyza.employee.domain.model.dummyExpenses
-import com.freyza.employee.domain.model.dummyLocation
-import com.freyza.employee.domain.model.dummyLocationAlt
-import com.freyza.employee.domain.model.dummyRoute
+import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
 import com.freyza.employee.domain.model.dummyUserEmployee
@@ -75,7 +72,6 @@ import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
-import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
 import org.koin.androidx.compose.koinViewModel
@@ -100,6 +96,7 @@ fun HomeScreenRoute(
       uiState,
       mainUiState,
       modifier,
+      onRefresh = viewModel::refresh,
       onDailyReportBegin = viewModel::createCurrentDailyReport,
       onDailyReportRetry = viewModel::loadCurrentDailyReport
     )
@@ -112,6 +109,7 @@ private fun HomeScreen(
   uiState: HomeScreenUiState,
   mainUiState: MainUiState,
   modifier: Modifier = Modifier,
+  onRefresh: () -> Unit,
   onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
   onDailyReportRetry: () -> Unit,
 ) {
@@ -119,10 +117,11 @@ private fun HomeScreen(
   val snackbarHostState = remember { SnackbarHostState() }
   val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
-  val sheetState = rememberModalBottomSheetState(
+  val reportCreationSheetState = rememberModalBottomSheetState(
     confirmValueChange = { newValue -> newValue != SheetValue.Hidden },
     skipPartiallyExpanded = true
   )
+  val pullToRefreshState = rememberPullToRefreshState()
 
   Scaffold(
     topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
@@ -137,23 +136,17 @@ private fun HomeScreen(
       return@Scaffold
     }
 
-    // no daily report dialog
+    // daily report creation dialog
+    // TODO: Note to self, this thing is triggered only on the Home Screen
+    // if the user switches tab/page before the bottom sheet shows up, they can perform other app actions
+    // but this will eventually show up when they go back to the home screen
     when (val result = uiState.currentDailyReport) {
       is UIState.Ready -> {
         if (result.data == null) {
-          BackHandler(enabled = true) {
-            scope.launch {
-              snackbarHostState.showTypedSnackbar(
-                "Please begin the daily report first",
-                SnackbarType.WARNING,
-                dismissCurrent = true
-              )
-            }
-          }
           // no daily report, ask the user to create one in a blocking way.
           ModalBottomSheet(
             onDismissRequest = {},
-            sheetState = sheetState,
+            sheetState = reportCreationSheetState,
             sheetGesturesEnabled = false,
             scrimColor = Color.Black.copy(alpha = 0.75f),
             properties = ModalBottomSheetProperties(
@@ -174,7 +167,7 @@ private fun HomeScreen(
       is UIState.Loading -> {
         ModalBottomSheet(
           onDismissRequest = {},
-          sheetState = sheetState,
+          sheetState = reportCreationSheetState,
           sheetGesturesEnabled = true,
           properties = ModalBottomSheetProperties(
             shouldDismissOnBackPress = false,
@@ -198,164 +191,172 @@ private fun HomeScreen(
       else -> {}
     }
 
-    LazyColumn(
-      contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.screen_padding)),
-      verticalArrangement = Arrangement.spacedBy(
-        dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
-      ),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      modifier = modifier
-        .fillMaxSize()
-        .padding(it)
-        .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+    PullToRefreshBox(
+      isRefreshing = uiState.todayPlanEntryRoute is UIState.Loading || uiState.currentDailyReport is UIState.Loading,
+      onRefresh = onRefresh,
+      state = pullToRefreshState
     ) {
-      item {
-        Text(
-          mainUiState.today.timedGreeting(mainUiState.user.name),
-          style = MaterialTheme.typography.titleLarge,
-          color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
-        )
-      }
+      LazyColumn(
+        contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.screen_padding)),
+        verticalArrangement = Arrangement.spacedBy(
+          dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+          .fillMaxSize()
+          .padding(it)
+          .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+      ) {
+        item {
+          Text(
+            mainUiState.today.timedGreeting(mainUiState.user.name),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
+          )
+        }
 
-      item {
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .heightIn(min = 108.dp),
-          horizontalArrangement = Arrangement.spacedBy(
-            dimensionResource(R.dimen.default_spacing).times(4)
-          ),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
+        item {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(IntrinsicSize.Min)
+              .heightIn(min = 108.dp),
+            horizontalArrangement = Arrangement.spacedBy(
+              dimensionResource(R.dimen.default_spacing).times(4)
+            ),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
 //          TodayCard(
 //            mainUiState.today, modifier = Modifier
 //              .weight(1f)
 //              .fillMaxSize()
 //          )
 
-          when (uiState.todayTravelPlanEntry) {
-            is UIState.Ready -> {
-              TodayPlanCard(
-                planEntry = uiState.todayTravelPlanEntry.data,
-                route = uiState.todayPlanEntryRoute,
-                srcDestPair = uiState.todayPlanEntrySrcDest,
-                modifier = Modifier
-                  .weight(1f)
-                  .fillMaxSize()
-              )
-            }
+            when (uiState.todayTravelPlanEntry) {
+              is UIState.Ready -> {
+                TodayPlanCard(
+                  planEntry = uiState.todayTravelPlanEntry.data,
+                  route = uiState.todayPlanEntryRoute,
+                  reportDayType = uiState.todayReportDayType,
+                  reportRoute = uiState.todayReportRoute,
+                  isPending = uiState.todayReportDayType is UIState.Loading || uiState.todayReportRoute is UIState.Loading,
+                  modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                )
+              }
 
-            is UIState.Error -> {
+              is UIState.Error -> {
+                Text(
+                  "Error Fetching Travel Plan Entry",
+                  style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
+                  modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                )
+              }
+
+              else -> {
+                TravelPlanCardSkeleton(
+                  modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                )
+              }
+            }
+          }
+
+          Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
+        }
+
+        item {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(IntrinsicSize.Min)
+              .heightIn(min = 128.dp),
+            horizontalArrangement = Arrangement.spacedBy(
+              16.dp, Alignment.CenterHorizontally
+            ),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Card(
+              modifier = Modifier
+                .weight(1f)
+                .fillMaxSize()
+            ) {
+              Text("Some Graphs Here", modifier = Modifier.padding(16.dp))
+            }
+          }
+        }
+
+        item {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(IntrinsicSize.Min)
+              .heightIn(min = 128.dp),
+            horizontalArrangement = Arrangement.spacedBy(
+              16.dp, Alignment.CenterHorizontally
+            ),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Card(
+              modifier = Modifier
+                .weight(1f)
+                .fillMaxSize()
+            ) {
+              Text("Here as well", modifier = Modifier.padding(16.dp))
+            }
+          }
+        }
+
+        item {
+          Text(
+            "Today's Report",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
+              .padding(top = dimensionResource(R.dimen.default_spacing))
+          )
+        }
+
+        item {
+          Row(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(IntrinsicSize.Min)
+              .heightIn(min = 164.dp),
+            horizontalArrangement = Arrangement.spacedBy(
+              dimensionResource(R.dimen.default_spacing).times(4), Alignment.CenterHorizontally
+            ),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Card(
+              modifier = Modifier
+                .weight(1f)
+                .fillMaxSize()
+            ) {
               Text(
-                "Error Fetching Travel Plan Entry",
-                style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
-                modifier = Modifier
-                  .weight(1f)
-                  .fillMaxSize()
-              )
-            }
-
-            else -> {
-              TravelPlanCardSkeleton(
-                modifier = Modifier
-                  .weight(1f)
-                  .fillMaxSize()
+                "Daily Report Data",
+                modifier = Modifier.padding(dimensionResource(R.dimen.default_spacing).times(4))
               )
             }
           }
         }
 
-        Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
-      }
-
-      item {
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .heightIn(min = 128.dp),
-          horizontalArrangement = Arrangement.spacedBy(
-            16.dp, Alignment.CenterHorizontally
-          ),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Card(
-            modifier = Modifier
-              .weight(1f)
-              .fillMaxSize()
-          ) {
-            Text("Some Graphs Here", modifier = Modifier.padding(16.dp))
-          }
+        item {
+          DebugUserInfo(mainUiState.user)
         }
-      }
 
-      item {
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .heightIn(min = 128.dp),
-          horizontalArrangement = Arrangement.spacedBy(
-            16.dp, Alignment.CenterHorizontally
-          ),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Card(
-            modifier = Modifier
-              .weight(1f)
-              .fillMaxSize()
-          ) {
-            Text("Here as well", modifier = Modifier.padding(16.dp))
-          }
-        }
+        // DebugUserInfo(mainUiState.user)
+        // ExpenseList(uiState.data!!.recentExpenses)
       }
-
-      item {
-        Text(
-          "Today's Report",
-          style = MaterialTheme.typography.titleLarge,
-          color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
-            .padding(top = dimensionResource(R.dimen.default_spacing))
-        )
-      }
-
-      item {
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .heightIn(min = 164.dp),
-          horizontalArrangement = Arrangement.spacedBy(
-            dimensionResource(R.dimen.default_spacing).times(4), Alignment.CenterHorizontally
-          ),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          Card(
-            modifier = Modifier
-              .weight(1f)
-              .fillMaxSize()
-          ) {
-            Text(
-              "Daily Report Data",
-              modifier = Modifier.padding(dimensionResource(R.dimen.default_spacing).times(4))
-            )
-          }
-        }
-      }
-
-      item {
-        DebugUserInfo(mainUiState.user)
-      }
-
-      // DebugUserInfo(mainUiState.user)
-      // ExpenseList(uiState.data!!.recentExpenses)
     }
   }
 }
@@ -420,14 +421,14 @@ private fun HomeScreenPreview() {
         UIState.Ready(dummyExpenses()),
         currentTravelPlan = UIState.Ready(dummyTravelPlan()),
         todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-        todayPlanEntryRoute = UIState.Ready(dummyRoute()),
-        todayPlanEntrySrcDest = UIState.Ready(dummyLocation() to dummyLocationAlt()),
+        todayPlanEntryRoute = UIState.Ready(dummyRouteWithLocation()),
         currentDailyReport = UIState.Ready(null)
       ), MainUiState(
         hasValidSession = true, user = dummyUserEmployee(), today = LocalDateTime(
           year = 2026, month = Month.JANUARY, day = 1, hour = 5, minute = 59, second = 59
         )
       ),
+      onRefresh = {},
       onDailyReportBegin = { dayType, routeId -> },
       onDailyReportRetry = {}
     )

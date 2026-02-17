@@ -1,8 +1,6 @@
 package com.freyza.employee.presentation.ui.state
 
 import com.freyza.employee.core.UIState
-import com.freyza.employee.domain.model.Location
-import com.freyza.employee.domain.model.Route
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
@@ -13,6 +11,5 @@ data class TravelPlanUiState(
 
   val routes: List<RouteWithLocation>? = null,
 
-  val selectedRoute: UIState<Route?> = UIState.Idle(),
-  val selectedSrcDestPair: UIState<Pair<Location, Location>?> = UIState.Idle(),
+  val selectedRoute: UIState<RouteWithLocation?> = UIState.Idle(),
 )

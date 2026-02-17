@@ -131,7 +131,6 @@ fun TravelPlanScreen(
               selectedDate!!,
               selectedPlanEntry = selectedPlanEntry,
               selectedRoute = uiState.selectedRoute,
-              selectedSrcDestPair = uiState.selectedSrcDestPair,
               onClickPrevious = {},
               onClickNext = {}
             )
