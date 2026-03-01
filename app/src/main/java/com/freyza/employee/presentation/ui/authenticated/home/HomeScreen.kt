@@ -60,6 +60,7 @@ import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.authenticated.home.composables.BeginDailyReportSheet
+import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportingFailedToLoadDialog
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
@@ -121,7 +122,6 @@ private fun HomeScreen(
     confirmValueChange = { newValue -> newValue != SheetValue.Hidden },
     skipPartiallyExpanded = true
   )
-  val pullToRefreshState = rememberPullToRefreshState()
 
   Scaffold(
     topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
@@ -194,7 +194,7 @@ private fun HomeScreen(
     PullToRefreshBox(
       isRefreshing = uiState.todayPlanEntryRoute is UIState.Loading || uiState.currentDailyReport is UIState.Loading,
       onRefresh = onRefresh,
-      state = pullToRefreshState
+      modifier = Modifier.padding(it),
     ) {
       LazyColumn(
         contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.screen_padding)),
@@ -204,7 +204,6 @@ private fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
           .fillMaxSize()
-          .padding(it)
           .padding(horizontal = dimensionResource(R.dimen.screen_padding))
       ) {
         item {
@@ -327,27 +326,7 @@ private fun HomeScreen(
         }
 
         item {
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(IntrinsicSize.Min)
-              .heightIn(min = 164.dp),
-            horizontalArrangement = Arrangement.spacedBy(
-              dimensionResource(R.dimen.default_spacing).times(4), Alignment.CenterHorizontally
-            ),
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Card(
-              modifier = Modifier
-                .weight(1f)
-                .fillMaxSize()
-            ) {
-              Text(
-                "Daily Report Data",
-                modifier = Modifier.padding(dimensionResource(R.dimen.default_spacing).times(4))
-              )
-            }
-          }
+          DailyReportCard(uiState.currentDailyReport)
         }
 
         item {

@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -240,14 +241,16 @@ fun BeginDailyReportSheet(
     Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(3)))
 
     FilledTonalButton(
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier
+        .fillMaxWidth(),
+      contentPadding = PaddingValues(dimensionResource(R.dimen.default_spacing).times(4)),
       enabled = (selectedDayType != DayType.WORK || selectedRoute != null),
       onClick = {
         onDailyReportBegin(
           selectedDayType, selectedRoute
         )
       },
-    ) { Text("Begin Day") }
+    ) { Text("Start Day", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) }
   }
 }
 

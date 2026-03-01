@@ -47,7 +47,11 @@ import com.freyza.employee.presentation.ui.state.TravelPlanUiState
 import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.daysOfWeek
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinDayOfWeek
 import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.todayIn
@@ -131,8 +135,26 @@ fun TravelPlanScreen(
               selectedDate!!,
               selectedPlanEntry = selectedPlanEntry,
               selectedRoute = uiState.selectedRoute,
-              onClickPrevious = {},
-              onClickNext = {}
+              onClickPrevious = {
+                val previous = selectedDate!!.date.toKotlinLocalDate().minus(1, DateTimeUnit.DAY)
+                if (previous.month == selectedDate!!.date.toKotlinLocalDate().month) {
+                  selectedDate = CalendarDay(previous.toJavaLocalDate(), selectedDate!!.position)
+                }
+
+                if (selectedPlanEntry != null && selectedPlanEntry!!.dayType == DayType.WORK) {
+                  loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
+                }
+              },
+              onClickNext = {
+                val next = selectedDate!!.date.toKotlinLocalDate().plus(1, DateTimeUnit.DAY)
+                if (next.month == selectedDate!!.date.toKotlinLocalDate().month) {
+                  selectedDate = CalendarDay(next.toJavaLocalDate(), selectedDate!!.position)
+                }
+
+                if (selectedPlanEntry != null && selectedPlanEntry!!.dayType == DayType.WORK) {
+                  loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
+                }
+              }
             )
           }
         }
