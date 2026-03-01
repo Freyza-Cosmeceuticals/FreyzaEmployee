@@ -155,7 +155,7 @@ private fun WorkStatusContent(
   resolvedRoute: UIState<RouteWithLocation?>,
   modifier: Modifier = Modifier,
 ) {
-  Box(contentAlignment = Alignment.CenterEnd) {
+  Box(contentAlignment = Alignment.CenterEnd, modifier = modifier) {
     Column(
       verticalArrangement = Arrangement.spacedBy(
         dimensionResource(R.dimen.default_spacing).times(3), Alignment.CenterVertically
@@ -239,7 +239,6 @@ private fun WorkStatusContent(
 @Composable
 fun TravelPlanCardSkeleton(modifier: Modifier = Modifier) {
   Card(
-    onClick = {},
     modifier = modifier,
     elevation = CardDefaults.outlinedCardElevation(),
     colors = CardDefaults.outlinedCardColors(),
@@ -248,10 +247,12 @@ fun TravelPlanCardSkeleton(modifier: Modifier = Modifier) {
     Column(
       verticalArrangement = Arrangement.Top,
       horizontalAlignment = Alignment.Start,
-      modifier = modifier.padding(
-        vertical = dimensionResource(R.dimen.default_spacing).times(3),
-        horizontal = dimensionResource(R.dimen.default_spacing).times(4)
-      )
+      modifier = modifier
+        .padding(
+          vertical = dimensionResource(R.dimen.default_spacing).times(3),
+          horizontal = dimensionResource(R.dimen.default_spacing).times(4)
+        )
+        .animateContentSize()
     ) {
       Text(
         "Travel Plan Loading".uppercase(),

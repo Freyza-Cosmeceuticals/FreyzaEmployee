@@ -48,7 +48,7 @@ enum class VisitType {
     this.name[0].titlecase() + this.name.substring(1).toLowerCase(Locale.current)
 }
 
-fun dummyDailyReportWork(): DailyReport = DailyReport(
+fun dummyDailyReportWork(locked: Boolean = false): DailyReport = DailyReport(
   id = "4eed577c-8848-41b4-ad57-7c8848c1b499",
   employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
   date = LocalDate.parse("2026-02-11"),
@@ -78,8 +78,40 @@ fun dummyDailyReportWork(): DailyReport = DailyReport(
       updatedAt = null
     )
   ),
-  locked = true,
-  lockedAt = Instant.parse("2026-02-11T21:27:33.882+05:30"),
+  locked = locked,
+  lockedAt = if (locked) Instant.parse("2026-02-11T21:27:33.882+05:30") else null,
+  createdAt = Instant.parse("2026-02-11T12:29:21.745+05:30"),
+  updatedAt = null
+)
+
+fun dummyDailyReportHoliday(): DailyReport = DailyReport(
+  id = "4eed577c-8848-41b4-ad57-7c8848c1b499",
+  employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
+  date = LocalDate.parse("2026-02-11"),
+  dayType = DayType.HOLIDAY,
+  routeId = null,
+  ta = 0.00,
+  da = 0.00,
+  totalExpense = 0.00,
+  visits = listOf(),
+  locked = false,
+  lockedAt = null,
+  createdAt = Instant.parse("2026-02-11T12:29:21.745+05:30"),
+  updatedAt = null
+)
+
+fun dummyDailyReportLeave(): DailyReport = DailyReport(
+  id = "4eed577c-8848-41b4-ad57-7c8848c1b499",
+  employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
+  date = LocalDate.parse("2026-02-11"),
+  dayType = DayType.LEAVE,
+  routeId = null,
+  ta = 0.00,
+  da = 0.00,
+  totalExpense = 0.00,
+  visits = listOf(),
+  locked = false,
+  lockedAt = null,
   createdAt = Instant.parse("2026-02-11T12:29:21.745+05:30"),
   updatedAt = null
 )

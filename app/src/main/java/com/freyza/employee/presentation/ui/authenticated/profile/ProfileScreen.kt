@@ -1,7 +1,9 @@
 package com.freyza.employee.presentation.ui.authenticated.profile
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
@@ -302,7 +306,42 @@ fun ProfileScreen(
         is UIState.Loading -> item { ProfileScreenSkeleton() }
         else -> {}
       }
+
+      if (BuildConfig.DEBUG) {
+        item {
+          val horizontalScrollState = rememberScrollState()
+
+          Column(
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(horizontal = 16.dp, vertical = 8.dp)
+              .horizontalScroll(horizontalScrollState)
+          ) {
+            Text(
+              text = "Supabase URL: ${BuildConfig.SUPABASE_URL}",
+              style = MaterialTheme.typography.labelMedium,
+              softWrap = false
+            )
+            Text(
+              text = "Supabase Publishable Key: ${BuildConfig.SUPABASE_PUBLISHABLE_KEY.substring(0..22)}...",
+              style = MaterialTheme.typography.labelMedium,
+              softWrap = false
+            )
+            Text(
+              text = "Application ID: ${BuildConfig.APPLICATION_ID}",
+              style = MaterialTheme.typography.labelMedium,
+              softWrap = false
+            )
+            Text(
+              text = "Version Name: ${BuildConfig.VERSION_NAME}",
+              style = MaterialTheme.typography.labelMedium,
+              softWrap = false
+            )
+          }
+        }
+      }
     }
+
   }
 }
 

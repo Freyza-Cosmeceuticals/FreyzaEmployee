@@ -66,7 +66,7 @@ class HomeViewModel(
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {
-      loadCurrentDailyReport(employeeId, false)
+      loadCurrentDailyReport(employeeId)
       loadAllRoutes()
       loadCurrentTravelPlan(employeeId)
     }
@@ -291,7 +291,6 @@ class HomeViewModel(
 
   fun loadCurrentDailyReport(
     employeeId: String? = sessionManager.currentEmployee.value?.id,
-    setLoading: Boolean = true,
   ) {
     Logger.i(TAG, "Fetching current daily report for emp:$employeeId")
 
@@ -300,15 +299,13 @@ class HomeViewModel(
       return
     }
 
-    // do not set loading state initially to prevent the bottom sheet to show up on app launch
-    if (setLoading)
-      _uiState.update {
-        it.copy(
-          currentDailyReport = UIState.Loading(
-            it.currentDailyReport.data, "Loading Daily Report"
-          )
+    _uiState.update {
+      it.copy(
+        currentDailyReport = UIState.Loading(
+          it.currentDailyReport.data, "Loading Daily Report"
         )
-      }
+      )
+    }
 
     _uiState.update {
       it.copy(

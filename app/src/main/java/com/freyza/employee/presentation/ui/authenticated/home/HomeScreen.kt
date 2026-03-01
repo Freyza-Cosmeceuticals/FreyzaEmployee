@@ -27,7 +27,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
@@ -61,6 +61,7 @@ import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.authenticated.home.composables.BeginDailyReportSheet
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCard
+import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCardSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportingFailedToLoadDialog
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
@@ -165,21 +166,25 @@ private fun HomeScreen(
       }
 
       is UIState.Loading -> {
-        ModalBottomSheet(
-          onDismissRequest = {},
-          sheetState = reportCreationSheetState,
-          sheetGesturesEnabled = true,
-          properties = ModalBottomSheetProperties(
-            shouldDismissOnBackPress = false,
-            shouldDismissOnClickOutside = false
-          )
-        ) {
-          LoadingIndicator(
-            Modifier
-              .fillMaxWidth()
-              .padding(dimensionResource(R.dimen.screen_padding).times(2)),
-            result.message ?: "Working on it..."
-          )
+        // show loading sheet only if no dailyReport data has been fetched yet (i.e. fresh state) but NOT if other states are also null (i.e. app launch)
+        if (result.data == null && uiState.currentTravelPlan.data != null) {
+          // since it is annoying to see it on every refresh and app launch.
+          ModalBottomSheet(
+            onDismissRequest = {},
+            sheetState = reportCreationSheetState,
+            sheetGesturesEnabled = true,
+            properties = ModalBottomSheetProperties(
+              shouldDismissOnBackPress = false,
+              shouldDismissOnClickOutside = false
+            )
+          ) {
+            LoadingIndicator(
+              Modifier
+                .fillMaxWidth()
+                .padding(dimensionResource(R.dimen.screen_padding).times(2)),
+              result.message ?: "Working on it..."
+            )
+          }
         }
       }
 
@@ -271,47 +276,47 @@ private fun HomeScreen(
           Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
         }
 
-        item {
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(IntrinsicSize.Min)
-              .heightIn(min = 128.dp),
-            horizontalArrangement = Arrangement.spacedBy(
-              16.dp, Alignment.CenterHorizontally
-            ),
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Card(
-              modifier = Modifier
-                .weight(1f)
-                .fillMaxSize()
-            ) {
-              Text("Some Graphs Here", modifier = Modifier.padding(16.dp))
-            }
-          }
-        }
-
-        item {
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(IntrinsicSize.Min)
-              .heightIn(min = 128.dp),
-            horizontalArrangement = Arrangement.spacedBy(
-              16.dp, Alignment.CenterHorizontally
-            ),
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-            Card(
-              modifier = Modifier
-                .weight(1f)
-                .fillMaxSize()
-            ) {
-              Text("Here as well", modifier = Modifier.padding(16.dp))
-            }
-          }
-        }
+//        item {
+//          Row(
+//            modifier = Modifier
+//              .fillMaxWidth()
+//              .height(IntrinsicSize.Min)
+//              .heightIn(min = 128.dp),
+//            horizontalArrangement = Arrangement.spacedBy(
+//              16.dp, Alignment.CenterHorizontally
+//            ),
+//            verticalAlignment = Alignment.CenterVertically
+//          ) {
+//            Card(
+//              modifier = Modifier
+//                .weight(1f)
+//                .fillMaxSize()
+//            ) {
+//              Text("Some Graphs Here", modifier = Modifier.padding(16.dp))
+//            }
+//          }
+//        }
+//
+//        item {
+//          Row(
+//            modifier = Modifier
+//              .fillMaxWidth()
+//              .height(IntrinsicSize.Min)
+//              .heightIn(min = 128.dp),
+//            horizontalArrangement = Arrangement.spacedBy(
+//              16.dp, Alignment.CenterHorizontally
+//            ),
+//            verticalAlignment = Alignment.CenterVertically
+//          ) {
+//            Card(
+//              modifier = Modifier
+//                .weight(1f)
+//                .fillMaxSize()
+//            ) {
+//              Text("Here as well", modifier = Modifier.padding(16.dp))
+//            }
+//          }
+//        }
 
         item {
           Text(
@@ -326,14 +331,39 @@ private fun HomeScreen(
         }
 
         item {
-          DailyReportCard(uiState.currentDailyReport)
+          when (uiState.currentDailyReport) {
+            is UIState.Ready -> {
+              DailyReportCard(
+                dailyReport = uiState.currentDailyReport.data,
+                modifier = Modifier
+                  .fillMaxSize()
+              )
+            }
+
+            is UIState.Error -> {
+              Text(
+                "Error Fetching Daily Report",
+                style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
+                modifier = Modifier
+                  .fillMaxSize()
+              )
+            }
+
+            else -> {
+              DailyReportCardSkeleton(
+                modifier = Modifier
+                  .fillMaxSize()
+              )
+            }
+          }
         }
 
-        item {
-          DebugUserInfo(mainUiState.user)
+        if (BuildConfig.DEBUG) {
+          item {
+            DebugUserInfo(mainUiState.user)
+          }
         }
 
-        // DebugUserInfo(mainUiState.user)
         // ExpenseList(uiState.data!!.recentExpenses)
       }
     }
