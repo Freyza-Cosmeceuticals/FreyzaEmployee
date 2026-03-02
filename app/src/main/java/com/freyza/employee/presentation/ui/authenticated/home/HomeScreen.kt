@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +49,6 @@ import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.timedGreeting
 import com.freyza.employee.domain.model.DayType
-import com.freyza.employee.domain.model.Expense
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dayTypes
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
@@ -382,26 +380,6 @@ private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
 
       user.userInfo?.lastSignInAt?.let {
         Text(DateFormatter.format(it))
-      }
-    }
-  }
-}
-
-@Composable
-fun ExpenseList(expenses: List<Expense>) {
-
-  if (expenses.isEmpty()) {
-    Text("No Recent Expenses Found")
-  }
-
-  LazyColumn {
-    items(expenses) {
-      Card(modifier = Modifier.padding(8.dp)) {
-        Text(it.id)
-        Text(it.location)
-        Text("${it.distance}km")
-        Text("$${it.cost}")
-        Text(if (it.locked) "Locked" else "Open")
       }
     }
   }

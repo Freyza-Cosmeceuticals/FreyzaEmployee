@@ -12,7 +12,6 @@ import com.freyza.employee.domain.model.routeName
 import com.freyza.employee.domain.model.toRouteWithLocation
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
-import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetRouteUseCase
@@ -38,7 +37,6 @@ import kotlin.time.Clock
 
 class HomeViewModel(
   private val sessionManager: SessionManager,
-  private val getRecentExpensesUseCase: GetRecentExpensesUseCase,
   private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
   private val getTodayTravelPlanEntryUseCase: GetTodayTravelPlanEntryUseCase,
   private val getRouteUseCase: GetRouteUseCase,
@@ -69,29 +67,6 @@ class HomeViewModel(
       loadCurrentDailyReport(employeeId)
       loadAllRoutes()
       loadCurrentTravelPlan(employeeId)
-    }
-  }
-
-  fun loadRecentExpenses() {
-    viewModelScope.launch {
-      val result =
-        getRecentExpensesUseCase.execute(GetRecentExpensesUseCase.Input(Constants.NUM_RECENT_EXPENSES))
-
-      when (result) {
-        is GetRecentExpensesUseCase.Output.Success -> {
-          _uiState.update {
-            it.copy(recentExpenses = UIState.Ready(result.expenses))
-          }
-          Logger.d(TAG, "${result.expenses.size} Recent Expenses Fetched Successfully")
-        }
-
-        is GetRecentExpensesUseCase.Output.Failure -> {
-          _uiState.update {
-            it.copy(recentExpenses = UIState.Error(message = "Unable to fetch recent expenses"))
-          }
-          Logger.e(TAG, "Cannot fetch recent expenses: ${result.message}")
-        }
-      }
     }
   }
 

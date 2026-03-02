@@ -5,14 +5,12 @@ import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.data.repository.AuthenticationRepositoryImpl
 import com.freyza.employee.data.repository.DailyReportRepositoryImpl
-import com.freyza.employee.data.repository.ExpenseRepositoryImpl
 import com.freyza.employee.data.repository.LocationRepositoryImpl
 import com.freyza.employee.data.repository.RouteRepositoryImpl
 import com.freyza.employee.data.repository.TravelPlanRepositoryImpl
 import com.freyza.employee.data.repository.UserRepositoryImpl
 import com.freyza.employee.domain.repository.AuthenticationRepository
 import com.freyza.employee.domain.repository.DailyReportRepository
-import com.freyza.employee.domain.repository.ExpenseRepository
 import com.freyza.employee.domain.repository.LocationRepository
 import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.repository.TravelPlanRepository
@@ -31,10 +29,6 @@ import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.impl.CreateTodayDailyReportUseCaseImpl
 import com.freyza.employee.domain.usecase.dailyreport.impl.GetAllDailyReportsUseCaseImpl
 import com.freyza.employee.domain.usecase.dailyreport.impl.GetTodayDailyReportUseCaseImpl
-import com.freyza.employee.domain.usecase.expense.GetAllExpensesUseCase
-import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
-import com.freyza.employee.domain.usecase.expense.impl.GetAllExpensesUseCaseImpl
-import com.freyza.employee.domain.usecase.expense.impl.GetRecentExpensesUseCaseImpl
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.location.impl.GetLocationUseCaseImpl
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
@@ -84,7 +78,6 @@ val appModule = module {
 
 val repositoryModule = module {
   single<AuthenticationRepository> { AuthenticationRepositoryImpl(get()) }
-  single<ExpenseRepository> { ExpenseRepositoryImpl(get()) }
   single<TravelPlanRepository> { TravelPlanRepositoryImpl(get()) }
   single<DailyReportRepository> { DailyReportRepositoryImpl(get()) }
   single<UserRepository> { UserRepositoryImpl(get(), get()) }
@@ -128,9 +121,6 @@ val useCaseModule = module {
   single<GetUserUseCase> { GetUserUseCaseImpl(get()) }
   single<GetCurrentUserUseCase> { GetCurrentUserUseCaseImpl(get()) }
 
-  single<GetAllExpensesUseCase> { GetAllExpensesUseCaseImpl(get()) }
-  single<GetRecentExpensesUseCase> { GetRecentExpensesUseCaseImpl(get()) }
-
   single<GetTravelPlanUseCase> { GetTravelPlanUseCaseImpl(get()) }
   single<GetCurrentTravelPlanUseCase> { GetCurrentTravelPlanUseCaseImpl(get()) }
   single<GetTodayTravelPlanEntryUseCase> { GetTodayTravelPlanEntryUseCaseImpl(get()) }
@@ -148,7 +138,7 @@ val useCaseModule = module {
 val viewModelModule = module {
   viewModel { MainViewModel(get(), get(), get(), get()) }
   viewModel { LoginViewModel(get(), get()) }
-  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
   viewModel { TravelPlanViewModel(get(), get(), get(), get()) }
   viewModel { DailyReportViewModel(get(), get(), get()) }
   viewModel { ProfileViewModel(get()) }
