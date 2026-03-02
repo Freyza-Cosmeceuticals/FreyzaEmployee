@@ -25,10 +25,12 @@ import com.freyza.employee.domain.usecase.auth.impl.LoginUseCaseImpl
 import com.freyza.employee.domain.usecase.auth.impl.LoginWithGoogleUseCaseImpl
 import com.freyza.employee.domain.usecase.auth.impl.LogoutUseCaseImpl
 import com.freyza.employee.domain.usecase.auth.impl.RegisterUseCaseImpl
+import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
+import com.freyza.employee.domain.usecase.dailyreport.GetAllDailyReportsUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
-import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCaseImpl
-import com.freyza.employee.domain.usecase.dailyreport.impl.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.impl.CreateTodayDailyReportUseCaseImpl
+import com.freyza.employee.domain.usecase.dailyreport.impl.GetAllDailyReportsUseCaseImpl
+import com.freyza.employee.domain.usecase.dailyreport.impl.GetTodayDailyReportUseCaseImpl
 import com.freyza.employee.domain.usecase.expense.GetAllExpensesUseCase
 import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
 import com.freyza.employee.domain.usecase.expense.impl.GetAllExpensesUseCaseImpl
@@ -136,6 +138,7 @@ val useCaseModule = module {
 
   single<GetTodayDailyReportUseCase> { GetTodayDailyReportUseCaseImpl(get()) }
   single<CreateTodayDailyReportUseCase> { CreateTodayDailyReportUseCaseImpl(get()) }
+  single<GetAllDailyReportsUseCase> { GetAllDailyReportsUseCaseImpl(get()) }
 
   single<GetLocationUseCase> { GetLocationUseCaseImpl(get()) }
   single<GetRouteUseCase> { GetRouteUseCaseImpl(get()) }

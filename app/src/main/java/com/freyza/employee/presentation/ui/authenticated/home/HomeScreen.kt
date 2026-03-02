@@ -53,11 +53,6 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Expense
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dayTypes
-import com.freyza.employee.domain.model.dummyExpenses
-import com.freyza.employee.domain.model.dummyRouteWithLocation
-import com.freyza.employee.domain.model.dummyTravelPlan
-import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
-import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.authenticated.home.composables.BeginDailyReportSheet
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCard
@@ -72,10 +67,10 @@ import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
+import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiState
+import com.freyza.employee.presentation.ui.state.dummyMainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.Month
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -120,8 +115,7 @@ private fun HomeScreen(
   val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
   val reportCreationSheetState = rememberModalBottomSheetState(
-    confirmValueChange = { newValue -> newValue != SheetValue.Hidden },
-    skipPartiallyExpanded = true
+    confirmValueChange = { newValue -> newValue != SheetValue.Hidden }, skipPartiallyExpanded = true
   )
 
   Scaffold(
@@ -151,8 +145,7 @@ private fun HomeScreen(
             sheetGesturesEnabled = false,
             scrimColor = Color.Black.copy(alpha = 0.75f),
             properties = ModalBottomSheetProperties(
-              shouldDismissOnBackPress = false,
-              shouldDismissOnClickOutside = false
+              shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
             )
           ) {
             BeginDailyReportSheet(
@@ -174,8 +167,7 @@ private fun HomeScreen(
             sheetState = reportCreationSheetState,
             sheetGesturesEnabled = true,
             properties = ModalBottomSheetProperties(
-              shouldDismissOnBackPress = false,
-              shouldDismissOnClickOutside = false
+              shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
             )
           ) {
             LoadingIndicator(
@@ -334,9 +326,7 @@ private fun HomeScreen(
           when (uiState.currentDailyReport) {
             is UIState.Ready -> {
               DailyReportCard(
-                dailyReport = uiState.currentDailyReport.data,
-                modifier = Modifier
-                  .fillMaxSize()
+                dailyReport = uiState.currentDailyReport.data, modifier = Modifier.fillMaxSize()
               )
             }
 
@@ -344,15 +334,13 @@ private fun HomeScreen(
               Text(
                 "Error Fetching Daily Report",
                 style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
-                modifier = Modifier
-                  .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
               )
             }
 
             else -> {
               DailyReportCardSkeleton(
-                modifier = Modifier
-                  .fillMaxSize()
+                modifier = Modifier.fillMaxSize()
               )
             }
           }
@@ -426,20 +414,10 @@ fun ExpenseList(expenses: List<Expense>) {
 private fun HomeScreenPreview() {
   FreyzaEmployeeTheme {
     HomeScreen(
-      HomeScreenUiState(
-        UIState.Ready(dummyExpenses()),
-        currentTravelPlan = UIState.Ready(dummyTravelPlan()),
-        todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-        todayPlanEntryRoute = UIState.Ready(dummyRouteWithLocation()),
-        currentDailyReport = UIState.Ready(null)
-      ), MainUiState(
-        hasValidSession = true, user = dummyUserEmployee(), today = LocalDateTime(
-          year = 2026, month = Month.JANUARY, day = 1, hour = 5, minute = 59, second = 59
-        )
-      ),
+      uiState = dummyHomeScreenUiState(),
+      mainUiState = dummyMainUiState(),
       onRefresh = {},
       onDailyReportBegin = { dayType, routeId -> },
-      onDailyReportRetry = {}
-    )
+      onDailyReportRetry = {})
   }
 }

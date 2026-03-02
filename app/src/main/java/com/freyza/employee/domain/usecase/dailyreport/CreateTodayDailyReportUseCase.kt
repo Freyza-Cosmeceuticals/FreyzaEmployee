@@ -1,4 +1,4 @@
-package com.freyza.employee.domain.usecase.dailyreport.impl
+package com.freyza.employee.domain.usecase.dailyreport
 
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType

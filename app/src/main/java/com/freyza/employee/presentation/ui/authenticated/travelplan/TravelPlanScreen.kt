@@ -39,7 +39,7 @@ import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapp
 import com.freyza.employee.presentation.ui.authenticated.travelplan.composables.DayBottomSheetContent
 import com.freyza.employee.presentation.ui.authenticated.travelplan.composables.TravelPlanCalendar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
-import com.freyza.employee.presentation.ui.composables.FreyzaTpAppBar
+import com.freyza.employee.presentation.ui.composables.FreyzaTravelPlanAppBar
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.MainUiState
@@ -74,7 +74,7 @@ fun TravelPlanScreenRoute(
       )
       Skeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
     },
-    5_000,
+    timeoutMillis = 5_000,
   ) { mainUiState ->
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     TravelPlanScreen(
@@ -112,7 +112,7 @@ fun TravelPlanScreen(
   }
 
   Scaffold(
-    topBar = { FreyzaTpAppBar() },
+    topBar = { FreyzaTravelPlanAppBar() },
     snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal

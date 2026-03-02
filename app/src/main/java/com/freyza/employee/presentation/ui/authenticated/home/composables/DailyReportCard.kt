@@ -1,7 +1,7 @@
 package com.freyza.employee.presentation.ui.authenticated.home.composables
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +39,7 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 fun DailyReportCard(
   dailyReport: DailyReport?,
   modifier: Modifier = Modifier,
+  onClick: () -> Unit = {},
 ) {
   val latestVisits = remember(dailyReport?.visits) {
     derivedStateOf {
@@ -51,10 +52,15 @@ fun DailyReportCard(
   }
 
   Card(
-    modifier = modifier.clickable {},
-    elevation = CardDefaults.outlinedCardElevation(),
-    colors = CardDefaults.outlinedCardColors(),
-    border = CardDefaults.outlinedCardBorder()
+    onClick = onClick,
+    modifier = modifier.fillMaxWidth(),
+    colors = CardDefaults.outlinedCardColors(
+      containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
+        alpha = 0.5f
+      )
+    ),
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
   ) {
     Column(
       verticalArrangement = Arrangement.Top,
@@ -67,7 +73,9 @@ fun DailyReportCard(
         .animateContentSize()
     ) {
       Row(
-        horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
       ) {
         Text(
           "Daily Report".uppercase(),
@@ -139,26 +147,34 @@ private fun WorkStatusContent(
   modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.padding(vertical = dimensionResource(R.dimen.default_spacing).times(1))) {
-    Text(
-      "${dailyReport.visits.size} visits",
-      style = MaterialTheme.typography.labelLarge,
-      fontWeight = FontWeight.SemiBold
-    )
+    if (dailyReport.visits.isNotEmpty()) {
+      Text(
+        "${dailyReport.visits.size} Visits logged",
+        style = MaterialTheme.typography.bodyMedium,
+      )
 
+      latestVisits.forEachIndexed { index, visit ->
+        Text("${index + 1}. ${visit.id}", style = MaterialTheme.typography.bodyMedium)
+      }
 
-    latestVisits.forEachIndexed { index, visit ->
-      Text("${index + 1}. ${visit.id}", style = MaterialTheme.typography.bodyMedium)
-    }
-
-    if (moreVisits) {
-      Text("...")
+      if (moreVisits) {
+        Text("...")
+      }
+    } else {
+      Text(
+        "No visits logged yet. Open the report and add some visits.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.secondary
+      )
     }
 
     Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
 
     Text(
-      "Total expense: ${dailyReport.totalExpense ?: 0.0}",
-      style = MaterialTheme.typography.bodyMedium
+      "Total Expense: ₹${dailyReport.totalExpense ?: 0.0}",
+      style = MaterialTheme.typography.bodyMedium,
+      color = MaterialTheme.colorScheme.tertiary,
+      fontWeight = FontWeight.ExtraBold
     )
   }
 }
@@ -214,7 +230,7 @@ fun DailyReportCardSkeleton(modifier: Modifier = Modifier) {
   }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 private fun DailyReportCardWorkPreview() {
   FreyzaEmployeeTheme {
@@ -225,7 +241,7 @@ private fun DailyReportCardWorkPreview() {
   }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 private fun DailyReportCardHolidayPreview() {
   FreyzaEmployeeTheme {
@@ -233,7 +249,7 @@ private fun DailyReportCardHolidayPreview() {
   }
 }
 
-@Preview
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun DailyReportCardLeavePreview() {
   FreyzaEmployeeTheme {
@@ -242,7 +258,7 @@ private fun DailyReportCardLeavePreview() {
 }
 
 
-@Preview
+@Preview(showSystemUi = false, showBackground = true)
 @Composable
 private fun DailyReportCardNullPreview() {
   FreyzaEmployeeTheme {
@@ -250,7 +266,7 @@ private fun DailyReportCardNullPreview() {
   }
 }
 
-@Preview
+@Preview(showSystemUi = false, showBackground = true)
 @Composable
 private fun DailyReportCardSkeletonPreview() {
   FreyzaEmployeeTheme {

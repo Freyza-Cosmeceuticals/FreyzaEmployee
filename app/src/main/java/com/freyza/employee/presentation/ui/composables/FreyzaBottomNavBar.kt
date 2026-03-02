@@ -28,7 +28,7 @@ private const val ROUTE_PREFIX = "com.freyza.employee.presentation.nav."
 @Composable
 fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifier) {
   val screens = setOf(
-    BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory,
+    BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.DailyReports,
     BottomNavItem.Profile
   )
 
@@ -99,7 +99,7 @@ private fun ActualNavBar(
 private fun FreyzaNavBarPreview() {
   FreyzaEmployeeTheme {
     ActualNavBar(
-      setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.ExpenseHistory),
+      setOf(BottomNavItem.Home, BottomNavItem.TravelPlan, BottomNavItem.DailyReports),
       rememberNavController(),
       NavDestination("")
     )

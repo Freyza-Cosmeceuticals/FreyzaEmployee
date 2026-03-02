@@ -10,8 +10,8 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.blankLocation
 import com.freyza.employee.domain.model.routeName
 import com.freyza.employee.domain.model.toRouteWithLocation
+import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
-import com.freyza.employee.domain.usecase.dailyreport.impl.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.expense.GetRecentExpensesUseCase
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase

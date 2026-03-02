@@ -85,7 +85,7 @@ fun dummyDailyReportWork(locked: Boolean = false): DailyReport = DailyReport(
 )
 
 fun dummyDailyReportHoliday(): DailyReport = DailyReport(
-  id = "4eed577c-8848-41b4-ad57-7c8848c1b499",
+  id = "bfca5fce-c7e2-4616-8a5f-cec7e2b6163d",
   employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
   date = LocalDate.parse("2026-02-11"),
   dayType = DayType.HOLIDAY,
@@ -101,7 +101,7 @@ fun dummyDailyReportHoliday(): DailyReport = DailyReport(
 )
 
 fun dummyDailyReportLeave(): DailyReport = DailyReport(
-  id = "4eed577c-8848-41b4-ad57-7c8848c1b499",
+  id = "a82dbda4-5c74-4845-adbd-a45c745845e7",
   employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
   date = LocalDate.parse("2026-02-11"),
   dayType = DayType.LEAVE,
@@ -117,7 +117,7 @@ fun dummyDailyReportLeave(): DailyReport = DailyReport(
 )
 
 fun dummyVisitDoctor(): Visit = Visit(
-  id = "68829f32-52d5-419f-829f-3252d5819f79",
+  id = "0513395a-7668-4cb2-9339-5a76684cb2ae",
   reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
   visitType = VisitType.DOCTOR,
   latitude = 34.632,
@@ -128,7 +128,7 @@ fun dummyVisitDoctor(): Visit = Visit(
 )
 
 fun dummyVisitChemist(): Visit = Visit(
-  id = "0703bdf8-2fe9-43ee-83bd-f82fe9b3eede",
+  id = "e2eef8d6-daf8-4a6b-aef8-d6daf88a6b8a",
   reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
   visitType = VisitType.CHEMIST,
   latitude = 45.653,
@@ -139,7 +139,7 @@ fun dummyVisitChemist(): Visit = Visit(
 )
 
 fun dummyVisitStockist(): Visit = Visit(
-  id = "cade37a7-f57d-48a6-9e37-a7f57dc8a658",
+  id = "5302697d-8a94-4e0f-8269-7d8a94ce0fef",
   reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
   visitType = VisitType.STOCKIST,
   latitude = 45.367,

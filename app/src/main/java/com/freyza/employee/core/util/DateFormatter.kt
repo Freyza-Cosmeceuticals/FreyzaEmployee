@@ -21,11 +21,11 @@ object DateFormatter {
   }
 
   val humanDateFormatter = LocalDate.Format {
-    monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
+    day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year()
   }
 
   val humanShortDateFormatter = LocalDate.Format {
-    monthName(MonthNames.ENGLISH_FULL); char(' '); day(Padding.ZERO)
+    day(Padding.ZERO); char(' '); monthName(MonthNames.ENGLISH_FULL)
   }
 
   val dateTimeFormatter = LocalDateTime.Format {
@@ -35,7 +35,7 @@ object DateFormatter {
   }
 
   val humanDateTimeFormatter = LocalDateTime.Format {
-    monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); day(Padding.NONE); char(' '); year()
+    day(Padding.NONE); char(' '); monthName(MonthNames.ENGLISH_ABBREVIATED); char(' '); year()
     char(' ')
     amPmHour(); char(':'); minute(); amPmMarker("AM", "PM")
   }

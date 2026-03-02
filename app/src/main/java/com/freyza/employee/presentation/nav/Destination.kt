@@ -29,16 +29,11 @@ sealed class NavRoutes {
     object TravelPlan : Authenticated()
 
     @Serializable
+    object DailyReports: Authenticated()
+
+    @Serializable
     object Profile : Authenticated()
 
-    @Serializable
-    object ExpenseHistory : Authenticated()
-
-    @Serializable
-    object AddExpense : Authenticated()
-
-    @Serializable
-    data class ExpenseDetail(val expenseId: String) : Authenticated()
   }
 }
 
@@ -56,8 +51,8 @@ sealed class BottomNavItem(val route: NavRoutes, val icon: Int?, val label: Stri
       label = "Travel Plan"
     )
 
-  object ExpenseHistory : BottomNavItem(
-    NavRoutes.Authenticated.ExpenseHistory,
+  object DailyReports : BottomNavItem(
+    NavRoutes.Authenticated.DailyReports,
     icon = R.drawable.empty_dashboard_24px,
     label = "Reports",
   )

@@ -1,7 +1,8 @@
-package com.freyza.employee.domain.usecase.dailyreport
+package com.freyza.employee.domain.usecase.dailyreport.impl
 
 import com.freyza.employee.core.Result
 import com.freyza.employee.domain.repository.DailyReportRepository
+import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

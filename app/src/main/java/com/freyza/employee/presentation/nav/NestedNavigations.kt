@@ -8,11 +8,13 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import com.freyza.employee.presentation.ui.authenticated.dailyreport.DailyReportScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.home.HomeScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.profile.ProfileScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.travelplan.TravelPlanScreenRoute
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.unauthenticated.login.LoginScreenRoute
+import com.freyza.employee.presentation.ui.viewmodels.DailyReportViewModel
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import com.freyza.employee.presentation.ui.viewmodels.ProfileViewModel
@@ -89,6 +91,20 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
         })
     }
 
+    composable<NavRoutes.Authenticated.DailyReports> {
+      val vm = koinViewModel<DailyReportViewModel>()
+      DailyReportScreenRoute(
+        mainUiState = mainUiState,
+        viewModel = vm,
+        onNavigateToUnauthenticated = {
+          navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
+            popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
+              inclusive = true
+            }
+          }
+        })
+    }
+
     composable<NavRoutes.Authenticated.Profile> {
       val vm = koinViewModel<ProfileViewModel>()
       ProfileScreenRoute(
@@ -103,17 +119,9 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
         })
     }
 
-    composable<NavRoutes.Authenticated.ExpenseHistory> {
-      Text("Expense History Here")
-    }
-
-    composable<NavRoutes.Authenticated.AddExpense> {
-      Text("Add Expense Route")
-    }
-
-    composable<NavRoutes.Authenticated.ExpenseDetail> { navBackStackEntry ->
-      val expenseId = navBackStackEntry.toRoute<NavRoutes.Authenticated.ExpenseDetail>().expenseId
-      Text("Expense detail Route for $expenseId")
-    }
+//    composable<NavRoutes.Authenticated.ExpenseDetail> { navBackStackEntry ->
+//      val expenseId = navBackStackEntry.toRoute<NavRoutes.Authenticated.ExpenseDetail>().expenseId
+//      Text("Expense detail Route for $expenseId")
+//    }
   }
 }

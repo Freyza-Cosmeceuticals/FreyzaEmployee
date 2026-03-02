@@ -59,47 +59,56 @@ fun FreyzaHomeAppBar(
   }
   TopAppBar(
     title = {
-      Column(
-        modifier = Modifier.padding(
-          vertical = dimensionResource(R.dimen.default_spacing).times(4)
-        )
-      ) {
-        Text(
-          today.dayOfWeek.name.uppercase(),
-          style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
-          color = MaterialTheme.colorScheme.secondary,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
-        )
+    Column(
+      modifier = Modifier.padding(
+        vertical = dimensionResource(R.dimen.default_spacing).times(4)
+      )
+    ) {
+      Text(
+        today.dayOfWeek.name.uppercase(),
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
+        color = MaterialTheme.colorScheme.secondary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+      )
 
-        Text(
-          DateFormatter.format(today.toLocalDate(), DateFormatter.FormattingType.HUMAN, true),
-          style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-          color = MaterialTheme.colorScheme.primary,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
-        )
-      }
-    },
-    actions = {
-      IconButton(onClick = { /* do something */ }) {
-        Icon(
-          painter = painterResource(R.drawable.calendar_month_24px),
-          contentDescription = null
-        )
-      }
-    },
-    scrollBehavior = scrollBehavior,
-    modifier = modifier
+      Text(
+        DateFormatter.format(today.toLocalDate(), DateFormatter.FormattingType.HUMAN, true),
+        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+      )
+    }
+  }, actions = {
+    IconButton(onClick = { /* do something */ }) {
+      Icon(
+        painter = painterResource(R.drawable.calendar_month_24px), contentDescription = null
+      )
+    }
+  }, scrollBehavior = scrollBehavior, modifier = modifier
   )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FreyzaTpAppBar(modifier: Modifier = Modifier) {
+fun FreyzaTravelPlanAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
     title = {
       Text("Travel Plan", maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }, colors = TopAppBarDefaults.topAppBarColors(
+      containerColor = MaterialTheme.colorScheme.primaryContainer,
+      titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
+    ), modifier = modifier
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FreyzaDailyReportAppBar(modifier: Modifier = Modifier) {
+  TopAppBar(
+    title = {
+      Text("Daily Report", maxLines = 1, overflow = TextOverflow.Ellipsis)
     }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
@@ -139,12 +148,19 @@ private fun FreyzaHomeAppBarPreview() {
 
 @Composable
 @Preview
-private fun FreyzaTpAppBarPreview() {
+private fun FreyzaTravelPlanAppBarPreview() {
   FreyzaEmployeeTheme {
-    FreyzaTpAppBar()
+    FreyzaTravelPlanAppBar()
   }
 }
 
+@Composable
+@Preview
+private fun FreyzaDailyReportAppBarPreview() {
+  FreyzaEmployeeTheme {
+    FreyzaDailyReportAppBar()
+  }
+}
 
 @Composable
 @Preview

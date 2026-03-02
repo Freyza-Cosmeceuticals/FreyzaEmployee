@@ -12,6 +12,7 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.repository.DailyReportRepository
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
@@ -61,6 +62,49 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun getRecentDailyReports(
+    numDailyReports: Int,
+    employeeId: String,
+  ): Result<List<DailyReport>> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying recent daily reports")
+
+        val reportsDto = postgrest.from("dailyReport")
+          .select {
+            filter {
+              DailyReportDto::employeeId eq employeeId
+            }
+            order(DailyReportDto::date.name, Order.DESCENDING)
+            limit(numDailyReports.toLong())
+          }
+          .decodeList<DailyReportDto>()
+
+        val reports = reportsDto.map {
+          DailyReport(
+            id = it.id,
+            employeeId = it.employeeId,
+            date = LocalDate.parse(it.date),
+            dayType = it.dayType,
+            routeId = it.routeId,
+            ta = it.ta,
+            da = it.da,
+            totalExpense = it.totalExpense,
+            visits = listOf(),
+            locked = it.locked,
+            lockedAt = it.lockedAt?.let { lockedAt -> Instant.parse(lockedAt) },
+            createdAt = Instant.parse(it.createdAt),
+            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
+          )
+        }
+
+        Result.Success(reports)
+      }
+    } catch (e: Exception) {
       Result.Error(e.message.toString())
     }
   }
