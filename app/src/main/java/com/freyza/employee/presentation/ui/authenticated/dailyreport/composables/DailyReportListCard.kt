@@ -135,8 +135,8 @@ fun DailyReportListCard(
       }
 
       Text(
-        if (report.visits.isNotEmpty()) "${report.visits.size} Visits logged" else "No visits logged",
-        style = MaterialTheme.typography.bodyMedium
+        if (report.visits.isNotEmpty()) "${report.visits.size} Visits logged" else "No visits logged. Click Add Visit to add one",
+        style = MaterialTheme.typography.bodySmall
       )
 
       if (report.visits.isNotEmpty()) {

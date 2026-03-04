@@ -108,7 +108,7 @@ fun FreyzaTravelPlanAppBar(modifier: Modifier = Modifier) {
 fun FreyzaDailyReportAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
     title = {
-      Text("Daily Report", maxLines = 1, overflow = TextOverflow.Ellipsis)
+      Text("Daily Reports", maxLines = 1, overflow = TextOverflow.Ellipsis)
     }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),

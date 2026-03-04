@@ -2,7 +2,12 @@ package com.freyza.employee.domain.model
 
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
+import com.freyza.employee.core.Constants
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import java.util.UUID
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 data class DailyReport(
@@ -48,35 +53,40 @@ enum class VisitType {
     this.name[0].titlecase() + this.name.substring(1).toLowerCase(Locale.current)
 }
 
-fun dummyDailyReportWork(locked: Boolean = false): DailyReport = DailyReport(
-  id = "4eed577c-8848-41b4-ad57-7c8848c1b499",
+fun dummyDailyReportWork(
+  locked: Boolean = false,
+  dateNow: Boolean = false,
+  noVisits: Boolean = false,
+): DailyReport = DailyReport(
+  id = UUID.randomUUID().toString(),
   employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
-  date = LocalDate.parse("2026-02-11"),
+  date = if (dateNow) Clock.System.now().toLocalDateTime(
+    TimeZone.of(Constants.TIMEZONE)
+  ).date else LocalDate.parse("2026-03-01"),
   dayType = DayType.WORK,
   routeId = "e2556d86-ccef-4bab-956d-86ccefcbabe4",
   ta = 500.00,
   da = 750.00,
   totalExpense = 1020.00,
-  visits = listOf(
-    Visit(
-      id = "cef06593-941f-4401-b065-93941ff4018c",
-      reportId = "4eed577c-8848-41b4-ad57-7c8848c1b499",
-      visitType = VisitType.DOCTOR,
-      latitude = 34.890,
-      longitude = 78.216,
-      distanceMetersFromPOI = 53,
-      createdAt = Instant.parse("2026-02-11T21:30:39.791+05:30"),
-      updatedAt = null
-    ), Visit(
-      id = "b8ba5665-7dc5-41b8-ba56-657dc511b804",
-      reportId = "4eed577c-8848-41b4-ad57-7c8848c1b499",
-      visitType = VisitType.CHEMIST,
-      latitude = 54.790,
-      longitude = 43.236,
-      distanceMetersFromPOI = 21,
-      createdAt = Instant.parse("2026-02-11T21:31:18.290+05:30"),
-      updatedAt = null
-    )
+  visits = if (noVisits) emptyList() else listOf(
+    dummyVisitDoctor(),
+    dummyVisitStockist(),
+    dummyVisitChemist(),
+    dummyVisitChemist(),
+    dummyVisitDoctor(),
+    dummyVisitChemist(),
+    dummyVisitChemist(),
+    dummyVisitChemist(),
+    dummyVisitChemist(),
+    dummyVisitChemist(),
+    dummyVisitDoctor(),
+    dummyVisitDoctor(),
+    dummyVisitChemist(),
+    dummyVisitChemist(),
+    dummyVisitDoctor(),
+    dummyVisitChemist(),
+    dummyVisitChemist(),
+    dummyVisitDoctor()
   ),
   locked = locked,
   lockedAt = if (locked) Instant.parse("2026-02-11T21:27:33.882+05:30") else null,
@@ -84,8 +94,8 @@ fun dummyDailyReportWork(locked: Boolean = false): DailyReport = DailyReport(
   updatedAt = null
 )
 
-fun dummyDailyReportHoliday(): DailyReport = DailyReport(
-  id = "bfca5fce-c7e2-4616-8a5f-cec7e2b6163d",
+fun dummyDailyReportHoliday(locked: Boolean = false): DailyReport = DailyReport(
+  id = UUID.randomUUID().toString(),
   employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
   date = LocalDate.parse("2026-02-11"),
   dayType = DayType.HOLIDAY,
@@ -94,14 +104,14 @@ fun dummyDailyReportHoliday(): DailyReport = DailyReport(
   da = 0.00,
   totalExpense = 0.00,
   visits = listOf(),
-  locked = false,
-  lockedAt = null,
+  locked = locked,
+  lockedAt = if (locked) Instant.parse("2026-02-11T21:27:33.882+05:30") else null,
   createdAt = Instant.parse("2026-02-11T12:29:21.745+05:30"),
   updatedAt = null
 )
 
-fun dummyDailyReportLeave(): DailyReport = DailyReport(
-  id = "a82dbda4-5c74-4845-adbd-a45c745845e7",
+fun dummyDailyReportLeave(locked: Boolean = false): DailyReport = DailyReport(
+  id = UUID.randomUUID().toString(),
   employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
   date = LocalDate.parse("2026-02-11"),
   dayType = DayType.LEAVE,
@@ -110,14 +120,14 @@ fun dummyDailyReportLeave(): DailyReport = DailyReport(
   da = 0.00,
   totalExpense = 0.00,
   visits = listOf(),
-  locked = false,
-  lockedAt = null,
+  locked = locked,
+  lockedAt = if (locked) Instant.parse("2026-02-11T21:27:33.882+05:30") else null,
   createdAt = Instant.parse("2026-02-11T12:29:21.745+05:30"),
   updatedAt = null
 )
 
 fun dummyVisitDoctor(): Visit = Visit(
-  id = "0513395a-7668-4cb2-9339-5a76684cb2ae",
+  id = UUID.randomUUID().toString(),
   reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
   visitType = VisitType.DOCTOR,
   latitude = 34.632,
@@ -128,7 +138,7 @@ fun dummyVisitDoctor(): Visit = Visit(
 )
 
 fun dummyVisitChemist(): Visit = Visit(
-  id = "e2eef8d6-daf8-4a6b-aef8-d6daf88a6b8a",
+  id = UUID.randomUUID().toString(),
   reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
   visitType = VisitType.CHEMIST,
   latitude = 45.653,
@@ -139,7 +149,7 @@ fun dummyVisitChemist(): Visit = Visit(
 )
 
 fun dummyVisitStockist(): Visit = Visit(
-  id = "5302697d-8a94-4e0f-8269-7d8a94ce0fef",
+  id = UUID.randomUUID().toString(),
   reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
   visitType = VisitType.STOCKIST,
   latitude = 45.367,

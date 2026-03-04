@@ -3,6 +3,7 @@ package com.freyza.employee.core.util
 import com.freyza.employee.core.Constants
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.Padding
@@ -26,6 +27,18 @@ object DateFormatter {
 
   val humanShortDateFormatter = LocalDate.Format {
     day(Padding.ZERO); char(' '); monthName(MonthNames.ENGLISH_FULL)
+  }
+
+  val timeFormatter = LocalTime.Format {
+    hour(); char(':'); minute(); char(':'); second(); char('.'); secondFraction(3)
+  }
+
+  val humanTimeFormatter = LocalTime.Format {
+    amPmHour(); char(':'); minute(); char(':'); second(); char(' '); amPmMarker("AM", "PM")
+  }
+
+  val humanShortTimeFormatter = LocalTime.Format {
+    amPmHour(); char(':'); minute(); char(' '); amPmMarker("AM", "PM")
   }
 
   val dateTimeFormatter = LocalDateTime.Format {
@@ -53,6 +66,23 @@ object DateFormatter {
       FormattingType.HUMAN -> {
         if (short) humanShortDateFormatter.format(it)
         else humanDateFormatter.format(it)
+      }
+    }
+  }
+
+  /**
+   * `short: Boolean = true` Keep formatted time short (omit seconds)
+   */
+  fun format(
+    it: LocalTime,
+    formattingType: FormattingType = FormattingType.HUMAN,
+    short: Boolean = true,
+  ): String {
+    return when (formattingType) {
+      FormattingType.MACHINE -> timeFormatter.format(it)
+      FormattingType.HUMAN -> {
+        if (short) humanShortTimeFormatter.format(it)
+        else humanTimeFormatter.format(it)
       }
     }
   }

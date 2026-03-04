@@ -16,9 +16,12 @@ data class DailyReportUiState(
 fun dummyDailyReportUiState(): DailyReportUiState = DailyReportUiState(
   dailyReports = UIState.Ready(
     listOf(
-      dummyDailyReportWork(), dummyDailyReportLeave(),
-      dummyDailyReportHoliday()
+      dummyDailyReportWork(dateNow = true),
+      dummyDailyReportWork(noVisits = true),
+      dummyDailyReportWork(true),
+      dummyDailyReportLeave(),
+      dummyDailyReportHoliday(),
+      dummyDailyReportWork()
     )
-  ),
-  routes = UIState.Ready(listOf(dummyRouteWithLocation()))
+  ), routes = UIState.Ready(listOf(dummyRouteWithLocation()))
 )
