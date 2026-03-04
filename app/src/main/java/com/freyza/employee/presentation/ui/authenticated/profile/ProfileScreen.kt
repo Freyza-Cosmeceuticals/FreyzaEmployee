@@ -50,6 +50,7 @@ import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapp
 import com.freyza.employee.presentation.ui.composables.FreyzaProfileAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.Skeleton
+import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.ProfileScreenUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -289,6 +290,8 @@ fun ProfileScreen(
 
           item {
             Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
+
+            VersionInfo()
             Text(
               "Freyza Employee App", style = MaterialTheme.typography.labelMedium.copy(
                 color = MaterialTheme.colorScheme.tertiary
@@ -329,11 +332,6 @@ fun ProfileScreen(
             )
             Text(
               text = "Application ID: ${BuildConfig.APPLICATION_ID}",
-              style = MaterialTheme.typography.labelMedium,
-              softWrap = false
-            )
-            Text(
-              text = "Version Name: ${BuildConfig.VERSION_NAME}",
               style = MaterialTheme.typography.labelMedium,
               softWrap = false
             )

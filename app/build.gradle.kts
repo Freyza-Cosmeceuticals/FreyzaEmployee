@@ -13,13 +13,21 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
+// Development
 val secretDevPropertiesFile = project.rootProject.file("secret.dev.properties")
 val secretDevProperties = Properties()
 secretDevProperties.load(FileInputStream(secretDevPropertiesFile))
 
-val secretStagingPropertiesFile = project.rootProject.file("secret.staging.properties")
-val secretStagingProperties = Properties()
-secretStagingProperties.load(FileInputStream(secretStagingPropertiesFile))
+// Preview
+val secretPreviewPropertiesFile = project.rootProject.file("secret.preview.properties")
+val secretPreviewProperties = Properties()
+secretPreviewProperties.load(FileInputStream(secretPreviewPropertiesFile))
+
+// Production
+val secretProdPropertiesFile = project.rootProject.file("secret.production.properties")
+val secretProdProperties = Properties()
+secretProdProperties.load(FileInputStream(secretProdPropertiesFile))
+
 
 android {
     namespace = "com.freyza.employee"
@@ -30,7 +38,7 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -55,6 +63,7 @@ android {
             dimension = "env"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Freyza Employee (Dev)")
 
             buildConfigField(
                 "String",
@@ -73,30 +82,47 @@ android {
             )
         }
 
-        create("staging") {
+        create("preview") {
             dimension = "env"
-            applicationIdSuffix = ".staging"
-            versionName = "-staging"
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-pre"
+            resValue("string", "app_name", "Freyza Employee (Preview)")
 
             buildConfigField(
                 "String",
                 "SUPABASE_PUBLISHABLE_KEY",
-                "\"${secretStagingProperties.getProperty("SUPABASE_PUBLISHABLE_KEY")}\""
+                "\"${secretPreviewProperties.getProperty("SUPABASE_PUBLISHABLE_KEY")}\""
             )
             buildConfigField(
                 "String",
                 "SUPABASE_URL",
-                "\"${secretStagingProperties.getProperty("SUPABASE_URL")}\""
+                "\"${secretPreviewProperties.getProperty("SUPABASE_URL")}\""
             )
             buildConfigField(
                 "String",
                 "WEB_CLIENT_ID",
-                "\"${secretStagingProperties.getProperty("WEB_CLIENT_ID")}\""
+                "\"${secretPreviewProperties.getProperty("WEB_CLIENT_ID")}\""
             )
         }
 
         create("prod") {
             dimension = "env"
+
+            buildConfigField(
+                "String",
+                "SUPABASE_PUBLISHABLE_KEY",
+                "\"${secretProdProperties.getProperty("SUPABASE_PUBLISHABLE_KEY")}\""
+            )
+            buildConfigField(
+                "String",
+                "SUPABASE_URL",
+                "\"${secretProdProperties.getProperty("SUPABASE_URL")}\""
+            )
+            buildConfigField(
+                "String",
+                "WEB_CLIENT_ID",
+                "\"${secretProdProperties.getProperty("WEB_CLIENT_ID")}\""
+            )
         }
     }
 

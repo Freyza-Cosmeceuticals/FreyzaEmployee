@@ -37,12 +37,12 @@ fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
   todayReportRoute = UIState.Ready(dummyRouteWithLocation()),
 )
 
-fun dummyHomeScreenUiStateNoDailyReport(): HomeScreenUiState = HomeScreenUiState(
+fun dummyHomeScreenUiStateDailyReportError(): HomeScreenUiState = HomeScreenUiState(
   currentTravelPlan = UIState.Ready(dummyTravelPlan()),
   todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
 
   todayPlanEntryRoute = UIState.Ready(dummyRouteWithLocation()),
 
-  currentDailyReport = UIState.Ready(null),
+  currentDailyReport = UIState.Error("Failed to have a daily report"),
   routes = UIState.Ready(listOf(dummyRouteWithLocation())),
 )

@@ -66,6 +66,7 @@ import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiState
+import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiStateDailyReportError
 import com.freyza.employee.presentation.ui.state.dummyMainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
@@ -88,9 +89,9 @@ fun HomeScreenRoute(
   ) { mainUiState ->
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
-      uiState,
-      mainUiState,
-      modifier,
+      uiState = uiState,
+      mainUiState = mainUiState,
+      modifier = modifier,
       onRefresh = viewModel::refresh,
       onDailyReportBegin = viewModel::createCurrentDailyReport,
       onDailyReportRetry = viewModel::loadCurrentDailyReport
@@ -150,7 +151,9 @@ private fun HomeScreen(
               dayTypes = dayTypes,
               routes = uiState.routes,
               todayTravelPlanEntry = uiState.todayTravelPlanEntry,
-              onDailyReportBegin = onDailyReportBegin
+              onDailyReportBegin = onDailyReportBegin,
+              onRetry = onRefresh,
+              onExit = {}
             )
           }
         }
@@ -180,7 +183,10 @@ private fun HomeScreen(
 
       is UIState.Error -> {
         // since loading daily report data failed, we cannot continue and ask the user to retry
-        DailyReportingFailedToLoadDialog(message = result.message, onRetry = onDailyReportRetry)
+        DailyReportingFailedToLoadDialog(
+          message = result.message,
+          onRetry = onDailyReportRetry,
+          onExit = {})
       }
 
       else -> {}
@@ -236,7 +242,7 @@ private fun HomeScreen(
                   route = uiState.todayPlanEntryRoute,
                   reportDayType = uiState.todayReportDayType,
                   reportRoute = uiState.todayReportRoute,
-                  isPending = uiState.todayReportDayType is UIState.Loading || uiState.todayReportRoute is UIState.Loading,
+                  isPending = uiState.todayReportDayType !is UIState.Ready || uiState.todayReportRoute !is UIState.Ready,
                   modifier = Modifier
                     .weight(1f)
                     .fillMaxSize()
@@ -265,48 +271,6 @@ private fun HomeScreen(
 
           Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
         }
-
-//        item {
-//          Row(
-//            modifier = Modifier
-//              .fillMaxWidth()
-//              .height(IntrinsicSize.Min)
-//              .heightIn(min = 128.dp),
-//            horizontalArrangement = Arrangement.spacedBy(
-//              16.dp, Alignment.CenterHorizontally
-//            ),
-//            verticalAlignment = Alignment.CenterVertically
-//          ) {
-//            Card(
-//              modifier = Modifier
-//                .weight(1f)
-//                .fillMaxSize()
-//            ) {
-//              Text("Some Graphs Here", modifier = Modifier.padding(16.dp))
-//            }
-//          }
-//        }
-//
-//        item {
-//          Row(
-//            modifier = Modifier
-//              .fillMaxWidth()
-//              .height(IntrinsicSize.Min)
-//              .heightIn(min = 128.dp),
-//            horizontalArrangement = Arrangement.spacedBy(
-//              16.dp, Alignment.CenterHorizontally
-//            ),
-//            verticalAlignment = Alignment.CenterVertically
-//          ) {
-//            Card(
-//              modifier = Modifier
-//                .weight(1f)
-//                .fillMaxSize()
-//            ) {
-//              Text("Here as well", modifier = Modifier.padding(16.dp))
-//            }
-//          }
-//        }
 
         item {
           Text(
@@ -349,8 +313,6 @@ private fun HomeScreen(
             DebugUserInfo(mainUiState.user)
           }
         }
-
-        // ExpenseList(uiState.data!!.recentExpenses)
       }
     }
   }
@@ -361,7 +323,6 @@ private fun HomeScreen(
 private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
   Card {
     Column(modifier = modifier.padding(8.dp)) {
-
       Text(user.id, fontFamily = FontFamily.Monospace)
       Text(user.name)
       Text(user.email)
@@ -393,6 +354,21 @@ private fun HomeScreenPreview() {
   FreyzaEmployeeTheme {
     HomeScreen(
       uiState = dummyHomeScreenUiState(),
+      mainUiState = dummyMainUiState(),
+      onRefresh = {},
+      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportRetry = {})
+  }
+}
+
+@Preview(
+  showSystemUi = true, showBackground = true
+)
+@Composable
+private fun HomeScreenReportErrorPreview() {
+  FreyzaEmployeeTheme {
+    HomeScreen(
+      uiState = dummyHomeScreenUiStateDailyReportError(),
       mainUiState = dummyMainUiState(),
       onRefresh = {},
       onDailyReportBegin = { dayType, routeId -> },

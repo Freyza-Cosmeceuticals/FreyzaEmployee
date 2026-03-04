@@ -42,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.dimensionResource
@@ -62,12 +61,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.presentation.ui.composables.FreyzaDefaultAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
+import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import io.github.jan.supabase.auth.user.UserInfo
@@ -108,7 +109,7 @@ private fun LoginScreen(
 ) {
   var email by rememberSaveable { mutableStateOf("") }
   var password by rememberSaveable { mutableStateOf("") }
-  var error by rememberSaveable { mutableStateOf<String?>(null) }
+  var error by rememberSaveable { mutableStateOf(uiState.message) }
 
   val scope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
@@ -135,171 +136,191 @@ private fun LoginScreen(
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      LaunchedEffect(uiState) {
-        when (uiState) {
-          is UIState.Ready -> {
-            onNavigateToAuthenticatedRoute()
-          }
+      Column(
+        modifier = modifier.weight(1f),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+      ) {
 
-          is UIState.Error -> {
-            error = uiState.message
-            scope.launch {
-              snackbarHostState.currentSnackbarData?.dismiss()
+        // handle screen transitions and error states
+        LaunchedEffect(uiState) {
+          when (uiState) {
+            is UIState.Ready -> {
+              onNavigateToAuthenticatedRoute()
+            }
 
-              snackbarHostState.showTypedSnackbar(
-                message = uiState.message?.trim()?.lines()?.first() ?: unknownErrorString,
-                type = SnackbarType.ERROR,
-                withDismissAction = true
-              )
+            is UIState.Error -> {
+              error = uiState.message
+              scope.launch {
+                snackbarHostState.currentSnackbarData?.dismiss()
+
+                snackbarHostState.showTypedSnackbar(
+                  message = uiState.message?.trim()?.lines()?.first() ?: unknownErrorString,
+                  type = SnackbarType.ERROR,
+                  withDismissAction = true
+                )
+              }
+            }
+
+            is UIState.Loading -> {
+              error = null
+            }
+
+            is UIState.Idle -> {
+              error = null
             }
           }
-
-          is UIState.Loading -> {
-            error = null
-          }
-
-          is UIState.Idle -> {
-            error = null
-          }
-        }
-      }
-
-      Text(
-        stringResource(R.string.app_title), style = MaterialTheme.typography.displayMedium.copy(
-          fontSize = dimensionResource(R.dimen.title_font_size).value.sp,
-          fontWeight = FontWeight.Bold,
-          textAlign = TextAlign.Center
-        ), color = MaterialTheme.colorScheme.onPrimaryContainer
-      )
-      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
-      Text(
-        stringResource(R.string.login_title), style = MaterialTheme.typography.titleLarge.copy(
-          fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center
-        ), color = MaterialTheme.colorScheme.secondary
-      )
-
-      HorizontalDivider(
-        Modifier
-          .padding(horizontal = 64.dp)
-          .padding(top = 36.dp, bottom = 32.dp),
-        thickness = Dp.Hairline
-      )
-
-      OutlinedTextField(
-        label = {
-          Text(
-            stringResource(R.string.email_placeholder), style = MaterialTheme.typography.titleMedium
-          )
-        },
-        singleLine = true,
-        isError = uiState is UIState.Error,
-        leadingIcon = {
-          Icon(
-            painter = painterResource(R.drawable.mail_24px),
-            contentDescription = null
-          )
-        },
-        shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
-        value = email,
-        onValueChange = { email = it },
-        keyboardOptions = KeyboardOptions(
-          imeAction = ImeAction.Next,
-          keyboardType = KeyboardType.Email
-        ),
-        keyboardActions = KeyboardActions(
-          onNext = {
-            focusManager.moveFocus(FocusDirection.Down)
-          }
-        ),
-        modifier = Modifier
-          .semantics { contentType = ContentType.EmailAddress }
-          .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
-          .fillMaxWidth())
-
-      Spacer(Modifier.height(8.dp))
-
-      OutlinedTextField(
-        label = {
-          Text(
-            stringResource(R.string.password_placeholder),
-            style = MaterialTheme.typography.titleMedium
-          )
-        },
-        singleLine = true,
-        isError = uiState is UIState.Error,
-        leadingIcon = {
-          Icon(
-            painter = painterResource(R.drawable.password_24px),
-            contentDescription = null
-          )
-        },
-        trailingIcon = {
-          IconButton(
-            onClick = { passwordVisible = !passwordVisible }) {
-            Icon(
-              painter = if (passwordVisible) painterResource(R.drawable.visibility_24px) else painterResource(
-                R.drawable.visibility_off_24px
-              ),
-              contentDescription = if (passwordVisible) "Hide password" else "Show password",
-            )
-          }
-        },
-        shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
-        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        value = password,
-        onValueChange = { password = it },
-        keyboardOptions = KeyboardOptions(
-          imeAction = ImeAction.Done,
-          keyboardType = KeyboardType.Password
-        ),
-        keyboardActions = KeyboardActions(
-          onDone = {
-            focusManager.clearFocus()
-            onLoginWithEmailClicked(email, password)
-          }
-        ),
-        modifier = Modifier
-          .semantics { contentType = ContentType.Password }
-          .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
-          .fillMaxWidth())
-      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(8)))
-
-      Button(
-        onClick = {
-          localSoftwareKeyboardController?.hide()
-          onLoginWithEmailClicked(email, password)
-        },
-        shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
-        enabled = uiState !is UIState.Loading,
-        contentPadding = PaddingValues(dimensionResource(R.dimen.default_spacing).times(4)),
-        modifier = Modifier
-          .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
-          .fillMaxWidth()
-      ) {
-        if (uiState is UIState.Loading) {
-          CircularProgressIndicator(
-            gapSize = 4.dp, strokeWidth = 2.dp, modifier = Modifier.size(18.dp)
-          )
-          Spacer(Modifier.width(dimensionResource(R.dimen.default_spacing).times(3)))
         }
 
         Text(
-          if (uiState is UIState.Loading) "Logging in..." else stringResource(R.string.login_button),
-          style = MaterialTheme.typography.bodyLarge
+          stringResource(R.string.app_title),
+          style = MaterialTheme.typography.displayMedium.copy(
+            fontSize = dimensionResource(R.dimen.title_font_size).value.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+          ),
         )
-      }
+        Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
+        Text(
+          stringResource(R.string.login_title), style = MaterialTheme.typography.titleLarge.copy(
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.secondary
+          )
+        )
 
-      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
-      Box(Modifier.height(40.dp)) {
-        if (error.isNullOrBlank().not()) {
-          Text(text = "Error: $error", color = Color.Red)
+        HorizontalDivider(
+          Modifier
+            .padding(horizontal = dimensionResource(R.dimen.screen_padding).times(4))
+            .padding(
+              top = dimensionResource(R.dimen.default_spacing).times(9),
+              bottom = dimensionResource(R.dimen.default_spacing).times(8)
+            ), thickness = Dp.Hairline
+        )
+
+        OutlinedTextField(
+          label = {
+            Text(
+              stringResource(R.string.email_placeholder),
+              style = MaterialTheme.typography.titleMedium
+            )
+          },
+          singleLine = true,
+          isError = uiState is UIState.Error,
+          leadingIcon = {
+            Icon(
+              painter = painterResource(R.drawable.mail_24px), contentDescription = null
+            )
+          },
+          shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+          value = email,
+          onValueChange = { email = it },
+          keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Next, keyboardType = KeyboardType.Email
+          ),
+          keyboardActions = KeyboardActions(
+            onNext = {
+              focusManager.moveFocus(FocusDirection.Down)
+            }),
+          modifier = Modifier
+            .semantics { contentType = ContentType.EmailAddress }
+            .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
+            .fillMaxWidth())
+
+        Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
+
+        OutlinedTextField(
+          label = {
+            Text(
+              stringResource(R.string.password_placeholder),
+              style = MaterialTheme.typography.titleMedium
+            )
+          },
+          singleLine = true,
+          isError = uiState is UIState.Error,
+          leadingIcon = {
+            Icon(
+              painter = painterResource(R.drawable.password_24px), contentDescription = null
+            )
+          },
+          trailingIcon = {
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+              Icon(
+                painter = if (passwordVisible) painterResource(R.drawable.visibility_24px) else painterResource(
+                  R.drawable.visibility_off_24px
+                ),
+                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+              )
+            }
+          },
+          shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+          visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+          value = password,
+          onValueChange = { password = it },
+          keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Done, keyboardType = KeyboardType.Password
+          ),
+          keyboardActions = KeyboardActions(
+            onDone = {
+              focusManager.clearFocus()
+              onLoginWithEmailClicked(email, password)
+            }),
+          modifier = Modifier
+            .semantics { contentType = ContentType.Password }
+            .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
+            .fillMaxWidth())
+
+        Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(8)))
+
+        Button(
+          onClick = {
+            localSoftwareKeyboardController?.hide()
+            onLoginWithEmailClicked(email, password)
+          },
+          shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+          enabled = uiState !is UIState.Loading,
+          contentPadding = PaddingValues(dimensionResource(R.dimen.default_spacing).times(4)),
+          modifier = Modifier
+            .widthIn(max = dimensionResource(R.dimen.login_controls_max_width))
+            .fillMaxWidth()
+        ) {
+          if (uiState is UIState.Loading) {
+            CircularProgressIndicator(
+              gapSize = 4.dp, strokeWidth = 2.dp, modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(dimensionResource(R.dimen.default_spacing).times(3)))
+          }
+
+          Text(
+            if (uiState is UIState.Loading) "Logging in..." else stringResource(R.string.login_button),
+            style = MaterialTheme.typography.bodyLarge
+          )
+        }
+
+        if (BuildConfig.DEBUG) {
+          Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(8)))
+          // debug error message box
+          Box(
+            Modifier
+              .height(60.dp)
+              .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+              .verticalScroll(rememberScrollState())
+          ) {
+            if (!error.isNullOrBlank()) {
+              Text(
+                text = "$error",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error
+              )
+            }
+          }
         }
       }
 
-      //        Spacer(Modifier.height(16.dp))
-      //        ElevatedButton(onClick = onLoginWithGoogleClicked) {
-      //            Text("Login with Google")
-      //        }
+      VersionInfo(
+        modifier = Modifier.fillMaxWidth()
+      )
     }
   }
 }
@@ -333,7 +354,11 @@ private fun LoginScreenLoadingPreview() {
 private fun LoginScreenErrorPreview() {
   FreyzaEmployeeTheme {
     LoginScreen(
-      uiState = UIState.Error("Error message"),
+      uiState = UIState.Error(
+        "This is a long error message, with any kind of error may happen. Be ready for that. " +
+                "This is wholesome in it's own that this error has occurred. " +
+                "We are happy to announce that this is an error."
+      ),
       onLoginWithEmailClicked = { _, _ -> },
       onLoginWithGoogleClicked = {},
       onNavigateToAuthenticatedRoute = {})
