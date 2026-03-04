@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,7 +39,8 @@ import com.freyza.employee.domain.model.dummyDailyReportHoliday
 import com.freyza.employee.domain.model.dummyDailyReportLeave
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
-import com.freyza.employee.domain.model.routeName
+import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
+import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
@@ -61,7 +63,6 @@ fun DailyReportListCard(
     else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     elevation = CardDefaults.cardElevation(defaultElevation = if (isToday) 2.dp else 0.dp)
   ) {
-
     Column(
       modifier = Modifier.padding(dimensionResource(R.dimen.default_spacing).times(4)),
       verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing).times(2))
@@ -81,12 +82,7 @@ fun DailyReportListCard(
           )
 
           if (report.dayType == DayType.WORK) {
-            Badge(containerColor = if (report.locked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer) {
-              Text(
-                (if (report.locked) "Locked" else "Not Locked").uppercase(),
-                style = MaterialTheme.typography.labelMedium
-              )
-            }
+            ReportLockedBadge(report.locked)
           }
         }
       }
@@ -118,40 +114,35 @@ fun DailyReportListCard(
 
       // Route Information
       if (report.dayType == DayType.WORK) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Icon(
-            painter = painterResource(R.drawable.route_24px),
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.secondary
-          )
-          Spacer(Modifier.width(6.dp))
+        RouteItem(route)
+
+        if (report.visits.isEmpty()) {
           Text(
-            text = if (!route?.routeName().isNullOrBlank()) route.routeName() else "No Route",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            "No visits logged." + if (isToday) " Click Add Visit to add one" else "",
+            style = MaterialTheme.typography.bodySmall
+          )
+        } else {
+          Text(
+            "${report.visits.size} Visits logged", style = MaterialTheme.typography.bodySmall
           )
         }
       }
-
-      Text(
-        if (report.visits.isNotEmpty()) "${report.visits.size} Visits logged" else "No visits logged. Click Add Visit to add one",
-        style = MaterialTheme.typography.bodySmall
-      )
 
       if (report.visits.isNotEmpty()) {
         HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
         Row(
-          modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
+          modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(
+            dimensionResource(R.dimen.default_spacing).times(3)
+          )
         ) {
           val doctors = report.visits.count { it.visitType == VisitType.DOCTOR }
           val chemists = report.visits.count { it.visitType == VisitType.CHEMIST }
           val stockists = report.visits.count { it.visitType == VisitType.STOCKIST }
 
-          if (doctors > 0) VisitBadge(count = doctors, label = "Dr")
-          if (chemists > 0) VisitBadge(count = chemists, label = "Ch")
-          if (stockists > 0) VisitBadge(count = stockists, label = "St")
+          if (doctors > 0) VisitBadge(count = doctors, type = VisitType.DOCTOR)
+          if (chemists > 0) VisitBadge(count = chemists, type = VisitType.CHEMIST)
+          if (stockists > 0) VisitBadge(count = stockists, type = VisitType.STOCKIST)
         }
       }
     }
@@ -159,26 +150,31 @@ fun DailyReportListCard(
 }
 
 @Composable
-private fun VisitBadge(count: Int, label: String) {
-  Row(verticalAlignment = Alignment.CenterVertically) {
-    Box(
-      modifier = Modifier
-        .size(20.dp)
-        .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
-      contentAlignment = Alignment.Center
+private fun VisitBadge(count: Int, type: VisitType, modifier: Modifier = Modifier) {
+  Box(
+    modifier = modifier.background(
+      MaterialTheme.colorScheme.surfaceContainer,
+      RoundedCornerShape(integerResource(R.integer.rounding_radius))
+    )
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(
+        horizontal = dimensionResource(R.dimen.default_spacing).times(2),
+        vertical = dimensionResource(R.dimen.default_spacing).div(2)
+      )
     ) {
+      Icon(
+        painter = painterResource(type.iconResource()),
+        contentDescription = "${type.titleCase()} = $count",
+        modifier = Modifier.size(16.dp)
+      )
+      Spacer(Modifier.width(dimensionResource(R.dimen.default_spacing)))
       Text(
         text = count.toString(),
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSecondaryContainer
+        color = MaterialTheme.colorScheme.onSurface
       )
     }
-    Spacer(Modifier.width(6.dp))
-    Text(
-      text = label,
-      style = MaterialTheme.typography.labelMedium,
-      color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
   }
 }
 
@@ -209,7 +205,7 @@ fun DailyReportListCardSkeleton(modifier: Modifier = Modifier, isToday: Boolean 
           text = "Daily Report Loading".uppercase(),
           style = MaterialTheme.typography.labelLarge,
           color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-          fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+          fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Medium
         )
       }
 
@@ -238,10 +234,18 @@ fun DailyReportListCardSkeleton(modifier: Modifier = Modifier, isToday: Boolean 
           .height(16.dp)
       )
 
+      Skeleton(
+        modifier = Modifier
+          .width(72.dp)
+          .height(16.dp)
+      )
+
       HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
       Row(
-        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(
+          dimensionResource(R.dimen.default_spacing).times(3)
+        )
       ) {
         Skeleton(
           modifier = Modifier

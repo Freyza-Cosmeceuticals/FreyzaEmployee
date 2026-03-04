@@ -46,6 +46,7 @@ import com.freyza.employee.presentation.nav.unauthenticatedGraph
 import com.freyza.employee.presentation.ui.composables.FreyzaBottomNavBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
@@ -175,6 +176,7 @@ private fun FreyzaEmployeeAppError(
         color = MaterialTheme.colorScheme.secondary,
         textAlign = TextAlign.Center
       )
+      VersionInfo()
       Text(
         "Freyza Cosmeceuticals\nApp by Harsh Narayan Jha",
         style = MaterialTheme.typography.bodySmall,

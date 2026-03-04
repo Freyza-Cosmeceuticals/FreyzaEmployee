@@ -2,6 +2,7 @@ package com.freyza.employee.domain.model
 
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
+import com.freyza.employee.R
 import com.freyza.employee.core.Constants
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -51,6 +52,14 @@ enum class VisitType {
 
   fun titleCase(): String =
     this.name[0].titlecase() + this.name.substring(1).toLowerCase(Locale.current)
+
+  fun iconResource(): Int {
+    return when (this) {
+      DOCTOR -> R.drawable.stethoscope_24px
+      STOCKIST -> R.drawable.inventory_2_24px
+      CHEMIST -> R.drawable.labs_24px
+    }
+  }
 }
 
 fun dummyDailyReportWork(

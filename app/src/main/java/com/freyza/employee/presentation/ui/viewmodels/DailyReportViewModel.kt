@@ -64,7 +64,8 @@ class DailyReportViewModel(
     viewModelScope.launch {
       when (val result = getAllDailyReportUseCase.execute(
         GetAllDailyReportsUseCase.Input(
-          Constants.NUM_RECENT_DAILY_REPORTS, employeeId
+          Constants.NUM_RECENT_DAILY_REPORTS,
+          employeeId
         )
       )) {
         is GetAllDailyReportsUseCase.Output.Success -> {

@@ -40,6 +40,8 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.DailyReport
+import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.AddVisitFloatingActionButton
@@ -64,6 +66,7 @@ fun DailyReportScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: DailyReportViewModel = koinViewModel(),
   onNavigateToUnauthenticated: () -> Unit,
+  onNavigateToAddVisit: (type: VisitType) -> Unit,
 ) {
   AuthenticatedRouteWrapper(
     mainUiState, onNavigateToUnauthenticated,
@@ -81,6 +84,7 @@ fun DailyReportScreenRoute(
       uiState = uiState,
       mainUiState = mainUiState,
       onRetry = viewModel::refresh,
+      onNavigateToAddVisit = onNavigateToAddVisit,
       modifier = modifier
     )
   }
@@ -92,6 +96,7 @@ fun DailyReportScreen(
   uiState: DailyReportUiState,
   mainUiState: MainUiState,
   onRetry: () -> Unit,
+  onNavigateToAddVisit: (type: VisitType) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val scope = rememberCoroutineScope()
@@ -113,16 +118,28 @@ fun DailyReportScreen(
   var selectedReport by remember { mutableStateOf<DailyReport?>(null) }
 
   val fabOptions = listOf(
-    FabActionItem("Doctor", null, {}),
-    FabActionItem("Stockist", null, {}),
-    FabActionItem("Chemist", null, {}),
+    FabActionItem(
+      "Doctor Visit",
+      VisitType.DOCTOR.iconResource(),
+      { onNavigateToAddVisit(VisitType.DOCTOR) }),
+    FabActionItem(
+      "Stockist Visit",
+      VisitType.STOCKIST.iconResource(),
+      { onNavigateToAddVisit(VisitType.STOCKIST) }),
+    FabActionItem(
+      "Chemist Visit",
+      VisitType.CHEMIST.iconResource(),
+      { onNavigateToAddVisit(VisitType.CHEMIST) }),
   )
 
   Scaffold(
     topBar = { FreyzaDailyReportAppBar() },
     snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
-    // only show add visit fab if there is some today report
-    floatingActionButton = { todayReport?.let { AddVisitFloatingActionButton(options = fabOptions) } },
+    // only show add visit fab if there is some today report of type WORK
+    floatingActionButton = {
+      if (todayReport != null && todayReport.dayType == DayType.WORK)
+        AddVisitFloatingActionButton(options = fabOptions)
+    },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
@@ -274,7 +291,10 @@ private fun DebugDailyReport(dailyReport: DailyReport?, modifier: Modifier = Mod
 private fun DailyReportScreenPreview() {
   FreyzaEmployeeTheme {
     DailyReportScreen(
-      uiState = dummyDailyReportUiState(), mainUiState = dummyMainUiState(), onRetry = {})
+      uiState = dummyDailyReportUiState(),
+      mainUiState = dummyMainUiState(),
+      onRetry = {},
+      onNavigateToAddVisit = {})
   }
 }
 
@@ -286,7 +306,7 @@ private fun DailyReportScreenPreviewLoading() {
       uiState = DailyReportUiState(
         dailyReports = UIState.Loading(null, "Cooking reports"),
         routes = UIState.Ready(listOf(dummyRouteWithLocation()))
-      ), mainUiState = dummyMainUiState(), onRetry = {})
+      ), mainUiState = dummyMainUiState(), onRetry = {}, onNavigateToAddVisit = {})
   }
 }
 
@@ -299,6 +319,6 @@ private fun DailyReportScreenPreviewError() {
       uiState = DailyReportUiState(
         dailyReports = UIState.Error("Cannot to load reports"),
         routes = UIState.Ready(listOf(dummyRouteWithLocation()))
-      ), mainUiState = dummyMainUiState(), onRetry = {})
+      ), mainUiState = dummyMainUiState(), onRetry = {}, onNavigateToAddVisit = {})
   }
 }

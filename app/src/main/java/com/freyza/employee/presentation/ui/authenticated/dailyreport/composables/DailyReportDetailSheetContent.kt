@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,7 +44,8 @@ import com.freyza.employee.domain.model.dummyDailyReportHoliday
 import com.freyza.employee.domain.model.dummyDailyReportLeave
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
-import com.freyza.employee.domain.model.routeName
+import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
+import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -93,43 +93,24 @@ fun DailyReportDetailSheetContent(
 
         if (report.dayType == DayType.WORK) {
           Spacer(Modifier.size(dimensionResource(R.dimen.default_spacing).times(2)))
-
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-              painter = painterResource(R.drawable.route_24px),
-              contentDescription = null,
-              modifier = Modifier.size(dimensionResource(R.dimen.default_spacing).times(4)),
-              tint = MaterialTheme.colorScheme.secondary
-            )
-            Spacer(Modifier.width(dimensionResource(R.dimen.default_spacing)))
-            Text(
-              text = if (!route?.routeName().isNullOrBlank()) route.routeName() else "No Route",
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurface
-            )
-          }
+          RouteItem(route)
         }
       }
 
       if (report.dayType == DayType.WORK) {
-        Badge(containerColor = if (report.locked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer) {
-          Text(
-            (if (report.locked) "Locked" else "Not Locked").uppercase(),
-            style = MaterialTheme.typography.labelMedium
-          )
-        }
+        ReportLockedBadge(report.locked)
       }
     }
     Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
 
-    ExpensesSummaryCard(ta = report.ta, da = report.da, total = report.totalExpense)
+    ExpenseSummaryCard(ta = report.ta, da = report.da, total = report.totalExpense)
     Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
 
     if (report.dayType == DayType.WORK) {
       Text(
-        text = "Visits (${report.visits.size})",
+        text = if (report.visits.isEmpty()) "No Visits" else "${report.visits.size} Visits",
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Medium,
         modifier = Modifier.padding(vertical = dimensionResource(R.dimen.screen_padding).div(2))
       )
 
@@ -137,11 +118,11 @@ fun DailyReportDetailSheetContent(
         Box(
           modifier = Modifier
             .fillMaxWidth()
-            .padding(dimensionResource(R.dimen.screen_padding).times(2)),
+            .padding(bottom = dimensionResource(R.dimen.screen_padding)),
           contentAlignment = Alignment.Center
         ) {
           Text(
-            text = "No visits recorded for this day.",
+            text = "No visits recorded for this day",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
@@ -149,9 +130,7 @@ fun DailyReportDetailSheetContent(
       } else {
         LazyColumn(
           verticalArrangement = Arrangement.spacedBy(
-            dimensionResource(R.dimen.default_spacing).times(
-              3
-            )
+            dimensionResource(R.dimen.default_spacing).times(3)
           ), modifier = Modifier.weight(1f, fill = false)
         ) {
           items(report.visits, key = { it.id }) { visit ->
@@ -164,7 +143,7 @@ fun DailyReportDetailSheetContent(
 }
 
 @Composable
-private fun ExpensesSummaryCard(ta: Double?, da: Double?, total: Double?) {
+private fun ExpenseSummaryCard(ta: Double?, da: Double?, total: Double?) {
   Card(
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
@@ -204,21 +183,15 @@ private fun VisitListItem(visit: Visit) {
   Row(
     modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
   ) {
-    val (icon, bgColor) = when (visit.visitType) {
-      VisitType.DOCTOR -> painterResource(R.drawable.mail_24px) to MaterialTheme.colorScheme.primaryContainer
-      VisitType.STOCKIST -> painterResource(R.drawable.mail_24px) to MaterialTheme.colorScheme.tertiaryContainer
-      VisitType.CHEMIST -> painterResource(R.drawable.mail_24px) to MaterialTheme.colorScheme.errorContainer
-    }
-
     Box(
       modifier = Modifier
         .size(48.dp)
         .clip(CircleShape)
-        .background(bgColor),
+        .background(MaterialTheme.colorScheme.tertiaryContainer),
       contentAlignment = Alignment.Center
     ) {
       Icon(
-        painter = icon,
+        painter = painterResource(visit.visitType.iconResource()),
         contentDescription = visit.visitType.titleCase(),
         tint = MaterialTheme.colorScheme.onSurface
       )
