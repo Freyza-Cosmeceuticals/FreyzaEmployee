@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,7 +40,6 @@ import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.Visit
-import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyDailyReportHoliday
 import com.freyza.employee.domain.model.dummyDailyReportLeave
 import com.freyza.employee.domain.model.dummyDailyReportWork
@@ -193,7 +193,7 @@ private fun VisitListItem(visit: Visit) {
       Icon(
         painter = painterResource(visit.visitType.iconResource()),
         contentDescription = visit.visitType.titleCase(),
-        tint = MaterialTheme.colorScheme.onSurface
+        tint = MaterialTheme.colorScheme.onTertiaryContainer
       )
     }
     Spacer(modifier = Modifier.width(dimensionResource(R.dimen.default_spacing).times(4)))
@@ -207,11 +207,12 @@ private fun VisitListItem(visit: Visit) {
         fontWeight = FontWeight.Medium
       )
       Text(
-        text = "More info about the visit here",
+        text = visit.additionalNotes ?: "No additional information",
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontStyle = if (visit.additionalNotes == null) FontStyle.Italic else FontStyle.Normal
       )
     }
 

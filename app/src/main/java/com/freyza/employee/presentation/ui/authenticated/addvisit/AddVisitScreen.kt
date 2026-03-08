@@ -18,15 +18,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.composables.FreyzaAddVisitAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
+import com.freyza.employee.presentation.ui.state.dummyMainUiState
+import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.AddVisitViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -44,7 +48,7 @@ fun AddVisitScreenRoute(
       Logger.e(
         "AddVisitScreenRoute", "Invalid User/Session on addvisit screen, waiting for 5seconds"
       )
-      Skeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
+      Skeleton(modifier = modifier.padding(dimensionResource(R.dimen.screen_padding)))
     },
     timeoutMillis = 5_000,
   ) { mainUiState ->
@@ -66,7 +70,7 @@ fun AddVisitScreen(
   mainUiState: MainUiState,
   onNavigateUp: () -> Unit,
   onRetry: () -> Unit,
-  modifier: Modifier,
+  modifier: Modifier = Modifier,
 ) {
   val scope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
@@ -97,5 +101,18 @@ fun AddVisitScreen(
         Text("Add Visit ${uiState.visitType}")
       }
     }
+  }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun AddVisitScreenPreview() {
+  FreyzaEmployeeTheme {
+    AddVisitScreen(
+      uiState = AddVisitUiState(visitType = VisitType.DOCTOR),
+      mainUiState = dummyMainUiState(),
+      onNavigateUp = {},
+      onRetry = {}
+    )
   }
 }

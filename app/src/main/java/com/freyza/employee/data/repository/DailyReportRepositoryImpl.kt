@@ -3,6 +3,7 @@ package com.freyza.employee.data.repository
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.DailyReportCreateDto
 import com.freyza.employee.data.network.dto.DailyReportDto
 import com.freyza.employee.data.network.dto.VisitCreateDto
@@ -16,7 +17,6 @@ import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import kotlin.time.Instant
 
 class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportRepository {
   companion object {
@@ -41,23 +41,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           }
         }.decodeSingleOrNull<DailyReportDto>()
 
-        val dailyReport = dailyReportDto?.let { reportDto ->
-          DailyReport(
-            id = reportDto.id,
-            employeeId = reportDto.employeeId,
-            date = LocalDate.parse(reportDto.date),
-            dayType = reportDto.dayType,
-            routeId = reportDto.routeId,
-            ta = reportDto.ta,
-            da = reportDto.da,
-            totalExpense = reportDto.totalExpense,
-            visits = listOf(),
-            locked = reportDto.locked,
-            lockedAt = reportDto.lockedAt?.let { Instant.parse(it) },
-            createdAt = Instant.parse(reportDto.createdAt),
-            updatedAt = reportDto.updatedAt?.let { Instant.parse(it) })
-        }
-
+        val dailyReport = dailyReportDto?.toDomain()
         Result.Success(dailyReport)
       }
     } catch (e: Exception) {
@@ -84,24 +68,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           }
           .decodeList<DailyReportDto>()
 
-        val reports = reportsDto.map {
-          DailyReport(
-            id = it.id,
-            employeeId = it.employeeId,
-            date = LocalDate.parse(it.date),
-            dayType = it.dayType,
-            routeId = it.routeId,
-            ta = it.ta,
-            da = it.da,
-            totalExpense = it.totalExpense,
-            visits = listOf(),
-            locked = it.locked,
-            lockedAt = it.lockedAt?.let { lockedAt -> Instant.parse(lockedAt) },
-            createdAt = Instant.parse(it.createdAt),
-            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-          )
-        }
-
+        val reports = reportsDto.map { it.toDomain() }
         Result.Success(reports)
       }
     } catch (e: Exception) {
@@ -120,19 +87,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           }
         }.decodeList<VisitDto>()
 
-        val visits = visitsDto.map {
-          Visit(
-            id = it.id,
-            reportId = it.reportId,
-            visitType = it.visitType,
-            latitude = it.latitude,
-            longitude = it.longitude,
-            distanceMetersFromPOI = it.distanceMetersFromPOI,
-            createdAt = Instant.parse(it.createdAt),
-            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-          )
-        }
-
+        val visits = visitsDto.map { it.toDomain() }
         Result.Success(visits)
       }
     } catch (e: Exception) {
@@ -155,23 +110,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           }
         }.decodeSingleOrNull<DailyReportDto>()
 
-        val dailyReport = dailyReportDto?.let { reportDto ->
-          DailyReport(
-            id = reportDto.id,
-            employeeId = reportDto.employeeId,
-            date = LocalDate.parse(reportDto.date),
-            dayType = reportDto.dayType,
-            routeId = reportDto.routeId,
-            ta = reportDto.ta,
-            da = reportDto.da,
-            totalExpense = reportDto.totalExpense,
-            visits = listOf(),
-            locked = reportDto.locked,
-            lockedAt = reportDto.lockedAt?.let { Instant.parse(it) },
-            createdAt = Instant.parse(reportDto.createdAt),
-            updatedAt = reportDto.updatedAt?.let { Instant.parse(it) })
-        }
-
+        val dailyReport = dailyReportDto?.toDomain()
         Result.Success(dailyReport)
       }
     } catch (e: Exception) {
@@ -203,22 +142,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           select()
         }.decodeSingle<DailyReportDto>()
 
-        val dailyReport = DailyReport(
-          id = dailyReportDto.id,
-          employeeId = dailyReportDto.employeeId,
-          date = LocalDate.parse(dailyReportDto.date),
-          dayType = dailyReportDto.dayType,
-          routeId = dailyReportDto.routeId,
-          ta = dailyReportDto.ta,
-          da = dailyReportDto.da,
-          totalExpense = dailyReportDto.totalExpense,
-          visits = listOf(),
-          locked = dailyReportDto.locked,
-          lockedAt = dailyReportDto.lockedAt?.let { Instant.parse(it) },
-          createdAt = Instant.parse(dailyReportDto.createdAt),
-          updatedAt = dailyReportDto.updatedAt?.let { Instant.parse(it) })
-
-        Result.Success(dailyReport)
+        Result.Success(dailyReportDto.toDomain())
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())
@@ -245,18 +169,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           select()
         }.decodeSingle<VisitDto>()
 
-        val visits = Visit(
-          id = visitDto.id,
-          reportId = visitDto.reportId,
-          visitType = visitDto.visitType,
-          latitude = visitDto.latitude,
-          longitude = visitDto.longitude,
-          distanceMetersFromPOI = visitDto.distanceMetersFromPOI,
-          createdAt = Instant.parse(visitDto.createdAt),
-          updatedAt = visitDto.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-        )
-
-        Result.Success(visits)
+        Result.Success(visitDto.toDomain())
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())

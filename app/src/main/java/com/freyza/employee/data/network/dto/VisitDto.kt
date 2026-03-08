@@ -11,7 +11,8 @@ data class VisitDto(
 
   @SerialName("reportId")
   val reportId: String,
-
+  @SerialName("employeeId")
+  val employeeId: String,
   @SerialName("visitType")
   val visitType: VisitType,
 
@@ -19,9 +20,36 @@ data class VisitDto(
   val latitude: Double,
   @SerialName("longitude")
   val longitude: Double,
-
   @SerialName("distanceMetersFromPOI")
   val distanceMetersFromPOI: Int,
+
+  @SerialName("doctorName")
+  val doctorName: String?,
+  @SerialName("chemistName")
+  val chemistName: String?,
+  @SerialName("stockistName")
+  val stockistName: String?,
+
+  @SerialName("productsShown")
+  val productsShown: List<String>,
+  @SerialName("samplesGiven")
+  val samplesGiven: List<String>,
+  @SerialName("orderTaken")
+  val orderTaken: Boolean,
+
+  @SerialName("billNo")
+  val billNo: String?,
+  @SerialName("paymentCollected")
+  val paymentCollected: Boolean,
+  @SerialName("amountWithGST")
+  val amountWithGST: Double?,
+  @SerialName("amountWithoutGST")
+  val amountWithoutGST: Double?,
+  @SerialName("stockChecked")
+  val stockChecked: Boolean,
+
+  @SerialName("additionalNotes")
+  val additionalNotes: String?,
 
   @SerialName("createdAt")
   val createdAt: String,
@@ -33,7 +61,8 @@ data class VisitDto(
 data class VisitCreateDto(
   @SerialName("reportId")
   val reportId: String,
-
+  @SerialName("employeeId")
+  val employeeId: String,
   @SerialName("visitType")
   val visitType: VisitType,
 
@@ -41,7 +70,34 @@ data class VisitCreateDto(
   val latitude: Double,
   @SerialName("longitude")
   val longitude: Double,
-
   @SerialName("distanceMetersFromPOI")
   val distanceMetersFromPOI: Int,
+
+  @SerialName("doctorName")
+  val doctorName: String?,
+  @SerialName("chemistName")
+  val chemistName: String?,
+  @SerialName("stockistName")
+  val stockistName: String?,
+
+  @SerialName("productsShown")
+  val productsShown: List<String>,
+  @SerialName("samplesGiven")
+  val samplesGiven: List<String>,
+  @SerialName("orderTaken")
+  val orderTaken: Boolean,
+
+  @SerialName("billNo")
+  val billNo: String?,
+  @SerialName("paymentCollected")
+  val paymentCollected: Boolean,
+  @SerialName("amountWithGST")
+  val amountWithGST: Double?,
+  @SerialName("amountWithoutGST")
+  val amountWithoutGST: Double?,
+  @SerialName("stockChecked")
+  val stockChecked: Boolean,
+
+  @SerialName("additionalNotes")
+  val additionalNotes: String?,
 )

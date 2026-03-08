@@ -1,8 +1,5 @@
 package com.freyza.employee.domain.model
 
-import androidx.compose.ui.text.intl.Locale
-import androidx.compose.ui.text.toLowerCase
-import com.freyza.employee.R
 import com.freyza.employee.core.Constants
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -31,36 +28,6 @@ data class DailyReport(
   val createdAt: Instant,
   val updatedAt: Instant?,
 )
-
-data class Visit(
-  val id: String,
-  val reportId: String,
-
-  val visitType: VisitType,
-
-  val latitude: Double,
-  val longitude: Double,
-
-  val distanceMetersFromPOI: Int,
-
-  val createdAt: Instant,
-  val updatedAt: Instant?,
-)
-
-enum class VisitType {
-  DOCTOR, STOCKIST, CHEMIST;
-
-  fun titleCase(): String =
-    this.name[0].titlecase() + this.name.substring(1).toLowerCase(Locale.current)
-
-  fun iconResource(): Int {
-    return when (this) {
-      DOCTOR -> R.drawable.stethoscope_24px
-      STOCKIST -> R.drawable.inventory_2_24px
-      CHEMIST -> R.drawable.labs_24px
-    }
-  }
-}
 
 fun dummyDailyReportWork(
   locked: Boolean = false,
@@ -132,38 +99,5 @@ fun dummyDailyReportLeave(locked: Boolean = false): DailyReport = DailyReport(
   locked = locked,
   lockedAt = if (locked) Instant.parse("2026-02-11T21:27:33.882+05:30") else null,
   createdAt = Instant.parse("2026-02-11T12:29:21.745+05:30"),
-  updatedAt = null
-)
-
-fun dummyVisitDoctor(): Visit = Visit(
-  id = UUID.randomUUID().toString(),
-  reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
-  visitType = VisitType.DOCTOR,
-  latitude = 34.632,
-  longitude = 55.246,
-  distanceMetersFromPOI = 55,
-  createdAt = Instant.parse("2026-02-11T21:32:38.409+05:30"),
-  updatedAt = null
-)
-
-fun dummyVisitChemist(): Visit = Visit(
-  id = UUID.randomUUID().toString(),
-  reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
-  visitType = VisitType.CHEMIST,
-  latitude = 45.653,
-  longitude = 22.216,
-  distanceMetersFromPOI = 34,
-  createdAt = Instant.parse("2026-02-11T21:33:28.453+05:30"),
-  updatedAt = null
-)
-
-fun dummyVisitStockist(): Visit = Visit(
-  id = UUID.randomUUID().toString(),
-  reportId = "60dd615b-367a-4691-9d61-5b367af691ba",
-  visitType = VisitType.STOCKIST,
-  latitude = 45.367,
-  longitude = 43.326,
-  distanceMetersFromPOI = 65,
-  createdAt = Instant.parse("2026-02-11T21:34:04.734+05:30"),
   updatedAt = null
 )

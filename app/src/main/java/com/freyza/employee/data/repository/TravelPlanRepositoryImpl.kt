@@ -4,6 +4,7 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.TravelPlanDto
 import com.freyza.employee.data.network.dto.TravelPlanEntryDto
 import com.freyza.employee.domain.model.TravelPlan
@@ -18,7 +19,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRepository {
 
@@ -47,19 +47,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
           }
         }.decodeSingleOrNull<TravelPlanDto>()
 
-        val travelPlan = travelPlanDto?.let {
-          TravelPlan(
-            id = it.id,
-            employeeId = it.employeeId,
-            month = LocalDate.parse(it.month),
-            createdById = it.createdById,
-            travelPlanEntries = listOf(),
-            createdAt = Instant.parse(it.createdAt),
-            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-          )
-        }
-
-        Result.Success(travelPlan)
+        Result.Success(travelPlanDto?.toDomain())
       }
 
     } catch (e: Exception) {
@@ -85,19 +73,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
           }
         }.decodeSingleOrNull<TravelPlanEntryDto>()
 
-        val travelPlanEntry = travelPlanEntryDto?.let {
-          TravelPlanEntry(
-            id = it.id,
-            tpId = it.tpId,
-            date = LocalDate.parse(it.date),
-            dayType = it.dayType,
-            routeId = it.routeId,
-            createdAt = Instant.parse(it.createdAt),
-            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-          )
-        }
-
-        Result.Success(travelPlanEntry)
+        Result.Success(travelPlanEntryDto?.toDomain())
       }
 
     } catch (e: Exception) {
@@ -117,18 +93,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
           }
         }.decodeList<TravelPlanEntryDto>()
 
-        val travelPlanEntries = travelPlanEntriesDto.map {
-          TravelPlanEntry(
-            id = it.id,
-            tpId = it.tpId,
-            date = LocalDate.parse(it.date),
-            dayType = it.dayType,
-            routeId = it.routeId,
-            createdAt = Instant.parse(it.createdAt),
-            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-          )
-        }
-
+        val travelPlanEntries = travelPlanEntriesDto.map { it.toDomain() }
         Result.Success(travelPlanEntries)
       }
     } catch (e: Exception) {
@@ -144,19 +109,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
           filter { TravelPlanDto::id eq id }
         }.decodeSingleOrNull<TravelPlanDto>()
 
-        val travelPlan = travelPlanDto?.let {
-          TravelPlan(
-            id = it.id,
-            employeeId = it.employeeId,
-            month = LocalDate.parse(it.month),
-            createdById = it.createdById,
-            travelPlanEntries = listOf(),
-            createdAt = Instant.parse(it.createdAt),
-            updatedAt = it.updatedAt?.let { updatedAt -> Instant.parse(updatedAt) },
-          )
-        }
-
-        Result.Success(travelPlan)
+        Result.Success(travelPlanDto?.toDomain())
       }
 
     } catch (e: Exception) {
