@@ -1,5 +1,6 @@
 package com.freyza.employee.presentation.ui.composables
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
@@ -15,11 +16,11 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.presentation.nav.BottomNavItem
+import com.freyza.employee.presentation.nav.navigateToTab
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
 private const val TAG = "BottomNavBar"
@@ -51,7 +52,7 @@ fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifi
   }
 
   // Show the Bottom Bar only if current destination is a bottom bar one (i.e. Authenticated)
-  if (bottomBarDestination) {
+  AnimatedVisibility(bottomBarDestination, label = "BottomBar") {
     ActualNavBar(screens, navController, currentDestination, modifier)
   }
 }
@@ -80,13 +81,7 @@ private fun ActualNavBar(
           it.hasRoute(screen.route::class)
         } == true,
         onClick = {
-          navController.navigate(screen.route) {
-            popUpTo(navController.graph.findStartDestination().id) {
-              saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
-          }
+          navController.navigateToTab(screen.route)
         },
         colors = NavigationBarItemDefaults.colors(),
       )

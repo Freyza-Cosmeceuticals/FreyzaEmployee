@@ -272,7 +272,7 @@ fun BeginDailyReportSheet(
             }
           },
           singleLine = true,
-          shape = RoundedCornerShape(integerResource(R.integer.rounding_radius))
+          shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
         )
 
         when (routes) {
@@ -291,7 +291,7 @@ fun BeginDailyReportSheet(
                     .border(
                       2.dp,
                       if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                      RoundedCornerShape(integerResource(R.integer.rounding_radius))
+                      RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
                     ))
               }
             }

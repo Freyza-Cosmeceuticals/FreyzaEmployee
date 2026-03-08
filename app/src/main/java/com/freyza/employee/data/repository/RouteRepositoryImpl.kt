@@ -64,7 +64,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
           *,
           srcLoc:location!route_srcLocId_fkey(*),
           destLoc:location!route_destLocId_fkey(*)
-         """
+         """.trimIndent()
           )
         ).decodeList<RouteWithLocationDto>()
 

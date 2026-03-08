@@ -284,15 +284,14 @@ class HomeViewModel(
 
     _uiState.update {
       it.copy(
-        todayReportDayType = UIState.Loading(),
-        todayReportRoute = UIState.Loading()
+        todayReportDayType = UIState.Loading(), todayReportRoute = UIState.Loading()
       )
     }
 
     viewModelScope.launch {
       when (val result = getTodayDailyReportUseCase.execute(
         GetTodayDailyReportUseCase.Input(
-          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId
+          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId, true
         )
       )) {
         is GetTodayDailyReportUseCase.Output.Success -> {
@@ -311,8 +310,7 @@ class HomeViewModel(
 
             _uiState.update {
               it.copy(
-                todayReportDayType = UIState.Idle(),
-                todayReportRoute = UIState.Idle()
+                todayReportDayType = UIState.Idle(), todayReportRoute = UIState.Idle()
               )
             }
           } else {

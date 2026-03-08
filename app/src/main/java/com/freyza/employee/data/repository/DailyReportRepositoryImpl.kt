@@ -13,6 +13,7 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.repository.DailyReportRepository
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,10 +32,21 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
     return try {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
-      withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying dailyReport for current employee and date: $thisDate")
+      val selectQuery = if (withVisits) {
+        "*, visits:visit!visit_reportId_fkey(*)"
+      } else {
+        "*"
+      }
 
-        val dailyReportDto = postgrest.from("dailyReport").select {
+      withContext(Dispatchers.IO) {
+        Logger.d(
+          TAG,
+          "Querying dailyReport for current employee and date: $thisDate, withVisits=${withVisits}"
+        )
+
+        val dailyReportDto = postgrest.from("dailyReport").select(
+          columns = Columns.raw(selectQuery)
+        ) {
           filter {
             DailyReportDto::employeeId eq employeeId
             DailyReportDto::date eq today
@@ -53,20 +65,27 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
   override suspend fun getRecentDailyReports(
     numDailyReports: Int,
     employeeId: String,
+    withVisits: Boolean,
   ): Result<List<DailyReport>> {
+    val selectQuery = if (withVisits) {
+      "*, visits:visit!visit_reportId_fkey(*)"
+    } else {
+      "*"
+    }
+
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying recent daily reports")
+        Logger.d(TAG, "Querying recent daily reports withVisits=${withVisits}")
 
-        val reportsDto = postgrest.from("dailyReport")
-          .select {
-            filter {
-              DailyReportDto::employeeId eq employeeId
-            }
-            order(DailyReportDto::date.name, Order.DESCENDING)
-            limit(numDailyReports.toLong())
+        val reportsDto = postgrest.from("dailyReport").select(
+          columns = Columns.raw(selectQuery)
+        ) {
+          filter {
+            DailyReportDto::employeeId eq employeeId
           }
-          .decodeList<DailyReportDto>()
+          order(DailyReportDto::date.name, Order.DESCENDING)
+          limit(numDailyReports.toLong())
+        }.decodeList<DailyReportDto>()
 
         val reports = reportsDto.map { it.toDomain() }
         Result.Success(reports)
@@ -150,7 +169,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
     }
   }
 
-  override suspend fun createTodayVisit(
+  override suspend fun createVisit(
     today: LocalDate,
     employeeId: String,
     dailyReportId: String,
@@ -170,6 +189,29 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
         }.decodeSingle<VisitDto>()
 
         Result.Success(visitDto.toDomain())
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun lockReport(reportId: String): Result<Boolean> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Locking report:$reportId")
+
+        postgrest.from("dailyReport").update(
+          {
+            DailyReportDto::locked setTo true
+          }
+        ) {
+          filter {
+            DailyReportDto::id eq reportId
+          }
+        }
+
+        Result.Success(true)
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())

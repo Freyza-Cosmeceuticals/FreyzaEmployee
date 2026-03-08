@@ -11,6 +11,7 @@ import com.freyza.employee.domain.model.dummyRouteWithLocation
 data class DailyReportUiState(
   val dailyReports: UIState<List<DailyReport>> = UIState.Idle(),
   val routes: UIState<List<RouteWithLocation>> = UIState.Idle(),
+  val lockingState: UIState<Unit> = UIState.Idle(),
 )
 
 fun dummyDailyReportUiState(): DailyReportUiState = DailyReportUiState(
@@ -22,6 +23,7 @@ fun dummyDailyReportUiState(): DailyReportUiState = DailyReportUiState(
       dummyDailyReportLeave(),
       dummyDailyReportHoliday(),
       dummyDailyReportWork()
-    )
-  ), routes = UIState.Ready(listOf(dummyRouteWithLocation()))
+    ),
+  ), routes = UIState.Ready(listOf(dummyRouteWithLocation())),
+  lockingState = UIState.Idle(Unit)
 )

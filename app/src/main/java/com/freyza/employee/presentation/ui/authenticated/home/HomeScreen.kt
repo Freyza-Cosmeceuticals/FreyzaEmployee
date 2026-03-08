@@ -50,8 +50,11 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.timedGreeting
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.User
+import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dayTypes
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
+import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.AddVisitFloatingActionButton
+import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.FabActionItem
 import com.freyza.employee.presentation.ui.authenticated.home.composables.BeginDailyReportSheet
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCardSkeleton
@@ -59,7 +62,6 @@ import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyR
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanCardSkeleton
-import com.freyza.employee.presentation.ui.composables.FreyzaFabButton
 import com.freyza.employee.presentation.ui.composables.FreyzaHomeAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
@@ -78,6 +80,8 @@ fun HomeScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = koinViewModel(),
   onNavigateToUnauthenticated: () -> Unit,
+  onNavigateToReport: () -> Unit,
+  onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
 ) {
   AuthenticatedRouteWrapper(
     mainUiState, onNavigateToUnauthenticated,
@@ -94,7 +98,9 @@ fun HomeScreenRoute(
       modifier = modifier,
       onRefresh = viewModel::refresh,
       onDailyReportBegin = viewModel::createCurrentDailyReport,
-      onDailyReportRetry = viewModel::loadCurrentDailyReport
+      onDailyReportRetry = viewModel::loadCurrentDailyReport,
+      onNavigateToReport = onNavigateToReport,
+      onNavigateToAddVisit = onNavigateToAddVisit
     )
   }
 }
@@ -108,6 +114,8 @@ private fun HomeScreen(
   onRefresh: () -> Unit,
   onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
   onDailyReportRetry: () -> Unit,
+  onNavigateToReport: () -> Unit,
+  onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
 ) {
   val scope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
@@ -117,18 +125,51 @@ private fun HomeScreen(
     confirmValueChange = { newValue -> newValue != SheetValue.Hidden }, skipPartiallyExpanded = true
   )
 
+  val fabOptions = listOf(
+    FabActionItem(
+      "Doctor Visit", VisitType.DOCTOR.iconResource(), {
+        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+          VisitType.DOCTOR,
+          uiState.currentDailyReport.data.id,
+          uiState.currentDailyReport.data.employeeId
+        )
+      }),
+    FabActionItem(
+      "Stockist Visit", VisitType.STOCKIST.iconResource(), {
+        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+          VisitType.STOCKIST,
+          uiState.currentDailyReport.data.id,
+          uiState.currentDailyReport.data.employeeId
+        )
+      }),
+    FabActionItem(
+      "Chemist Visit", VisitType.CHEMIST.iconResource(), {
+        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+          VisitType.CHEMIST,
+          uiState.currentDailyReport.data.id,
+          uiState.currentDailyReport.data.employeeId
+        )
+      }),
+  )
+
+
   Scaffold(
     topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
     snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     ),
-    floatingActionButton = { FreyzaFabButton() },
+    floatingActionButton = {
+      if (uiState.currentDailyReport.data != null && !uiState.currentDailyReport.data.locked && uiState.todayReportDayType.data == DayType.WORK) AddVisitFloatingActionButton(
+        options = fabOptions
+      )
+    },
     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
   ) {
     if (mainUiState.user == null || mainUiState.today == null) {
       return@Scaffold
     }
+
 
     // daily report creation dialog
     // TODO: Note to self, this thing is triggered only on the Home Screen
@@ -153,8 +194,7 @@ private fun HomeScreen(
               todayTravelPlanEntry = uiState.todayTravelPlanEntry,
               onDailyReportBegin = onDailyReportBegin,
               onRetry = onRefresh,
-              onExit = {}
-            )
+              onExit = {})
           }
         }
       }
@@ -184,9 +224,7 @@ private fun HomeScreen(
       is UIState.Error -> {
         // since loading daily report data failed, we cannot continue and ask the user to retry
         DailyReportingFailedToLoadDialog(
-          message = result.message,
-          onRetry = onDailyReportRetry,
-          onExit = {})
+          message = result.message, onRetry = onDailyReportRetry, onExit = {})
       }
 
       else -> {}
@@ -200,7 +238,7 @@ private fun HomeScreen(
       LazyColumn(
         contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.screen_padding)),
         verticalArrangement = Arrangement.spacedBy(
-          dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
+          dimensionResource(R.dimen.default_spacing), Alignment.Top
         ),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
@@ -288,7 +326,10 @@ private fun HomeScreen(
           when (uiState.currentDailyReport) {
             is UIState.Ready -> {
               DailyReportCard(
-                dailyReport = uiState.currentDailyReport.data, modifier = Modifier.fillMaxSize()
+                dailyReport = uiState.currentDailyReport.data,
+                route = uiState.todayReportRoute.data,
+                modifier = Modifier.fillMaxSize(),
+                onClick = onNavigateToReport
               )
             }
 
@@ -357,7 +398,9 @@ private fun HomeScreenPreview() {
       mainUiState = dummyMainUiState(),
       onRefresh = {},
       onDailyReportBegin = { dayType, routeId -> },
-      onDailyReportRetry = {})
+      onDailyReportRetry = {},
+      onNavigateToReport = {},
+      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> })
   }
 }
 
@@ -372,6 +415,8 @@ private fun HomeScreenReportErrorPreview() {
       mainUiState = dummyMainUiState(),
       onRefresh = {},
       onDailyReportBegin = { dayType, routeId -> },
-      onDailyReportRetry = {})
+      onDailyReportRetry = {},
+      onNavigateToReport = {},
+      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> })
   }
 }

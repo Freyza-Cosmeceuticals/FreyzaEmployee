@@ -126,12 +126,12 @@ private fun LoginScreen(
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     ),
-    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { it ->
+    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { paddingValues ->
     Column(
       modifier = modifier
         .fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(it)
+        .padding(paddingValues)
         .padding(dimensionResource(R.dimen.screen_padding)),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
@@ -213,7 +213,7 @@ private fun LoginScreen(
               painter = painterResource(R.drawable.mail_24px), contentDescription = null
             )
           },
-          shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+          shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
           value = email,
           onValueChange = { email = it },
           keyboardOptions = KeyboardOptions(
@@ -254,7 +254,7 @@ private fun LoginScreen(
               )
             }
           },
-          shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+          shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
           visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
           value = password,
           onValueChange = { password = it },
@@ -278,7 +278,7 @@ private fun LoginScreen(
             localSoftwareKeyboardController?.hide()
             onLoginWithEmailClicked(email, password)
           },
-          shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+          shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
           enabled = uiState !is UIState.Loading,
           contentPadding = PaddingValues(dimensionResource(R.dimen.default_spacing).times(4)),
           modifier = Modifier

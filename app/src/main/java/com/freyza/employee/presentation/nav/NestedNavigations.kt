@@ -3,11 +3,16 @@ package com.freyza.employee.presentation.nav
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import com.freyza.employee.core.util.Logger
+import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.presentation.ui.authenticated.addvisit.AddVisitScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.DailyReportScreenRoute
 import com.freyza.employee.presentation.ui.authenticated.home.HomeScreenRoute
@@ -23,6 +28,8 @@ import com.freyza.employee.presentation.ui.viewmodels.ProfileViewModel
 import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+
+const val TAG = "NavigationGraph"
 
 /*
 * Builds the unauthenticated navigation graph
@@ -75,6 +82,18 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
             inclusive = true
           }
         }
+      }, onNavigateToReport = {
+        navController.navigateToTab(route = NavRoutes.Authenticated.DailyReports)
+      }, onNavigateToAddVisit = { visitType: VisitType, reportId: String, employeeId: String ->
+        Logger.d(
+          TAG,
+          "Navigating to AddVisit(visitType: ${visitType}, reportId: ${reportId}, employeeId: ${employeeId}) from HomeScreen from reports screen"
+        )
+        navController.navigate(
+          route = NavRoutes.Authenticated.AddVisit(
+            type = visitType, reportId = reportId, employeeId = employeeId
+          )
+        )
       })
     }
 
@@ -90,11 +109,28 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
         })
     }
 
-    composable<NavRoutes.Authenticated.DailyReports> {
+    composable<NavRoutes.Authenticated.DailyReports> { navBackStackEntry ->
       val vm = koinViewModel<DailyReportViewModel>()
+
+      val visitCreated by navBackStackEntry.savedStateHandle.getStateFlow<Boolean?>("created", null)
+        .collectAsStateWithLifecycle()
+
+      LaunchedEffect(visitCreated) {
+        if (visitCreated != null) {
+          Logger.d(
+            TAG, "Got `created` from AddVisit's backstack entry: ${visitCreated.toString()}"
+          )
+        }
+      }
+
       DailyReportScreenRoute(
         mainUiState = mainUiState,
         viewModel = vm,
+        visitCreated = visitCreated,
+        onVisitCreatedConsumed = {
+          // The child screen calls this AFTER it has shown the UI change
+          navBackStackEntry.savedStateHandle.set("created", null)
+        },
         onNavigateToUnauthenticated = {
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
             popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
@@ -102,17 +138,35 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
             }
           }
         },
-        onNavigateToAddVisit = { visitType ->
-          navController.navigate(route = NavRoutes.Authenticated.AddVisit(type = visitType))
+        onNavigateToAddVisit = { visitType, reportId, employeeId ->
+          Logger.d(
+            TAG,
+            "Navigating to AddVisit(visitType: ${visitType}, reportId: ${reportId}, employeeId: ${employeeId}) from reports screen"
+          )
+
+          navController.navigate(
+            route = NavRoutes.Authenticated.AddVisit(
+              type = visitType, reportId = reportId, employeeId = employeeId
+            )
+          )
         })
     }
 
     composable<NavRoutes.Authenticated.AddVisit> { navBackStackEntry ->
       val visitType = navBackStackEntry.toRoute<NavRoutes.Authenticated.AddVisit>().type
-      val vm = koinViewModel<AddVisitViewModel>(
-        parameters = { parametersOf(visitType) })
+      val reportId = navBackStackEntry.toRoute<NavRoutes.Authenticated.AddVisit>().reportId
+      val employeeId = navBackStackEntry.toRoute<NavRoutes.Authenticated.AddVisit>().employeeId
 
-      AddVisitScreenRoute(mainUiState = mainUiState, viewModel = vm, onNavigateUp = {
+      val vm = koinViewModel<AddVisitViewModel>(
+        parameters = { parametersOf(visitType, reportId, employeeId) })
+
+      AddVisitScreenRoute(mainUiState = mainUiState, viewModel = vm, onNavigateUp = { created ->
+        Logger.d(
+          TAG,
+          "Navigating back from AddVisit, created: ${created}, saving to previous backstack's savestate"
+        )
+
+        navController.previousBackStackEntry?.savedStateHandle?.set("created", created)
         navController.popBackStack()
       }, onNavigateToUnauthenticated = {
         navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
@@ -139,5 +193,16 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
 //      val expenseId = navBackStackEntry.toRoute<NavRoutes.Authenticated.ExpenseDetail>().expenseId
 //      Text("Expense detail Route for $expenseId")
 //    }
+  }
+}
+
+
+fun NavController.navigateToTab(route: NavRoutes) {
+  navigate(route) {
+    popUpTo(graph.startDestinationId) {
+      saveState = true
+    }
+    launchSingleTop = true
+    restoreState = true
   }
 }

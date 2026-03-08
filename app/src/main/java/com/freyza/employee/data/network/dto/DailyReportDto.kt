@@ -28,6 +28,9 @@ data class DailyReportDto(
   @SerialName("totalExpense")
   val totalExpense: Double?,
 
+  @SerialName("visits")
+  val visits: List<VisitDto>? = null,
+
   @SerialName("locked")
   val locked: Boolean,
   @SerialName("lockedAt")

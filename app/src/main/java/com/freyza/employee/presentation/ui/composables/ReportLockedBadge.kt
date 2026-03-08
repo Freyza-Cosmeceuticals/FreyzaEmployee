@@ -27,7 +27,7 @@ fun ReportLockedBadge(isLocked: Boolean, modifier: Modifier = Modifier) {
   Box(
     contentAlignment = Alignment.Center, modifier = modifier.background(
       if (isLocked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
-      RoundedCornerShape(integerResource(R.integer.rounding_radius))
+      RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
     )
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {

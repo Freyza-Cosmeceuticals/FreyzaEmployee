@@ -5,7 +5,7 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.usecase.UseCase
 import kotlinx.datetime.LocalDate
 
-interface CreateTodayDailyReportUseCase :
+interface CreateTodayDailyReportUseCase:
   UseCase<CreateTodayDailyReportUseCase.Input, CreateTodayDailyReportUseCase.Output> {
   class Input(
     val today: LocalDate,

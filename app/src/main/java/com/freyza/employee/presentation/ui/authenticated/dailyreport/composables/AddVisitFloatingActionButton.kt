@@ -143,7 +143,7 @@ private fun FloatingActionButtonListItem(
     colors = ButtonDefaults.filledTonalButtonColors(
       containerColor = MaterialTheme.colorScheme.tertiaryContainer
     ),
-    shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+    shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
     modifier = modifier.height(56.dp)
   ) {
     Row(

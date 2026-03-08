@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -42,6 +41,7 @@ import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.Skeleton
+import com.freyza.employee.presentation.ui.composables.VisitBadge
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
 @Composable
@@ -55,6 +55,7 @@ fun DailyReportListCard(
   Card(
     onClick = onClick,
     modifier = modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
     colors = CardDefaults.cardColors(
       containerColor = if (isToday) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
       else MaterialTheme.colorScheme.surface
@@ -145,35 +146,6 @@ fun DailyReportListCard(
           if (stockists > 0) VisitBadge(count = stockists, type = VisitType.STOCKIST)
         }
       }
-    }
-  }
-}
-
-@Composable
-private fun VisitBadge(count: Int, type: VisitType, modifier: Modifier = Modifier) {
-  Box(
-    modifier = modifier.background(
-      MaterialTheme.colorScheme.surfaceContainer,
-      RoundedCornerShape(integerResource(R.integer.rounding_radius))
-    )
-  ) {
-    Row(
-      verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(
-        horizontal = dimensionResource(R.dimen.default_spacing).times(2),
-        vertical = dimensionResource(R.dimen.default_spacing).div(2)
-      )
-    ) {
-      Icon(
-        painter = painterResource(type.iconResource()),
-        contentDescription = "${type.titleCase()} = $count",
-        modifier = Modifier.size(16.dp)
-      )
-      Spacer(Modifier.width(dimensionResource(R.dimen.default_spacing)))
-      Text(
-        text = count.toString(),
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurface
-      )
     }
   }
 }

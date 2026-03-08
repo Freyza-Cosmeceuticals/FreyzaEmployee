@@ -6,7 +6,7 @@ import kotlinx.datetime.LocalDate
 
 interface GetTodayDailyReportUseCase :
   UseCase<GetTodayDailyReportUseCase.Input, GetTodayDailyReportUseCase.Output> {
-  class Input(val today: LocalDate, val employeeId: String)
+  class Input(val today: LocalDate, val employeeId: String, val withVisits: Boolean = false)
 
   sealed class Output() {
     data class Success(val dailyReport: DailyReport?) : Output()

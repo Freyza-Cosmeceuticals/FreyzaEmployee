@@ -1,11 +1,13 @@
 package com.freyza.employee.presentation.ui.authenticated.dailyreport
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,8 +22,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,7 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
+import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.DailyReport
@@ -65,8 +71,10 @@ fun DailyReportScreenRoute(
   mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   viewModel: DailyReportViewModel = koinViewModel(),
+  visitCreated: Boolean? = null,
+  onVisitCreatedConsumed: () -> Unit,
   onNavigateToUnauthenticated: () -> Unit,
-  onNavigateToAddVisit: (type: VisitType) -> Unit,
+  onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
 ) {
   AuthenticatedRouteWrapper(
     mainUiState, onNavigateToUnauthenticated,
@@ -83,9 +91,12 @@ fun DailyReportScreenRoute(
     DailyReportScreen(
       uiState = uiState,
       mainUiState = mainUiState,
-      onRetry = viewModel::refresh,
+      onRefresh = viewModel::refresh,
       onNavigateToAddVisit = onNavigateToAddVisit,
-      modifier = modifier
+      onLockReport = viewModel::lockReport,
+      modifier = modifier,
+      visitCreated = visitCreated,
+      onVisitCreatedConsumed = onVisitCreatedConsumed,
     )
   }
 }
@@ -95,12 +106,16 @@ fun DailyReportScreenRoute(
 fun DailyReportScreen(
   uiState: DailyReportUiState,
   mainUiState: MainUiState,
-  onRetry: () -> Unit,
-  onNavigateToAddVisit: (type: VisitType) -> Unit,
+  onRefresh: () -> Unit,
+  onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
+  onLockReport: (reportId: String) -> Unit,
   modifier: Modifier = Modifier,
+  visitCreated: Boolean? = null,
+  onVisitCreatedConsumed: () -> Unit = {},
 ) {
   val scope = rememberCoroutineScope()
   val snackbarHostState = remember { SnackbarHostState() }
+  val sheetSnackbarHostState = remember { SnackbarHostState() }
   val sheetState = rememberModalBottomSheetState()
 
   val todayReport = remember(uiState.dailyReports.data, mainUiState.today?.date) {
@@ -119,17 +134,23 @@ fun DailyReportScreen(
 
   val fabOptions = listOf(
     FabActionItem(
-      "Doctor Visit",
-      VisitType.DOCTOR.iconResource(),
-      { onNavigateToAddVisit(VisitType.DOCTOR) }),
+      "Doctor Visit", VisitType.DOCTOR.iconResource(), {
+        if (todayReport != null) onNavigateToAddVisit(
+          VisitType.DOCTOR, todayReport.id, todayReport.employeeId
+        )
+      }),
     FabActionItem(
-      "Stockist Visit",
-      VisitType.STOCKIST.iconResource(),
-      { onNavigateToAddVisit(VisitType.STOCKIST) }),
+      "Stockist Visit", VisitType.STOCKIST.iconResource(), {
+        if (todayReport != null) onNavigateToAddVisit(
+          VisitType.STOCKIST, todayReport.id, todayReport.employeeId
+        )
+      }),
     FabActionItem(
-      "Chemist Visit",
-      VisitType.CHEMIST.iconResource(),
-      { onNavigateToAddVisit(VisitType.CHEMIST) }),
+      "Chemist Visit", VisitType.CHEMIST.iconResource(), {
+        if (todayReport != null) onNavigateToAddVisit(
+          VisitType.CHEMIST, todayReport.id, todayReport.employeeId
+        )
+      }),
   )
 
   Scaffold(
@@ -137,8 +158,9 @@ fun DailyReportScreen(
     snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     // only show add visit fab if there is some today report of type WORK
     floatingActionButton = {
-      if (todayReport != null && todayReport.dayType == DayType.WORK)
-        AddVisitFloatingActionButton(options = fabOptions)
+      if (todayReport != null && !todayReport.locked && todayReport.dayType == DayType.WORK) AddVisitFloatingActionButton(
+        options = fabOptions
+      )
     },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
@@ -148,107 +170,171 @@ fun DailyReportScreen(
       return@Scaffold
     }
 
-    selectedReport?.let {
-      ModalBottomSheet(
-        onDismissRequest = { selectedReport = null },
-        sheetState = sheetState
-      ) {
-        DailyReportDetailSheetContent(selectedReport, routeMap[selectedReport!!.routeId])
+    LaunchedEffect(uiState.lockingState) {
+      if (uiState.lockingState is UIState.Error) {
+        // show snackbar in both places
+        sheetSnackbarHostState.showTypedSnackbar(
+          message = uiState.lockingState.message ?: "Cannot lock report. Please try again.",
+          type = SnackbarType.ERROR,
+          withDismissAction = true,
+          dismissCurrent = true
+        )
+        snackbarHostState.showTypedSnackbar(
+          message = uiState.lockingState.message ?: "Cannot lock report. Please try again.",
+          type = SnackbarType.ERROR,
+          withDismissAction = true,
+          dismissCurrent = true
+        )
+      } else if (uiState.lockingState is UIState.Ready) {
+        // close the sheet and show this snackbar in the root scaffold
+        sheetState.hide()
+        selectedReport = null
+        snackbarHostState.showTypedSnackbar(
+          message = uiState.lockingState.message ?: "Report locked successfully",
+          type = SnackbarType.SUCCESS,
+          withDismissAction = true
+        )
       }
     }
 
-    LazyColumn(
-      contentPadding = PaddingValues(vertical = dimensionResource(R.dimen.screen_padding)),
-      verticalArrangement = Arrangement.spacedBy(
-        dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
-      ),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      modifier = modifier
-        .fillMaxSize()
+    selectedReport?.let {
+      ModalBottomSheet(
+        onDismissRequest = { selectedReport = null }, sheetState = sheetState
+      ) {
+        Box {
+          DailyReportDetailSheetContent(
+            selectedReport,
+            routeMap[selectedReport!!.routeId],
+            isToday = selectedReport?.id == todayReport?.id,
+            lockingState = uiState.lockingState,
+            onLockReport = onLockReport,
+          )
+
+          // snackbars in the sheet
+          FreyzaSnackbarHost(sheetSnackbarHostState)
+        }
+      }
+    }
+
+    LaunchedEffect(visitCreated) {
+      if (visitCreated == true) {
+        snackbarHostState.showTypedSnackbar(
+          "Visit created successfully",
+          type = SnackbarType.SUCCESS,
+          withDismissAction = false,
+          dismissCurrent = true
+        )
+        onVisitCreatedConsumed()
+      } else if (visitCreated == false) {
+        snackbarHostState.showTypedSnackbar(
+          "Unable to create the visit",
+          type = SnackbarType.ERROR,
+          withDismissAction = false,
+          dismissCurrent = true
+        )
+        onVisitCreatedConsumed()
+      }
+    }
+
+    PullToRefreshBox(
+      isRefreshing = uiState.dailyReports is UIState.Loading,
+      onRefresh = onRefresh,
+      modifier = Modifier
         .padding(paddingValues)
-        .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+        .imePadding(),
     ) {
-      when (val result = uiState.dailyReports) {
-        is UIState.Ready -> {
-          if (todayReport != null) {
-            item(key = "today_report_${todayReport.id}") {
-              DailyReportListCard(
-                report = todayReport,
-                route = routeMap[todayReport.routeId],
-                isToday = true,
-                onClick = {
-                  // TODO: Open another route for editing this report instead
-                  selectedReport = todayReport
-                })
+      LazyColumn(
+        contentPadding = PaddingValues(vertical = dimensionResource(R.dimen.screen_padding)),
+        verticalArrangement = Arrangement.spacedBy(
+          dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
+        ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+          .fillMaxSize()
+          .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+      ) {
+        when (val result = uiState.dailyReports) {
+          is UIState.Ready -> {
+            if (todayReport != null) {
+              item(key = "today_report_${todayReport.id}") {
+                DailyReportListCard(
+                  report = todayReport,
+                  route = routeMap[todayReport.routeId],
+                  isToday = true,
+                  onClick = {
+                    // TODO: Open another route for editing this report instead
+                    selectedReport = todayReport
+                  })
+              }
+
+              if (pastReports.isNotEmpty()) {
+                item(key = "separator") {
+                  Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                  ) {
+                    HorizontalDivider(Modifier.weight(1f))
+                    Text(
+                      text = "Past Reports",
+                      modifier = Modifier.padding(horizontal = 12.dp),
+                      style = MaterialTheme.typography.labelMedium,
+                      color = MaterialTheme.colorScheme.outline
+                    )
+                    HorizontalDivider(Modifier.weight(1f))
+                  }
+                }
+              }
             }
 
-            if (pastReports.isNotEmpty()) {
-              item(key = "separator") {
-                Row(
-                  verticalAlignment = Alignment.CenterVertically,
-                  modifier = Modifier.padding(vertical = 12.dp)
-                ) {
-                  HorizontalDivider(Modifier.weight(1f))
-                  Text(
-                    text = "Past Reports",
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.outline
-                  )
-                  HorizontalDivider(Modifier.weight(1f))
+            items(
+              items = pastReports, key = { "report_${it.id}" }) { report ->
+              DailyReportListCard(
+                report = report,
+                route = routeMap[report.routeId],
+                isToday = false,
+                onClick = { selectedReport = report })
+            }
+
+            if (BuildConfig.DEBUG) {
+              result.data?.forEach {
+                item(key = "debug_${it.id}") {
+                  DebugDailyReport(it)
                 }
               }
             }
           }
 
-          items(
-            items = pastReports, key = { "report_${it.id}" }) { report ->
-            DailyReportListCard(
-              report = report,
-              route = routeMap[report.routeId],
-              isToday = false,
-              onClick = { selectedReport = report })
+          is UIState.Loading -> {
+            item {
+              LoadingIndicator(
+                Modifier
+                  .fillMaxSize()
+                  .padding(dimensionResource(R.dimen.screen_padding)),
+                message = "Loading Reports"
+              )
+            }
           }
 
-          if (BuildConfig.DEBUG) {
-            result.data?.forEach {
-              item(key = "debug_${it.id}") {
-                DebugDailyReport(it)
+          is UIState.Error -> {
+            item {
+              Column(
+                modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding).times(2)),
+                verticalArrangement = Arrangement.spacedBy(
+                  dimensionResource(R.dimen.default_spacing).times(2)
+                ),
+                horizontalAlignment = Alignment.CenterHorizontally
+              ) {
+                Text("Error Loading Reports")
+
+                FilledTonalButton(onClick = onRefresh) {
+                  Text("Retry")
+                }
               }
             }
           }
+
+          else -> {}
         }
-
-        is UIState.Loading -> {
-          item {
-            LoadingIndicator(
-              Modifier
-                .fillMaxSize()
-                .padding(dimensionResource(R.dimen.screen_padding)),
-              message = "Loading Reports"
-            )
-          }
-        }
-
-        is UIState.Error -> {
-          item {
-            Column(
-              modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding).times(2)),
-              verticalArrangement = Arrangement.spacedBy(
-                dimensionResource(R.dimen.default_spacing).times(2)
-              ),
-              horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-              Text("Error Loading Reports")
-
-              FilledTonalButton(onClick = onRetry) {
-                Text("Retry")
-              }
-            }
-          }
-        }
-
-        else -> {}
       }
     }
   }
@@ -293,8 +379,9 @@ private fun DailyReportScreenPreview() {
     DailyReportScreen(
       uiState = dummyDailyReportUiState(),
       mainUiState = dummyMainUiState(),
-      onRetry = {},
-      onNavigateToAddVisit = {})
+      onRefresh = {},
+      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> },
+      onLockReport = {})
   }
 }
 
@@ -306,7 +393,11 @@ private fun DailyReportScreenPreviewLoading() {
       uiState = DailyReportUiState(
         dailyReports = UIState.Loading(null, "Cooking reports"),
         routes = UIState.Ready(listOf(dummyRouteWithLocation()))
-      ), mainUiState = dummyMainUiState(), onRetry = {}, onNavigateToAddVisit = {})
+      ),
+      mainUiState = dummyMainUiState(),
+      onRefresh = {},
+      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> },
+      onLockReport = {})
   }
 }
 
@@ -319,6 +410,10 @@ private fun DailyReportScreenPreviewError() {
       uiState = DailyReportUiState(
         dailyReports = UIState.Error("Cannot to load reports"),
         routes = UIState.Ready(listOf(dummyRouteWithLocation()))
-      ), mainUiState = dummyMainUiState(), onRetry = {}, onNavigateToAddVisit = {})
+      ),
+      mainUiState = dummyMainUiState(),
+      onRefresh = {},
+      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> },
+      onLockReport = {})
   }
 }

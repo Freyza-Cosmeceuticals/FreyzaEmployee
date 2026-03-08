@@ -1,9 +1,9 @@
 package com.freyza.employee.presentation.ui.authenticated.dailyreport.composables
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,35 +11,28 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
-import com.freyza.employee.core.Constants
+import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
-import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.dummyDailyReportHoliday
 import com.freyza.employee.domain.model.dummyDailyReportLeave
 import com.freyza.employee.domain.model.dummyDailyReportWork
@@ -47,13 +40,14 @@ import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun DailyReportDetailSheetContent(
   report: DailyReport?,
   route: RouteWithLocation?,
+  isToday: Boolean,
+  lockingState: UIState<Unit>,
+  onLockReport: (reportId: String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   if (report == null) {
@@ -129,13 +123,37 @@ fun DailyReportDetailSheetContent(
         }
       } else {
         LazyColumn(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          contentPadding = PaddingValues(vertical = dimensionResource(R.dimen.screen_padding).div(2)),
           verticalArrangement = Arrangement.spacedBy(
-            dimensionResource(R.dimen.default_spacing).times(3)
-          ), modifier = Modifier.weight(1f, fill = false)
+            dimensionResource(R.dimen.default_spacing).times(2), Alignment.CenterVertically
+          ),
+          modifier = Modifier.weight(1f, fill = false)
         ) {
-          items(report.visits, key = { it.id }) { visit ->
+          items(report.visits, key = { "visit_${it.id}" }) { visit ->
             VisitListItem(visit)
           }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing)))
+
+      if (isToday && !report.locked) {
+        LockReportButton(
+          lockingState = lockingState,
+          onLockPressed = { onLockReport(report.id) })
+        Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
+      } else {
+        report.lockedAt?.let {
+          Text(
+            "Locked at ${DateFormatter.format(it)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.secondary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
+          )
         }
       }
     }
@@ -146,7 +164,7 @@ fun DailyReportDetailSheetContent(
 private fun ExpenseSummaryCard(ta: Double?, da: Double?, total: Double?) {
   Card(
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-    shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
+    shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
     modifier = Modifier.fillMaxWidth()
   ) {
     Row(
@@ -178,57 +196,28 @@ private fun ExpenseItem(label: String, amount: Double?) {
   }
 }
 
+@Preview(showSystemUi = false, showBackground = true)
 @Composable
-private fun VisitListItem(visit: Visit) {
-  Row(
-    modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
-  ) {
-    Box(
-      modifier = Modifier
-        .size(48.dp)
-        .clip(CircleShape)
-        .background(MaterialTheme.colorScheme.tertiaryContainer),
-      contentAlignment = Alignment.Center
-    ) {
-      Icon(
-        painter = painterResource(visit.visitType.iconResource()),
-        contentDescription = visit.visitType.titleCase(),
-        tint = MaterialTheme.colorScheme.onTertiaryContainer
-      )
-    }
-    Spacer(modifier = Modifier.width(dimensionResource(R.dimen.default_spacing).times(4)))
-
-    Column(modifier = Modifier.weight(1f)) {
-      Text(
-        text = visit.visitType.titleCase(),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Medium
-      )
-      Text(
-        text = visit.additionalNotes ?: "No additional information",
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontStyle = if (visit.additionalNotes == null) FontStyle.Italic else FontStyle.Normal
-      )
-    }
-
-    Text(
-      text = DateFormatter.format(visit.createdAt.toLocalDateTime(TimeZone.of(Constants.TIMEZONE)).time),
-      style = MaterialTheme.typography.labelLarge,
-      color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
+private fun ReportDetailSheetContentPreviewWork() {
+  FreyzaEmployeeTheme {
+    DailyReportDetailSheetContent(
+      dummyDailyReportWork(dateNow = true),
+      dummyRouteWithLocation(),
+      isToday = true,
+      UIState.Ready(Unit),
+      {})
   }
 }
 
 @Preview(showSystemUi = false, showBackground = true)
 @Composable
-private fun ReportDetailSheetContentPreviewWork() {
+private fun ReportDetailSheetContentPreviewWorkLocked() {
   FreyzaEmployeeTheme {
-    DailyReportDetailSheetContent(dummyDailyReportWork(dateNow = true), dummyRouteWithLocation())
+    DailyReportDetailSheetContent(
+      dummyDailyReportWork(locked = true), dummyRouteWithLocation(),
+      isToday = true,
+      UIState.Ready(Unit),
+      {})
   }
 }
 
@@ -236,7 +225,11 @@ private fun ReportDetailSheetContentPreviewWork() {
 @Composable
 private fun ReportDetailSheetContentPreviewWorkNoVisits() {
   FreyzaEmployeeTheme {
-    DailyReportDetailSheetContent(dummyDailyReportWork(noVisits = true), dummyRouteWithLocation())
+    DailyReportDetailSheetContent(
+      dummyDailyReportWork(noVisits = true), dummyRouteWithLocation(),
+      isToday = true,
+      UIState.Loading(),
+      {})
   }
 }
 
@@ -244,7 +237,11 @@ private fun ReportDetailSheetContentPreviewWorkNoVisits() {
 @Composable
 private fun ReportDetailSheetContentPreviewLeave() {
   FreyzaEmployeeTheme {
-    DailyReportDetailSheetContent(dummyDailyReportLeave(), dummyRouteWithLocation())
+    DailyReportDetailSheetContent(
+      dummyDailyReportLeave(), dummyRouteWithLocation(),
+      isToday = true,
+      UIState.Ready(Unit),
+      {})
   }
 }
 
@@ -252,7 +249,11 @@ private fun ReportDetailSheetContentPreviewLeave() {
 @Composable
 private fun ReportDetailSheetContentPreviewHoliday() {
   FreyzaEmployeeTheme {
-    DailyReportDetailSheetContent(dummyDailyReportHoliday(), dummyRouteWithLocation())
+    DailyReportDetailSheetContent(
+      dummyDailyReportHoliday(), dummyRouteWithLocation(),
+      isToday = true,
+      UIState.Ready(Unit),
+      {})
   }
 }
 
@@ -260,6 +261,10 @@ private fun ReportDetailSheetContentPreviewHoliday() {
 @Composable
 private fun ReportDetailSheetContentPreviewNull() {
   FreyzaEmployeeTheme {
-    DailyReportDetailSheetContent(null, dummyRouteWithLocation())
+    DailyReportDetailSheetContent(
+      null, dummyRouteWithLocation(),
+      isToday = true,
+      UIState.Ready(Unit),
+      {})
   }
 }

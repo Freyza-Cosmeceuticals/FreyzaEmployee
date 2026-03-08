@@ -15,7 +15,7 @@ fun DailyReportDto.toDomain(): DailyReport {
     ta = ta,
     da = da,
     totalExpense = totalExpense,
-    visits = emptyList(),
+    visits = visits?.map { it.toDomain() } ?: emptyList(),
     locked = locked,
     lockedAt = lockedAt?.let { Instant.parse(it) },
     createdAt = Instant.parse(createdAt),

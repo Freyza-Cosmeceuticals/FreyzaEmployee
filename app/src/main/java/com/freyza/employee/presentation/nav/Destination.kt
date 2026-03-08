@@ -23,6 +23,7 @@ sealed class NavRoutes {
     @Serializable
     object NavigationRoute : Authenticated()
 
+    // bottom tab routes
     @Serializable
     object Home : Authenticated()
 
@@ -33,10 +34,12 @@ sealed class NavRoutes {
     object DailyReports : Authenticated()
 
     @Serializable
-    class AddVisit(val type: VisitType) : Authenticated()
-
-    @Serializable
     object Profile : Authenticated()
+
+    // popup screens
+    @Serializable
+    data class AddVisit(val type: VisitType, val reportId: String, val employeeId: String) :
+      Authenticated()
   }
 }
 

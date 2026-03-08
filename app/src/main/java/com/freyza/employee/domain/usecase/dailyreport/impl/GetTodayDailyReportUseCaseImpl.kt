@@ -11,7 +11,7 @@ class GetTodayDailyReportUseCaseImpl(private val dailyReportRepository: DailyRep
 
   override suspend fun execute(input: GetTodayDailyReportUseCase.Input): GetTodayDailyReportUseCase.Output {
     return withContext(Dispatchers.IO) {
-      when (val result = dailyReportRepository.getTodayDailyReport(input.today, input.employeeId)) {
+      when (val result = dailyReportRepository.getTodayDailyReport(input.today, input.employeeId, input.withVisits)) {
         is Result.Success -> {
           GetTodayDailyReportUseCase.Output.Success(result.data)
         }

@@ -25,11 +25,15 @@ import com.freyza.employee.domain.usecase.auth.impl.LoginWithGoogleUseCaseImpl
 import com.freyza.employee.domain.usecase.auth.impl.LogoutUseCaseImpl
 import com.freyza.employee.domain.usecase.auth.impl.RegisterUseCaseImpl
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
-import com.freyza.employee.domain.usecase.dailyreport.GetAllDailyReportsUseCase
+import com.freyza.employee.domain.usecase.dailyreport.CreateVisitUseCase
+import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
+import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.impl.CreateTodayDailyReportUseCaseImpl
-import com.freyza.employee.domain.usecase.dailyreport.impl.GetAllDailyReportsUseCaseImpl
+import com.freyza.employee.domain.usecase.dailyreport.impl.CreateVisitUseCaseImpl
+import com.freyza.employee.domain.usecase.dailyreport.impl.GetRecentDailyReportsUseCaseImpl
 import com.freyza.employee.domain.usecase.dailyreport.impl.GetTodayDailyReportUseCaseImpl
+import com.freyza.employee.domain.usecase.dailyreport.impl.LockReportUseCaseImpl
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.location.impl.GetLocationUseCaseImpl
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
@@ -130,7 +134,9 @@ val useCaseModule = module {
 
   single<GetTodayDailyReportUseCase> { GetTodayDailyReportUseCaseImpl(get()) }
   single<CreateTodayDailyReportUseCase> { CreateTodayDailyReportUseCaseImpl(get()) }
-  single<GetAllDailyReportsUseCase> { GetAllDailyReportsUseCaseImpl(get()) }
+  single<GetRecentDailyReportsUseCase> { GetRecentDailyReportsUseCaseImpl(get()) }
+  single<CreateVisitUseCase> { CreateVisitUseCaseImpl(get()) }
+  single<LockReportUseCase> { LockReportUseCaseImpl(get()) }
 
   single<GetLocationUseCase> { GetLocationUseCaseImpl(get()) }
   single<GetRouteUseCase> { GetRouteUseCaseImpl(get()) }
@@ -142,7 +148,15 @@ val viewModelModule = module {
   viewModel { LoginViewModel(get(), get()) }
   viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
   viewModel { TravelPlanViewModel(get(), get(), get(), get()) }
-  viewModel { DailyReportViewModel(get(), get(), get()) }
-  viewModel { (visitType: VisitType) -> AddVisitViewModel(visitType, get()) }
+  viewModel { DailyReportViewModel(get(), get(), get(), get()) }
+  viewModel { (visitType: VisitType, reportId: String, employeeId: String) ->
+    AddVisitViewModel(
+      visitType,
+      reportId,
+      employeeId,
+      get(),
+      get()
+    )
+  }
   viewModel { ProfileViewModel(get()) }
 }
