@@ -1,0 +1,5 @@
+- [ ] implement robust snackbar messaging system, with revokes
+- [ ] add local db as caching layer
+- [ ] record location in vists, along with GPS lock.
+- [ ] integrate firebase messaging
+- [ ] add custom theming and animations

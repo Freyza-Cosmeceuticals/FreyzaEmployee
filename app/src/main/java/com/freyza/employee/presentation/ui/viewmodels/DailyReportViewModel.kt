@@ -107,7 +107,7 @@ class DailyReportViewModel(
           }
           Logger.d(TAG, "report:$reportId locked successfully")
 
-          // refresh daily reports
+          // refresh
           loadAllDailyReports()
         }
 
