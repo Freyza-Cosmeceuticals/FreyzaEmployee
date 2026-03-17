@@ -1,9 +1,11 @@
 package com.freyza.employee.domain.model
 
+import androidx.annotation.Keep
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
 import com.freyza.employee.R
 import com.freyza.employee.core.util.times
+import kotlinx.serialization.Serializable
 import java.util.UUID
 import kotlin.random.Random
 import kotlin.time.Instant
@@ -109,6 +111,8 @@ data class VisitCreate(
   val notes: String?,
 )
 
+@Keep
+@Serializable
 enum class VisitType {
   DOCTOR, STOCKIST, CHEMIST;
 
