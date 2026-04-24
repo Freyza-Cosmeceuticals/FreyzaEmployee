@@ -93,13 +93,20 @@ fun VisitListItem(visit: Visit) {
         ) {
           when (visit) {
             is Visit.DoctorVisit -> {
-              visit.productsShown.takeIf { it.isNotEmpty() }
+              visit.productDetails.takeIf { it.isNotEmpty() }
                 ?.let { products -> InfoChip(text = "${products.size} products") }
               visit.samplesGiven.takeIf { it.isNotEmpty() }
                 ?.let { samples -> InfoChip(text = "${samples.size} samples") }
               visit.orderTaken.takeIf { it }?.let {
                 InfoChip(
-                  containerColor = MaterialTheme.colorScheme.primaryContainer, text = "Order taken"
+                  containerColor = MaterialTheme.colorScheme.primaryContainer, 
+                  text = "Order: ₹${"%.2f".format(visit.orderAmount ?: 0.0)}"
+                )
+              }
+              if (visit.outstandingAmount > 0) {
+                InfoChip(
+                  containerColor = MaterialTheme.colorScheme.errorContainer,
+                  text = "Outstanding: ₹${visit.outstandingAmount}"
                 )
               }
             }
@@ -111,8 +118,6 @@ fun VisitListItem(visit: Visit) {
                   text = "Stock Checked"
                 )
               }
-              visit.productsShown.takeIf { it.isNotEmpty() }
-                ?.let { products -> InfoChip(text = "${products.size} products") }
               visit.samplesGiven.takeIf { it.isNotEmpty() }
                 ?.let { samples -> InfoChip(text = "${samples.size} samples") }
               visit.orderTaken.takeIf { it }?.let {
@@ -126,14 +131,24 @@ fun VisitListItem(visit: Visit) {
                   text = "Payment Collected"
                 )
               }
+              if (visit.outstandingAmount > 0) {
+                InfoChip(
+                  containerColor = MaterialTheme.colorScheme.errorContainer,
+                  text = "Outstanding: ₹${visit.outstandingAmount}"
+                )
+              }
             }
 
             is Visit.ChemistVisit -> {
-              visit.productsShown.takeIf { it.isNotEmpty() }
-                ?.let { products -> InfoChip(text = "${products.size} products") }
               visit.orderTaken.takeIf { it }?.let {
                 InfoChip(
                   containerColor = MaterialTheme.colorScheme.primaryContainer, text = "Order taken"
+                )
+              }
+              if (visit.outstandingAmount > 0) {
+                InfoChip(
+                  containerColor = MaterialTheme.colorScheme.errorContainer,
+                  text = "Outstanding: ₹${visit.outstandingAmount}"
                 )
               }
             }

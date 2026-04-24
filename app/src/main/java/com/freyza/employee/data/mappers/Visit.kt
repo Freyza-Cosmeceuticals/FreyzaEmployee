@@ -15,9 +15,11 @@ fun VisitDto.toDomain(): Visit {
       longitude = longitude,
       distanceMetersFromPOI = distanceMetersFromPOI,
       doctorName = doctorName ?: "Unknown Doctor",
-      productsShown = productsShown,
+      productDetails = productDetails,
       samplesGiven = samplesGiven,
       orderTaken = orderTaken,
+      orderAmount = orderAmount,
+      outstandingAmount = outstandingAmount ?: 0.0,
       additionalNotes = additionalNotes,
       createdAt = Instant.parse(createdAt),
       updatedAt = updatedAt?.let { Instant.parse(it) })
@@ -30,13 +32,13 @@ fun VisitDto.toDomain(): Visit {
       longitude = longitude,
       distanceMetersFromPOI = distanceMetersFromPOI,
       stockistName = stockistName ?: "Unknown Stockist",
-      productsShown = productsShown,
       samplesGiven = samplesGiven,
       orderTaken = orderTaken,
       billNo = billNo ?: "N/A",
       paymentCollected = paymentCollected,
       amountWithGST = amountWithGST ?: 0.00,
       amountWithoutGST = amountWithoutGST ?: 0.00,
+      outstandingAmount = outstandingAmount ?: 0.0,
       stockChecked = stockChecked,
       additionalNotes = additionalNotes,
       createdAt = Instant.parse(createdAt),
@@ -50,8 +52,8 @@ fun VisitDto.toDomain(): Visit {
       longitude = longitude,
       distanceMetersFromPOI = distanceMetersFromPOI,
       chemistName = chemistName ?: "Unknown Chemist",
-      productsShown = productsShown,
       orderTaken = orderTaken,
+      outstandingAmount = outstandingAmount ?: 0.0,
       additionalNotes = additionalNotes,
       createdAt = Instant.parse(createdAt),
       updatedAt = updatedAt?.let { Instant.parse(it) })
@@ -68,13 +70,8 @@ fun Visit.toDto(): VisitDto {
     longitude = longitude,
     distanceMetersFromPOI = distanceMetersFromPOI,
     additionalNotes = additionalNotes,
-    // doctor
     doctorName = (this as? Visit.DoctorVisit)?.doctorName,
-    productsShown = when (this) {
-      is Visit.DoctorVisit -> productsShown
-      is Visit.ChemistVisit -> productsShown
-      else -> emptyList()
-    },
+    productDetails = (this as? Visit.DoctorVisit)?.productDetails ?: emptyList(),
     samplesGiven = when (this) {
       is Visit.DoctorVisit -> samplesGiven
       is Visit.StockistVisit -> samplesGiven
@@ -82,17 +79,21 @@ fun Visit.toDto(): VisitDto {
     },
     orderTaken = when (this) {
       is Visit.DoctorVisit -> orderTaken
+      is Visit.StockistVisit -> orderTaken
       is Visit.ChemistVisit -> orderTaken
-      else -> false
     },
-    // stockist
+    orderAmount = (this as? Visit.DoctorVisit)?.orderAmount,
     stockistName = (this as? Visit.StockistVisit)?.stockistName,
     billNo = (this as? Visit.StockistVisit)?.billNo,
     amountWithGST = (this as? Visit.StockistVisit)?.amountWithGST,
     amountWithoutGST = (this as? Visit.StockistVisit)?.amountWithoutGST,
+    outstandingAmount = when (this) {
+      is Visit.DoctorVisit -> outstandingAmount
+      is Visit.StockistVisit -> outstandingAmount
+      is Visit.ChemistVisit -> outstandingAmount
+    },
     stockChecked = (this as? Visit.StockistVisit)?.stockChecked ?: false,
     paymentCollected = (this as? Visit.StockistVisit)?.paymentCollected ?: false,
-    // chemist
     chemistName = (this as? Visit.ChemistVisit)?.chemistName,
     createdAt = createdAt.toString(),
     updatedAt = updatedAt?.toString()

@@ -16,14 +16,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -32,7 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,6 +51,7 @@ import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.domain.model.ProductDetail
 import com.freyza.employee.domain.model.VisitCreate
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
@@ -58,6 +68,12 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.AddVisitViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+
+data class ProductEntry(
+  val name: String = "",
+  val rate: String = "",
+  val quantity: String = "",
+)
 
 @Composable
 fun AddVisitScreenRoute(
@@ -108,7 +124,7 @@ fun AddVisitScreen(
 
   // Doctor / Chemist specific
   var doctorName by rememberSaveable { mutableStateOf<String?>(null) }
-  var productsShown by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
+  val productEntries = remember { mutableStateListOf<ProductEntry>() }
   var samplesGiven by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
   var orderTaken by rememberSaveable { mutableStateOf(false) }
 
@@ -116,11 +132,20 @@ fun AddVisitScreen(
   var stockistName by rememberSaveable { mutableStateOf<String?>(null) }
   var billNo by rememberSaveable { mutableStateOf<String?>(null) }
   var paymentCollected by rememberSaveable { mutableStateOf(false) }
-  var amountWithGST by rememberSaveable { mutableStateOf(0.00) }
-  var amountWithoutGST by rememberSaveable { mutableStateOf(0.00) }
+  var amountWithGST by rememberSaveable { mutableDoubleStateOf(0.00) }
+  var amountWithoutGST by rememberSaveable { mutableDoubleStateOf(0.00) }
   var stockChecked by rememberSaveable { mutableStateOf(false) }
 
   var chemistName by rememberSaveable { mutableStateOf<String?>(null) }
+  var outstandingAmount by rememberSaveable { mutableDoubleStateOf(0.00) }
+
+  val orderAmount by remember {
+    derivedStateOf {
+      productEntries.sumOf {
+        (it.rate.toDoubleOrNull() ?: 0.0) * (it.quantity.toIntOrNull() ?: 0)
+      }
+    }
+  }
 
   Scaffold(
     topBar = {
@@ -210,16 +235,6 @@ fun AddVisitScreen(
         )
       }
 
-      // common between all
-      item {
-        TagInputField(
-          items = productsShown,
-          onItemAdded = { if (!productsShown.contains(it)) productsShown = productsShown + it },
-          onItemRemoved = { productsShown = productsShown - it },
-          label = "Products Shown"
-        )
-      }
-
       // common between doctor and stockist
       if (uiState.visitType == VisitType.DOCTOR || uiState.visitType == VisitType.STOCKIST) {
         item {
@@ -241,6 +256,85 @@ fun AddVisitScreen(
         )
       }
 
+      // products list for Doctor
+      if (orderTaken && uiState.visitType == VisitType.DOCTOR) {
+        productEntries.forEachIndexed { index, product ->
+          item(key = "product_$index") {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              OutlinedTextField(
+                value = product.name,
+                onValueChange = { productEntries[index] = product.copy(name = it) },
+                label = { Text("Product") },
+                modifier = Modifier.weight(1.5f),
+                singleLine = true
+              )
+              OutlinedTextField(
+                value = product.rate,
+                onValueChange = { productEntries[index] = product.copy(rate = it) },
+                label = { Text("Rate") },
+                modifier = Modifier.weight(1f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true
+              )
+              OutlinedTextField(
+                value = product.quantity,
+                onValueChange = { productEntries[index] = product.copy(quantity = it) },
+                label = { Text("Qty") },
+                modifier = Modifier.weight(0.8f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true
+              )
+              IconButton(onClick = { productEntries.removeAt(index) }) {
+                Icon(
+                  painter = painterResource(R.drawable.backspace_24px),
+                  contentDescription = "Remove Product",
+                  tint = MaterialTheme.colorScheme.error
+                )
+              }
+            }
+          }
+        }
+
+        item {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            TextButton(onClick = {
+              productEntries.add(ProductEntry())
+            }) {
+              Text("+ Add product")
+            }
+
+            Text(
+              text = "Total: ₹${"%.2f".format(orderAmount)}",
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold
+            )
+          }
+        }
+      }
+
+      item {
+        var outstandingStr by rememberSaveable { mutableStateOf(if (outstandingAmount == 0.0) "" else outstandingAmount.toString()) }
+        OutlinedTextField(
+          value = outstandingStr,
+          onValueChange = {
+            outstandingStr = it
+            outstandingAmount = it.toDoubleOrNull() ?: 0.0
+          },
+          label = { Text("Current Outstanding Amount") },
+          modifier = Modifier.fillMaxWidth(),
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+          singleLine = true
+        )
+      }
+
       // for stockist
       if (uiState.visitType == VisitType.STOCKIST) {
         item {
@@ -253,6 +347,16 @@ fun AddVisitScreen(
           )
         }
 
+        item {
+          ToggleableRow(
+            checked = stockChecked,
+            onCheckedChange = { stockChecked = it },
+            text = "Stock Checked?"
+          )
+        }
+      }
+
+      if (uiState.visitType == VisitType.STOCKIST || uiState.visitType == VisitType.CHEMIST) {
         item {
           ToggleableRow(
             checked = paymentCollected,
@@ -292,14 +396,6 @@ fun AddVisitScreen(
             }
           }
         }
-
-        item {
-          ToggleableRow(
-            checked = stockChecked,
-            onCheckedChange = { stockChecked = it },
-            text = "Stock Checked?"
-          )
-        }
       }
 
       // 3. Shared Notes Field
@@ -324,13 +420,21 @@ fun AddVisitScreen(
                 doctorName = doctorName,
                 stockistName = stockistName,
                 chemistName = chemistName,
-                productsShown = productsShown,
+                productDetails = productEntries.filter { it.name.isNotBlank() }.map {
+                  ProductDetail(
+                    name = it.name,
+                    rate = it.rate.toDoubleOrNull() ?: 0.0,
+                    quantity = it.quantity.toIntOrNull() ?: 0
+                  )
+                },
                 samplesGiven = samplesGiven,
                 orderTaken = orderTaken,
                 billNo = billNo,
                 paymentCollected = paymentCollected,
                 amountWithGST = amountWithGST,
                 amountWithoutGST = amountWithoutGST,
+                outstandingAmount = outstandingAmount,
+                orderAmount = if (uiState.visitType == VisitType.DOCTOR) orderAmount else null,
                 stockChecked = stockChecked,
                 notes = notes
               )
