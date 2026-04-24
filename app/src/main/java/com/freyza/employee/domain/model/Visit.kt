@@ -10,85 +10,96 @@ import java.util.UUID
 import kotlin.random.Random
 import kotlin.time.Instant
 
+@Serializable
+data class ProductDetail(
+  val name: String,
+  val rate: Double,
+  val quantity: Int
+) {
+  val total: Double get() = rate * quantity
+}
+
 sealed class Visit {
   abstract val id: String
   abstract val reportId: String
   abstract val employeeId: String
   abstract val visitType: VisitType
-
+  
   abstract val latitude: Double
   abstract val longitude: Double
   abstract val distanceMetersFromPOI: Int
-
+  
   abstract val additionalNotes: String?
-
+  
   abstract val createdAt: Instant
   abstract val updatedAt: Instant?
-
+  
   data class DoctorVisit(
     override val id: String,
     override val reportId: String,
     override val employeeId: String,
-
+    
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
-
+    
     val doctorName: String,
-    val productsShown: List<String> = emptyList(),
+    val productDetails: List<ProductDetail> = emptyList(),
     val samplesGiven: List<String> = emptyList(),
     val orderTaken: Boolean = false,
-
+    val orderAmount: Double? = null,
+    val outstandingAmount: Double = 0.0,
+    
     override val additionalNotes: String?,
-
+    
     override val createdAt: Instant,
     override val updatedAt: Instant?,
   ) : Visit() {
     override val visitType = VisitType.DOCTOR
   }
-
+  
   data class StockistVisit(
     override val id: String,
     override val reportId: String,
     override val employeeId: String,
-
+    
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
-
+    
     val stockistName: String,
-    val productsShown: List<String> = emptyList(),
     val samplesGiven: List<String> = emptyList(),
     val orderTaken: Boolean = false,
     val billNo: String,
     val paymentCollected: Boolean,
     val amountWithGST: Double,
     val amountWithoutGST: Double,
+    val outstandingAmount: Double = 0.0,
     val stockChecked: Boolean = false,
-
+    
     override val additionalNotes: String?,
-
+    
     override val createdAt: Instant,
     override val updatedAt: Instant?,
   ) : Visit() {
     override val visitType = VisitType.STOCKIST
   }
-
+  
   data class ChemistVisit(
     override val id: String,
     override val reportId: String,
     override val employeeId: String,
-
+    
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
-
+    
     val chemistName: String,
-    val productsShown: List<String> = emptyList(),
     val orderTaken: Boolean = false,
-
+    val outstandingAmount: Double = 0.0,
+    
     override val additionalNotes: String?,
-
+    
     override val createdAt: Instant,
     override val updatedAt: Instant?,
   ) : Visit() {
@@ -100,13 +111,15 @@ data class VisitCreate(
   val doctorName: String?,
   val stockistName: String?,
   val chemistName: String?,
-  val productsShown: List<String>,
+  val productDetails: List<ProductDetail>,
   val samplesGiven: List<String>,
   val orderTaken: Boolean,
   val billNo: String?,
   val paymentCollected: Boolean,
   val amountWithGST: Double,
   val amountWithoutGST: Double,
+  val outstandingAmount: Double,
+  val orderAmount: Double?,
   val stockChecked: Boolean,
   val notes: String?,
 )
@@ -136,15 +149,19 @@ fun dummyVisitDoctor(): Visit = Visit.DoctorVisit(
   longitude = 55.246,
   distanceMetersFromPOI = 55,
   doctorName = "Dr. X",
-  productsShown = if (Random.nextBoolean()) listOf(
-    "Generator", "Repulsor", "Reactor"
-  ).times(Random.nextInt(1, 3)) else emptyList(),
+  productDetails = if (Random.nextBoolean()) listOf(
+    ProductDetail("Generator", 100.0, 1),
+    ProductDetail("Repulsor", 200.0, 2),
+    ProductDetail("Reactor", 300.0, 1)
+  ) else emptyList(),
   samplesGiven = if (Random.nextBoolean()) listOf("Capacitor", "Inductor").times(
     Random.nextInt(
       1, 3
     )
   ) else emptyList(),
   orderTaken = Random.nextBoolean(),
+  orderAmount = if (Random.nextBoolean()) 1000.0 else null,
+  outstandingAmount = Random.nextDouble(0.0, 1000.0),
   additionalNotes = if (Random.nextBoolean()) "Doctor was a genius..." else null,
   createdAt = Instant.parse("2026-02-11T21:32:38.409+05:30"),
   updatedAt = null,
@@ -158,9 +175,15 @@ fun dummyVisitDoctorAllTrue(): Visit = Visit.DoctorVisit(
   longitude = 55.246,
   distanceMetersFromPOI = 55,
   doctorName = "Dr. X",
-  productsShown = listOf("Generator", "Repulsor", "Reactor").times(Random.nextInt(1, 3)),
+  productDetails = listOf(
+    ProductDetail("Generator", 100.0, 1),
+    ProductDetail("Repulsor", 200.0, 2),
+    ProductDetail("Reactor", 300.0, 1)
+  ),
   samplesGiven = listOf("Capacitor", "Inductor").times(Random.nextInt(1, 3)),
   orderTaken = true,
+  orderAmount = 1000.0,
+  outstandingAmount = Random.nextDouble(0.0, 1000.0),
   additionalNotes = "Doctor was a genius...",
   createdAt = Instant.parse("2026-02-11T21:32:38.409+05:30"),
   updatedAt = null,
@@ -174,12 +197,8 @@ fun dummyVisitChemist(): Visit = Visit.ChemistVisit(
   longitude = 22.216,
   distanceMetersFromPOI = 34,
   chemistName = "Ch. Y",
-  productsShown = if (Random.nextBoolean()) listOf("Mineral", "Liquid").times(
-    Random.nextInt(
-      1, 3
-    )
-  ) else emptyList(),
   orderTaken = Random.nextBoolean(),
+  outstandingAmount = Random.nextDouble(0.0, 1000.0),
   additionalNotes = if (Random.nextBoolean()) "Chemist was good" else null,
   createdAt = Instant.parse("2026-02-11T21:33:28.453+05:30"),
   updatedAt = null
@@ -193,8 +212,8 @@ fun dummyVisitChemistAllTrue(): Visit = Visit.ChemistVisit(
   longitude = 22.216,
   distanceMetersFromPOI = 34,
   chemistName = "Ch. Y",
-  productsShown = listOf("Mineral", "Liquid").times(Random.nextInt(1, 3)),
   orderTaken = true,
+  outstandingAmount = 500.0,
   additionalNotes = "Chemist was good",
   createdAt = Instant.parse("2026-02-11T21:33:28.453+05:30"),
   updatedAt = null
@@ -212,10 +231,8 @@ fun dummyVisitStockist(): Visit = Visit.StockistVisit(
   paymentCollected = Random.nextBoolean(),
   amountWithGST = Random.nextDouble(300.00, 500.00),
   amountWithoutGST = Random.nextDouble(100.00, 300.00),
+  outstandingAmount = Random.nextDouble(0.0, 1000.0),
   stockChecked = Random.nextBoolean(),
-  productsShown = if (Random.nextBoolean()) listOf(
-    "Generator", "Repulsor", "Reactor"
-  ).times(Random.nextInt(1, 3)) else emptyList(),
   samplesGiven = if (Random.nextBoolean()) listOf("Capacitor", "Inductor").times(
     Random.nextInt(
       1, 3
@@ -237,10 +254,10 @@ fun dummyVisitStockistAllTrue(): Visit = Visit.StockistVisit(
   stockistName = "Stockist XYZ Holmes",
   billNo = "Bill 222345",
   paymentCollected = true,
-  productsShown = listOf("Generator", "Repulsor", "Reactor").times(Random.nextInt(1, 3)),
   samplesGiven = listOf("Capacitor", "Inductor").times(Random.nextInt(1, 3)),
   amountWithGST = Random.nextDouble(300.00, 500.00),
   amountWithoutGST = Random.nextDouble(100.00, 300.00),
+  outstandingAmount = 500.0,
   orderTaken = true,
   stockChecked = true,
   additionalNotes = "Stockist is well... a stockist who stocks things permanently, well, kind of...",

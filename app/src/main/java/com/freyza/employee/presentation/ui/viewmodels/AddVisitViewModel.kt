@@ -84,13 +84,15 @@ class AddVisitViewModel(
         doctorName = visitCreate.doctorName,
         chemistName = visitCreate.chemistName,
         stockistName = visitCreate.stockistName,
-        productsShown = visitCreate.productsShown,
+        productDetails = visitCreate.productDetails,
         samplesGiven = visitCreate.samplesGiven,
         orderTaken = visitCreate.orderTaken,
         billNo = visitCreate.billNo,
         paymentCollected = visitCreate.paymentCollected,
         amountWithGST = visitCreate.amountWithGST,
         amountWithoutGST = visitCreate.amountWithoutGST,
+        outstandingAmount = visitCreate.outstandingAmount,
+        orderAmount = visitCreate.orderAmount,
         stockChecked = visitCreate.stockChecked,
         additionalNotes = visitCreate.notes
       )

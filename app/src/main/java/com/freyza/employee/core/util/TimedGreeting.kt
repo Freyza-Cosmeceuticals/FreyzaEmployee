@@ -21,7 +21,7 @@ fun LocalDateTime.timedGreeting(
         return "${evening}, $suffix"
     }
 
-    if (this.hour in 20..<5) {
+    if (this.hour in 20..24 || this.hour in 0..<5) {
         return "${night}, $suffix"
     }
 

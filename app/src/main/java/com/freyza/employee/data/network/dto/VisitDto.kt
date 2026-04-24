@@ -1,5 +1,6 @@
 package com.freyza.employee.data.network.dto
 
+import com.freyza.employee.domain.model.ProductDetail
 import com.freyza.employee.domain.model.VisitType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -30,8 +31,8 @@ data class VisitDto(
   @SerialName("stockistName")
   val stockistName: String?,
 
-  @SerialName("productsShown")
-  val productsShown: List<String>,
+  @SerialName("productDetails")
+  val productDetails: List<ProductDetail>,
   @SerialName("samplesGiven")
   val samplesGiven: List<String>,
   @SerialName("orderTaken")
@@ -45,6 +46,10 @@ data class VisitDto(
   val amountWithGST: Double?,
   @SerialName("amountWithoutGST")
   val amountWithoutGST: Double?,
+  @SerialName("outstandingAmount")
+  val outstandingAmount: Double?,
+  @SerialName("orderAmount")
+  val orderAmount: Double?,
   @SerialName("stockChecked")
   val stockChecked: Boolean,
 
@@ -80,8 +85,8 @@ data class VisitCreateDto(
   @SerialName("stockistName")
   val stockistName: String?,
 
-  @SerialName("productsShown")
-  val productsShown: List<String>,
+  @SerialName("productDetails")
+  val productDetails: List<ProductDetail>,
   @SerialName("samplesGiven")
   val samplesGiven: List<String>,
   @SerialName("orderTaken")
@@ -95,6 +100,10 @@ data class VisitCreateDto(
   val amountWithGST: Double?,
   @SerialName("amountWithoutGST")
   val amountWithoutGST: Double?,
+  @SerialName("outstandingAmount")
+  val outstandingAmount: Double?,
+  @SerialName("orderAmount")
+  val orderAmount: Double?,
   @SerialName("stockChecked")
   val stockChecked: Boolean,
 
