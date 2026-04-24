@@ -1,6 +1,7 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,7 +23,6 @@ import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -30,8 +30,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -65,6 +63,7 @@ import com.freyza.employee.presentation.ui.authenticated.home.composables.Travel
 import com.freyza.employee.presentation.ui.composables.FreyzaHomeAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiState
@@ -117,8 +116,6 @@ private fun HomeScreen(
   onNavigateToReport: () -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
 ) {
-  val scope = rememberCoroutineScope()
-  val snackbarHostState = remember { SnackbarHostState() }
   val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
   val reportCreationSheetState = rememberModalBottomSheetState(
@@ -155,7 +152,6 @@ private fun HomeScreen(
 
   Scaffold(
     topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
-    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     ),
@@ -188,13 +184,20 @@ private fun HomeScreen(
               shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
             )
           ) {
-            BeginDailyReportSheet(
-              dayTypes = dayTypes,
-              routes = uiState.routes,
-              todayTravelPlanEntry = uiState.todayTravelPlanEntry,
-              onDailyReportBegin = onDailyReportBegin,
-              onRetry = onRefresh,
-              onExit = {})
+            Box {
+              BeginDailyReportSheet(
+                dayTypes = dayTypes,
+                routes = uiState.routes,
+                todayTravelPlanEntry = uiState.todayTravelPlanEntry,
+                onDailyReportBegin = onDailyReportBegin,
+                onRetry = onRefresh,
+                onExit = {})
+            }
+
+            FreyzaSnackbarHost(
+              hostState = LocalSnackbarHostState.current, modifier = Modifier
+                .padding(bottom = 16.dp)
+            )
           }
         }
       }

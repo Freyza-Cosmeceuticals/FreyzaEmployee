@@ -6,6 +6,7 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.blankLocation
 import com.freyza.employee.domain.model.routeName
@@ -44,6 +45,7 @@ class HomeViewModel(
   private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
   private val getTodayDailyReportUseCase: GetTodayDailyReportUseCase,
   private val createTodayDailyReportUseCase: CreateTodayDailyReportUseCase,
+  private val snackbarManager: SnackbarManager,
 ) : ViewModel() {
 
   companion object {
@@ -401,6 +403,7 @@ class HomeViewModel(
             // set the resolved dayType and route if a valid dailyReport is created
             setReportDayType(result.dailyReport.dayType)
             result.dailyReport.routeId?.let { setReportRoute(it) }
+            snackbarManager.showSuccess("Daily report created successfully")
           }
         }
 
@@ -410,6 +413,7 @@ class HomeViewModel(
               currentDailyReport = UIState.Error(message = "Unable to create today's daily report")
             )
           }
+          snackbarManager.showError("Unable to create today's daily report, please try again")
           Logger.e(TAG, "Cannot create today's daily report: ${result.message}")
         }
       }

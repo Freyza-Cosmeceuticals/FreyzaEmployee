@@ -6,6 +6,7 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCase
 import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
@@ -22,6 +23,7 @@ class DailyReportViewModel(
   private val getAllDailyReportUseCase: GetRecentDailyReportsUseCase,
   private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
   private val lockReportUseCase: LockReportUseCase,
+  private val snackbarManager: SnackbarManager,
 ) : ViewModel() {
 
   companion object {
@@ -100,11 +102,12 @@ class DailyReportViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = lockReportUseCase.execute(LockReportUseCase.Input(reportId))) {
+      when (lockReportUseCase.execute(LockReportUseCase.Input(reportId))) {
         is LockReportUseCase.Output.Success -> {
           _uiState.update {
             it.copy(lockingState = UIState.Ready(Unit, "Report locked"))
           }
+          snackbarManager.showSuccess("Report locked successfully")
           Logger.d(TAG, "report:$reportId locked successfully")
 
           // refresh
@@ -115,6 +118,7 @@ class DailyReportViewModel(
           _uiState.update {
             it.copy(lockingState = UIState.Error("Unable to lock, please try again"))
           }
+          snackbarManager.showError("Failed to lock report, please try again")
           Logger.e(TAG, "Failed to lock report:$reportId")
         }
       }

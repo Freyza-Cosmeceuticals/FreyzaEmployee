@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.usecase.auth.LoginUseCase
 import com.freyza.employee.domain.usecase.auth.LoginUseCase.Input
 import com.freyza.employee.domain.usecase.auth.LoginWithGoogleUseCase
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 class LoginViewModel(
   private val loginUseCase: LoginUseCase,
   private val loginWithGoogleUseCase: LoginWithGoogleUseCase,
+  private val snackbarManager: SnackbarManager,
 ) : ViewModel() {
 
   companion object {
@@ -35,6 +37,7 @@ class LoginViewModel(
         // TODO: Replace with R.string.error_blank_email_pass
         UIState.Error("Please enter email and password", null)
       }
+      snackbarManager.showError("Please enter email and password")
       return
     }
 
@@ -52,6 +55,7 @@ class LoginViewModel(
           _uiState.update {
             UIState.Error(result.message, null)
           }
+          snackbarManager.showError("Login failed, please try again")
           Logger.d(TAG, "Login with email failed ${result.message}")
         }
 
@@ -80,6 +84,7 @@ class LoginViewModel(
           _uiState.update {
             UIState.Error("Login  failed ${result.message}", null)
           }
+          snackbarManager.showError("Login failed, please try again")
           Logger.d(TAG, "Login with google failed ${result.message}")
         }
 

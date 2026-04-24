@@ -1,6 +1,7 @@
 package com.freyza.employee.presentation.ui.authenticated.travelplan
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -13,7 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -41,6 +41,7 @@ import com.freyza.employee.presentation.ui.authenticated.travelplan.composables.
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.FreyzaTravelPlanAppBar
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.TravelPlanUiState
@@ -94,7 +95,6 @@ fun TravelPlanScreen(
   modifier: Modifier = Modifier,
   loadSelectedPlanEntryRoute: (tpEntryId: String) -> Unit,
 ) {
-  val snackbarHostState = remember { SnackbarHostState() }
   val sheetState = rememberModalBottomSheetState()
 
   val currentMonth = remember { Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)).yearMonth }
@@ -113,7 +113,6 @@ fun TravelPlanScreen(
 
   Scaffold(
     topBar = { FreyzaTravelPlanAppBar() },
-    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
@@ -131,31 +130,38 @@ fun TravelPlanScreen(
             },
             sheetState = sheetState,
           ) {
-            DayBottomSheetContent(
-              selectedDate!!,
-              selectedPlanEntry = selectedPlanEntry,
-              selectedRoute = uiState.selectedRoute,
-              onClickPrevious = {
-                val previous = selectedDate!!.date.toKotlinLocalDate().minus(1, DateTimeUnit.DAY)
-                if (previous.month == selectedDate!!.date.toKotlinLocalDate().month) {
-                  selectedDate = CalendarDay(previous.toJavaLocalDate(), selectedDate!!.position)
-                }
+            Box {
+              DayBottomSheetContent(
+                selectedDate!!,
+                selectedPlanEntry = selectedPlanEntry,
+                selectedRoute = uiState.selectedRoute,
+                onClickPrevious = {
+                  val previous = selectedDate!!.date.toKotlinLocalDate().minus(1, DateTimeUnit.DAY)
+                  if (previous.month == selectedDate!!.date.toKotlinLocalDate().month) {
+                    selectedDate = CalendarDay(previous.toJavaLocalDate(), selectedDate!!.position)
+                  }
 
-                if (selectedPlanEntry != null && selectedPlanEntry!!.dayType == DayType.WORK) {
-                  loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
-                }
-              },
-              onClickNext = {
-                val next = selectedDate!!.date.toKotlinLocalDate().plus(1, DateTimeUnit.DAY)
-                if (next.month == selectedDate!!.date.toKotlinLocalDate().month) {
-                  selectedDate = CalendarDay(next.toJavaLocalDate(), selectedDate!!.position)
-                }
+                  if (selectedPlanEntry != null && selectedPlanEntry!!.dayType == DayType.WORK) {
+                    loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
+                  }
+                },
+                onClickNext = {
+                  val next = selectedDate!!.date.toKotlinLocalDate().plus(1, DateTimeUnit.DAY)
+                  if (next.month == selectedDate!!.date.toKotlinLocalDate().month) {
+                    selectedDate = CalendarDay(next.toJavaLocalDate(), selectedDate!!.position)
+                  }
 
-                if (selectedPlanEntry != null && selectedPlanEntry!!.dayType == DayType.WORK) {
-                  loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
+                  if (selectedPlanEntry != null && selectedPlanEntry!!.dayType == DayType.WORK) {
+                    loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
+                  }
                 }
-              }
-            )
+              )
+
+              FreyzaSnackbarHost(
+                hostState = LocalSnackbarHostState.current, modifier = Modifier
+                  .padding(bottom = 16.dp)
+              )
+            }
           }
         }
 

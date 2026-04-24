@@ -26,11 +26,9 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,7 +46,6 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
 import com.freyza.employee.presentation.ui.composables.FreyzaProfileAppBar
-import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.state.MainUiState
@@ -89,11 +86,8 @@ fun ProfileScreen(
   onLogoutClicked: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val snackbarHostState = remember { SnackbarHostState() }
-
   Scaffold(
     topBar = { FreyzaProfileAppBar() },
-    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
@@ -347,7 +341,7 @@ fun ProfileScreen(
 fun ProfileScreenSkeleton(modifier: Modifier = Modifier) {
   FreyzaEmployeeTheme {
     Skeleton(
-      Modifier
+      modifier
         .width(32.dp)
         .height(32.dp)
     )

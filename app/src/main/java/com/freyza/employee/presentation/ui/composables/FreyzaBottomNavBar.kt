@@ -1,6 +1,8 @@
 package com.freyza.employee.presentation.ui.composables
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
@@ -52,7 +54,12 @@ fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifi
   }
 
   // Show the Bottom Bar only if current destination is a bottom bar one (i.e. Authenticated)
-  AnimatedVisibility(bottomBarDestination, label = "BottomBar") {
+  AnimatedVisibility(
+    bottomBarDestination,
+    label = "BottomBar",
+    enter = slideInVertically(initialOffsetY = { it / 2}),
+    exit = slideOutVertically(targetOffsetY = { it / 2})
+  ) {
     ActualNavBar(screens, navController, currentDestination, modifier)
   }
 }
