@@ -17,28 +17,28 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
 @Composable
 fun LoadingIndicator(
-    modifier: Modifier = Modifier,
-    message: String = "Please hold tight while we load...",
+  modifier: Modifier = Modifier,
+  message: String = "Please hold tight while we load...",
 ) {
-    Column(
-        modifier = modifier
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        CircularProgressIndicator(
-            strokeWidth = 4.dp,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(message)
-    }
+  Column(
+    modifier = modifier
+      .padding(16.dp),
+    verticalArrangement = Arrangement.Center,
+    horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
+    CircularProgressIndicator(
+      strokeWidth = 4.dp,
+      color = MaterialTheme.colorScheme.primary
+    )
+    Spacer(Modifier.height(8.dp))
+    Text(message)
+  }
 }
 
 @Preview(showSystemUi = false, showBackground = true)
 @Composable
 private fun LoadingIndicatorPreview() {
-    FreyzaEmployeeTheme {
-        LoadingIndicator(message = "Preview Loading")
-    }
+  FreyzaEmployeeTheme {
+    LoadingIndicator(message = "Preview Loading")
+  }
 }

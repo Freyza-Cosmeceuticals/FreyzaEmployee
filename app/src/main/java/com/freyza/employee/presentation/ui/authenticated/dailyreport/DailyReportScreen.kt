@@ -20,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -29,7 +28,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,9 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
-import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
-import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.DailyReport
@@ -57,6 +53,7 @@ import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables
 import com.freyza.employee.presentation.ui.composables.FreyzaDailyReportAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.DailyReportUiState
 import com.freyza.employee.presentation.ui.state.MainUiState
@@ -113,9 +110,6 @@ fun DailyReportScreen(
   visitCreated: Boolean? = null,
   onVisitCreatedConsumed: () -> Unit = {},
 ) {
-  val scope = rememberCoroutineScope()
-  val snackbarHostState = remember { SnackbarHostState() }
-  val sheetSnackbarHostState = remember { SnackbarHostState() }
   val sheetState = rememberModalBottomSheetState()
 
   val todayReport = remember(uiState.dailyReports.data, mainUiState.today?.date) {
@@ -155,7 +149,6 @@ fun DailyReportScreen(
 
   Scaffold(
     topBar = { FreyzaDailyReportAppBar() },
-    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     // only show add visit fab if there is some today report of type WORK
     floatingActionButton = {
       if (todayReport != null && !todayReport.locked && todayReport.dayType == DayType.WORK) AddVisitFloatingActionButton(
@@ -171,29 +164,10 @@ fun DailyReportScreen(
     }
 
     LaunchedEffect(uiState.lockingState) {
-      if (uiState.lockingState is UIState.Error) {
-        // show snackbar in both places
-        sheetSnackbarHostState.showTypedSnackbar(
-          message = uiState.lockingState.message ?: "Cannot lock report. Please try again.",
-          type = SnackbarType.ERROR,
-          withDismissAction = true,
-          dismissCurrent = true
-        )
-        snackbarHostState.showTypedSnackbar(
-          message = uiState.lockingState.message ?: "Cannot lock report. Please try again.",
-          type = SnackbarType.ERROR,
-          withDismissAction = true,
-          dismissCurrent = true
-        )
-      } else if (uiState.lockingState is UIState.Ready) {
-        // close the sheet and show this snackbar in the root scaffold
+      if (uiState.lockingState is UIState.Ready) {
+        // close the sheet
         sheetState.hide()
         selectedReport = null
-        snackbarHostState.showTypedSnackbar(
-          message = uiState.lockingState.message ?: "Report locked successfully",
-          type = SnackbarType.SUCCESS,
-          withDismissAction = true
-        )
       }
     }
 
@@ -210,28 +184,16 @@ fun DailyReportScreen(
             onLockReport = onLockReport,
           )
 
-          // snackbars in the sheet
-          FreyzaSnackbarHost(sheetSnackbarHostState)
+          FreyzaSnackbarHost(
+            hostState = LocalSnackbarHostState.current, modifier = Modifier
+              .padding(bottom = 16.dp)
+          )
         }
       }
     }
 
     LaunchedEffect(visitCreated) {
-      if (visitCreated == true) {
-        snackbarHostState.showTypedSnackbar(
-          "Visit created successfully",
-          type = SnackbarType.SUCCESS,
-          withDismissAction = false,
-          dismissCurrent = true
-        )
-        onVisitCreatedConsumed()
-      } else if (visitCreated == false) {
-        snackbarHostState.showTypedSnackbar(
-          "Unable to create the visit",
-          type = SnackbarType.ERROR,
-          withDismissAction = false,
-          dismissCurrent = true
-        )
+      if (visitCreated != null) {
         onVisitCreatedConsumed()
       }
     }

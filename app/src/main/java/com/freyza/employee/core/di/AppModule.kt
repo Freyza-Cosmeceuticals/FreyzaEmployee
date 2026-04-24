@@ -3,6 +3,7 @@ package com.freyza.employee.core.di
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.data.repository.AuthenticationRepositoryImpl
 import com.freyza.employee.data.repository.DailyReportRepositoryImpl
 import com.freyza.employee.data.repository.LocationRepositoryImpl
@@ -80,6 +81,10 @@ val appModule = module {
   single<SessionManager> {
     SessionManager()
   }
+
+  single<SnackbarManager> {
+    SnackbarManager()
+  }
 }
 
 val repositoryModule = module {
@@ -145,18 +150,19 @@ val useCaseModule = module {
 
 val viewModelModule = module {
   viewModel { MainViewModel(get(), get(), get(), get()) }
-  viewModel { LoginViewModel(get(), get()) }
-  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
-  viewModel { TravelPlanViewModel(get(), get(), get(), get()) }
-  viewModel { DailyReportViewModel(get(), get(), get(), get()) }
+  viewModel { LoginViewModel(get(), get(), get()) }
+  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+  viewModel { TravelPlanViewModel(get(), get(), get(), get(), get()) }
+  viewModel { DailyReportViewModel(get(), get(), get(), get(), get()) }
   viewModel { (visitType: VisitType, reportId: String, employeeId: String) ->
     AddVisitViewModel(
       visitType,
       reportId,
       employeeId,
       get(),
+      get(),
       get()
     )
   }
-  viewModel { ProfileViewModel(get()) }
+  viewModel { ProfileViewModel(get(), get()) }
 }

@@ -16,20 +16,22 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
 @Composable
 fun Skeleton(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .padding(2.dp)
-            .clip(RoundedCornerShape(15))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-    )
+  Box(
+    modifier = modifier
+        .padding(2.dp)
+        .clip(RoundedCornerShape(15))
+        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+  )
 }
 
 @Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun SkeletonPreview() {
-    FreyzaEmployeeTheme {
-        Skeleton(modifier = Modifier
-            .width(100.dp)
-            .height(25.dp))
-    }
+  FreyzaEmployeeTheme {
+    Skeleton(
+      modifier = Modifier
+          .width(100.dp)
+          .height(25.dp)
+    )
+  }
 }

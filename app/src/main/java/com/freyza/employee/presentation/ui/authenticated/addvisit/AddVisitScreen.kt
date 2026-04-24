@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,23 +32,19 @@ import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
-import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
-import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.ProductDetail
 import com.freyza.employee.domain.model.VisitCreate
@@ -58,7 +53,6 @@ import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapp
 import com.freyza.employee.presentation.ui.authenticated.addvisit.composables.TagInputField
 import com.freyza.employee.presentation.ui.authenticated.addvisit.composables.ToggleableRow
 import com.freyza.employee.presentation.ui.composables.FreyzaAddVisitAppBar
-import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
@@ -66,7 +60,6 @@ import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.dummyMainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.AddVisitViewModel
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 data class ProductEntry(
@@ -115,11 +108,6 @@ fun AddVisitScreen(
   onSubmitVisit: (visitCreate: VisitCreate) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val scope = rememberCoroutineScope()
-  val snackbarHostState = remember { SnackbarHostState() }
-
-  val unknownErrorString = stringResource(R.string.error_unknown)
-
   var notes by rememberSaveable { mutableStateOf<String?>(null) }
 
   // Doctor / Chemist specific
@@ -153,7 +141,6 @@ fun AddVisitScreen(
         uiState.visitType,
         navigateUp = { onNavigateUp(if (uiState.creationState is UIState.Error) false else null) })
     },
-    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
@@ -164,23 +151,8 @@ fun AddVisitScreen(
 
     // handle screen transitions and error states
     LaunchedEffect(uiState.creationState) {
-      when (uiState.creationState) {
-        is UIState.Ready -> {
-          onNavigateUp(true)
-        }
-
-        is UIState.Error -> {
-          scope.launch {
-            snackbarHostState.currentSnackbarData?.dismiss()
-
-            snackbarHostState.showTypedSnackbar(
-              message = uiState.creationState.message?.trim()?.lines()?.first()
-                ?: unknownErrorString, type = SnackbarType.ERROR, withDismissAction = true
-            )
-          }
-        }
-
-        else -> {}
+      if (uiState.creationState is UIState.Ready) {
+        onNavigateUp(true)
       }
     }
 

@@ -28,14 +28,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,16 +60,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
-import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
-import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.presentation.ui.composables.FreyzaDefaultAppBar
-import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
 import io.github.jan.supabase.auth.user.UserInfo
-import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -111,11 +104,6 @@ private fun LoginScreen(
   var password by rememberSaveable { mutableStateOf("") }
   var error by rememberSaveable { mutableStateOf(uiState.message) }
 
-  val scope = rememberCoroutineScope()
-  val snackbarHostState = remember { SnackbarHostState() }
-
-  val unknownErrorString = stringResource(R.string.error_unknown)
-
   val focusManager = LocalFocusManager.current
   val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
 
@@ -125,8 +113,7 @@ private fun LoginScreen(
     topBar = { FreyzaDefaultAppBar() },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-    ),
-    snackbarHost = { FreyzaSnackbarHost(snackbarHostState) }) { paddingValues ->
+    )) { paddingValues ->
     Column(
       modifier = modifier
         .fillMaxSize()
@@ -151,15 +138,6 @@ private fun LoginScreen(
 
             is UIState.Error -> {
               error = uiState.message
-              scope.launch {
-                snackbarHostState.currentSnackbarData?.dismiss()
-
-                snackbarHostState.showTypedSnackbar(
-                  message = uiState.message?.trim()?.lines()?.first() ?: unknownErrorString,
-                  type = SnackbarType.ERROR,
-                  withDismissAction = true
-                )
-              }
             }
 
             is UIState.Loading -> {

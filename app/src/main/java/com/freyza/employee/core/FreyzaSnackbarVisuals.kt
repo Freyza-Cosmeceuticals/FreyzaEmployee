@@ -3,6 +3,7 @@ package com.freyza.employee.core
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -39,10 +40,10 @@ suspend fun SnackbarHostState.showTypedSnackbar(
   duration: SnackbarDuration = SnackbarDuration.Short,
   withDismissAction: Boolean = false,
   dismissCurrent: Boolean = false,
-) {
+): SnackbarResult {
   if (dismissCurrent) currentSnackbarData?.dismiss()
 
-  showSnackbar(
+  return showSnackbar(
     FreyzaSnackbarVisuals(
       message = message,
       actionLabel = actionLabel,

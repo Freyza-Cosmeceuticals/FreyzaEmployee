@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetTravelPlanEntriesUseCase
@@ -25,6 +26,7 @@ class TravelPlanViewModel(
   private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
   private val getTravelPlanEntries: GetTravelPlanEntriesUseCase,
   private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
+  private val snackbarManager: SnackbarManager,
 ) : ViewModel() {
 
   companion object {
