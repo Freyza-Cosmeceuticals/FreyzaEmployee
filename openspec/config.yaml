@@ -1,0 +1,57 @@
+schema: spec-driven
+
+context: |
+  Project: Freyza Employee App (Android)
+  Tech Stack: Kotlin 2.3.0, Jetpack Compose (Material 3), Koin 4.1.1.
+  Backend: Supabase (PostgreSQL + Auth).
+  Build Flavors: dev, preview, prod (applicationId varies by flavor).
+
+  Architecture Rules:
+  1. Clean Architecture: Strictly separate `domain`, `data`, and `presentation` layers.
+  2. State Management: ViewModels must expose `StateFlow` using a sealed `UIState<T>` class (Idle, Loading, Ready, Error).
+  3. Domain Logic: All business logic must go through `UseCase` classes returning a sealed `Result<T>` (Success, Error, Loading).
+  4. Dependency Injection: Use Koin. Define modules in `core/di/AppModule.kt`. Use `parametersOf()` for dynamic ViewModel injections.
+  5. Navigation: Use Jetpack Compose Type-Safe Navigation with `NavRoutes` class keys.
+  6. UI Patterns: Keep ephemeral UI state (text fields, toggles) hoisted using `rememberSaveable` inside Composables. Only send structured `Event` sealed classes to ViewModels.
+
+  Core Models:
+  - User: id, name, email, phone, role, status, tier, hqId, joiningDate
+  - DailyReport: id, employeeId, date, dayType, routeId, ta, da, totalExpense, visits, locked
+  - TravelPlan: id, employeeId, month, entries, createdById
+  - TravelPlanEntry: id, tpId, date, dayType, routeId
+  - Route: id, srcLocId, destLocId, distanceKm
+  - Location: id, name, address, type
+  - Visit: id, reportId, type, name, remarks, createdAt
+
+  Enums:
+  - DayType: WORK, HOLIDAY, LEAVE
+  - UserRole: EMPLOYEE, ADMIN
+  - UserStatus: ACTIVE, REVOKED
+  - EmployeeTier: FSO, TABM, ASM
+
+  Existing Route Keys:
+  - `NavRoutes.Unauthenticated.Login`
+  - `NavRoutes.Authenticated.Home`
+  - `NavRoutes.Authenticated.TravelPlan`
+  - `NavRoutes.Authenticated.DailyReports`
+  - `NavRoutes.Authenticated.AddVisit(type, reportId, employeeId)`
+  - `NavRoutes.Authenticated.Profile`
+
+  Key ViewModels:
+  - LoginViewModel, HomeViewModel, TravelPlanViewModel, DailyReportViewModel, AddVisitViewModel, ProfileViewModel, MainViewModel
+
+  UI Composables:
+  - FreyzaAppBar, FreyzaBottomNavBar, FreyzaFabButton, FreyzaSnackbarHost, Skeleton, LoadingIndicator
+  - RouteItem, VisitBadge, ReportLockedBadge, VersionInfo
+  - AuthenticatedRouteWrapper
+
+  Core Utilities:
+  - SessionManager (auth session), SnackbarManager, SharedPreferencesHelper, DateFormatter, Logger
+
+rules:
+  proposal:
+    - Detail the exact data flow: UI Event -> ViewModel -> UseCase -> Repository -> Network.
+    - Specify if the feature requires background execution (WorkManager) or hardware access (GPS/Camera).
+  tasks:
+    - Separate tasks by layer: "Domain (Models/UseCases)", "Data (Repository/API)", and "Presentation (ViewModel/Compose)".
+    - Never generate XML layouts. Strictly use Jetpack Compose.
