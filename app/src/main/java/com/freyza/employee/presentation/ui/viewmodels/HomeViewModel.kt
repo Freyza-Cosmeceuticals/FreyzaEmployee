@@ -323,7 +323,7 @@ class HomeViewModel(
           } else {
             // set the resolved dayType and route if a valid dailyReport is found
             setReportDayType(result.data.dayType)
-            result.data.routeId?.let { setReportRoute(it) }
+            setReportRoute(result.data.routeId)
           }
         }
 
@@ -350,7 +350,13 @@ class HomeViewModel(
     }
   }
 
-  private fun setReportRoute(routeId: String) {
+  private fun setReportRoute(routeId: String?) {
+    if (routeId == null) {
+      _uiState.update {
+        it.copy(todayReportRoute = UIState.Ready(null))
+      }
+    }
+
     if (_uiState.value.routes.data?.isEmpty() != true) {
       loadAllRoutes()
     }
@@ -406,7 +412,7 @@ class HomeViewModel(
 
           // set the resolved dayType and route if a valid dailyReport is created
           setReportDayType(result.data.dayType)
-          result.data.routeId?.let { setReportRoute(it) }
+          setReportRoute(result.data.routeId)
           snackbarManager.showSuccess("Daily report created successfully")
 
         }
