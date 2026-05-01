@@ -50,8 +50,8 @@ context: |
 
 rules:
   proposal:
-    - Detail the exact data flow: UI Event -> ViewModel -> UseCase -> Repository -> Network.
-    - Specify if the feature requires background execution (WorkManager) or hardware access (GPS/Camera).
+    - "Detail the exact data flow: UI Event -> ViewModel -> UseCase -> Repository -> Network."
+    - "Specify if the feature requires background execution (WorkManager) or hardware access (GPS/Camera)."
   tasks:
-    - Separate tasks by layer: "Domain (Models/UseCases)", "Data (Repository/API)", and "Presentation (ViewModel/Compose)".
-    - Never generate XML layouts. Strictly use Jetpack Compose.
+    - "Separate tasks by layer: Domain (Models/UseCases), Data (Repository/API), and Presentation (ViewModel/Compose)."
+    - "Never generate XML layouts. Strictly use Jetpack Compose."
