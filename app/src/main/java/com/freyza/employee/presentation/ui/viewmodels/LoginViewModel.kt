@@ -2,11 +2,12 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.SnackbarManager
+import com.freyza.employee.domain.usecase.auth.LoginParams
 import com.freyza.employee.domain.usecase.auth.LoginUseCase
-import com.freyza.employee.domain.usecase.auth.LoginUseCase.Input
 import com.freyza.employee.domain.usecase.auth.LoginWithGoogleUseCase
 import io.github.jan.supabase.auth.user.UserInfo
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,15 +44,15 @@ class LoginViewModel(
 
     _uiState.value = UIState.Loading()
     viewModelScope.launch {
-      when (val result = loginUseCase.execute(Input(email.trim(), password.trim()))) {
-        is LoginUseCase.Output.Success -> {
+      when (val result = loginUseCase(LoginParams(email.trim(), password.trim()))) {
+        is Result.Success -> {
           _uiState.update {
-            UIState.Ready(result.userInfo)
+            UIState.Ready(result.data)
           }
           Logger.d(TAG, "Login with email success")
         }
 
-        is LoginUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             UIState.Error(result.message, null)
           }
@@ -59,9 +60,9 @@ class LoginViewModel(
           Logger.d(TAG, "Login with email failed ${result.message}")
         }
 
-        LoginUseCase.Output.Logout -> {
+        is Result.Loading -> {
           _uiState.update {
-            UIState.Idle()
+            UIState.Loading()
           }
         }
       }
@@ -72,25 +73,25 @@ class LoginViewModel(
     _uiState.value = UIState.Loading()
 
     viewModelScope.launch {
-      when (val result = loginWithGoogleUseCase.execute(LoginWithGoogleUseCase.Input())) {
-        is LoginWithGoogleUseCase.Output.Success -> {
+      when (val result = loginWithGoogleUseCase()) {
+        is Result.Success -> {
           _uiState.update {
-            UIState.Ready(result.userInfo)
+            UIState.Ready(result.data)
           }
           Logger.d(TAG, "Login with google success")
         }
 
-        is LoginWithGoogleUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
-            UIState.Error("Login  failed ${result.message}", null)
+            UIState.Error("Login failed ${result.message}", null)
           }
           snackbarManager.showError("Login failed, please try again")
           Logger.d(TAG, "Login with google failed ${result.message}")
         }
 
-        LoginWithGoogleUseCase.Output.Logout -> {
+        is Result.Loading -> {
           _uiState.update {
-            UIState.Idle()
+            UIState.Loading()
           }
         }
       }

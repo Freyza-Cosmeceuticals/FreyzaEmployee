@@ -2,6 +2,7 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
@@ -31,5 +32,7 @@ class ProfileViewModel(
 
   init {
     Logger.i(TAG, "Init")
+
+    snackbarManager.showMessage("Profile data loading", SnackbarType.DEFAULT)
   }
 }

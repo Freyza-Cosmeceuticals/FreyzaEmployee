@@ -6,6 +6,7 @@ import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.model.UserStatus
 import com.freyza.employee.domain.repository.AuthenticationRepository
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.SignOutScope
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import kotlinx.serialization.json.jsonPrimitive
@@ -13,7 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
 class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepository {
 
     companion object {
-        const val TAG = "AUTH_REPO"
+        const val TAG = "AuthRepository"
     }
 
     override suspend fun login(email: String, password: String): AuthResponse {
@@ -86,7 +87,7 @@ class AuthenticationRepositoryImpl(private val auth: Auth) : AuthenticationRepos
 
     override suspend fun logout(): AuthResponse {
         return try {
-            auth.signOut()
+            auth.signOut(SignOutScope.LOCAL)
             AuthResponse.Logout
         } catch (e: Exception) {
             val cause = e.message?.lines()?.first().toString().trim()

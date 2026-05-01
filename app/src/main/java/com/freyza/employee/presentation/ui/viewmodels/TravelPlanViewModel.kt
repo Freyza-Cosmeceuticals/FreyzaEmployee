@@ -2,6 +2,7 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
@@ -56,24 +57,21 @@ class TravelPlanViewModel(
       )
     }
     viewModelScope.launch {
-      when (val result = getCurrentTravelPlanUseCase.execute(
-        GetCurrentTravelPlanUseCase.Input(
-          employeeId
-        )
-      )) {
-        is GetCurrentTravelPlanUseCase.Output.Success -> {
+      when (val result = getCurrentTravelPlanUseCase(employeeId)) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(currentTravelPlan = UIState.Ready(result.travelPlan))
+            it.copy(currentTravelPlan = UIState.Ready(result.data))
           }
+          snackbarManager.showSuccess("Travel Plan Fetched Successfully")
           Logger.d(
-            TAG, "${result.travelPlan?.id} Current Travel Plan Fetched Successfully"
+            TAG, "${result.data?.id} Current Travel Plan Fetched Successfully"
           )
 
           // fetch all entries
-          if (result.travelPlan?.id !== null) loadTravelPlanEntries(result.travelPlan.id)
+          if (result.data?.id !== null) loadTravelPlanEntries(result.data.id)
         }
 
-        is GetCurrentTravelPlanUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               currentTravelPlan = UIState.Error(message = "Unable to fetch current travel plan")
@@ -81,6 +79,8 @@ class TravelPlanViewModel(
           }
           Logger.e(TAG, "Cannot fetch current travel plan: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -89,18 +89,17 @@ class TravelPlanViewModel(
     Logger.i(TAG, "Fetching all routes")
 
     viewModelScope.launch {
-      when (val result =
-        getAllRoutesWithLocationUseCase.execute(GetAllRoutesWithLocationUseCase.Input())) {
-        is GetAllRoutesWithLocationUseCase.Output.Success -> {
+      when (val result = getAllRoutesWithLocationUseCase()) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(routes = result.routes)
+            it.copy(routes = result.data)
           }
           Logger.d(
-            TAG, "All routes fetched successfully: ${result.routes.size} routes"
+            TAG, "All routes fetched successfully: ${result.data.size} routes"
           )
         }
 
-        is GetAllRoutesWithLocationUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               routes = it.routes
@@ -108,6 +107,8 @@ class TravelPlanViewModel(
           }
           Logger.e(TAG, "Cannot fetch all routes with location: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -122,20 +123,18 @@ class TravelPlanViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = getTravelPlanEntries.execute(
-        GetTravelPlanEntriesUseCase.Input(tpId)
-      )) {
-        is GetTravelPlanEntriesUseCase.Output.Success -> {
+      when (val result = getTravelPlanEntries(tpId)) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(travelPlanEntries = UIState.Ready(result.travelPlanEntries))
+            it.copy(travelPlanEntries = UIState.Ready(result.data))
           }
 
           Logger.d(
-            TAG, "${result.travelPlanEntries.size} Travel Plans Fetched Successfully"
+            TAG, "${result.data.size} Travel Plans Fetched Successfully"
           )
         }
 
-        is GetTravelPlanEntriesUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               travelPlanEntries = UIState.Error(message = "Unable to fetch travel plans")
@@ -143,6 +142,8 @@ class TravelPlanViewModel(
           }
           Logger.e(TAG, "Cannot fetch travel plans: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }

@@ -3,6 +3,7 @@ package com.freyza.employee.presentation.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
+import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
@@ -10,6 +11,7 @@ import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.domain.model.VisitCreate
 import com.freyza.employee.domain.model.VisitType
+import com.freyza.employee.domain.usecase.dailyreport.CreateVisitParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitUseCase
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,31 +101,35 @@ class AddVisitViewModel(
         additionalNotes = visitCreate.notes
       )
 
-      when (val result = createVisitUseCase.execute(
-        CreateVisitUseCase.Input(
+      val result = createVisitUseCase(
+        CreateVisitParams(
           today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)),
           employeeId = employeeId,
           dailyReportId = reportId,
           visitCreateDto = dto
         )
-      )) {
-        is CreateVisitUseCase.Output.Success -> {
+      )
+
+      when (result) {
+        is Result.Success -> {
           _uiState.update {
             it.copy(creationState = UIState.Ready(Unit))
           }
           snackbarManager.showSuccess("Visit created successfully")
           Logger.i(
-            TAG, "visit:${result.visit?.id} New visit marked successfully."
+            TAG, "visit:${result.data.id} New visit marked successfully."
           )
         }
 
-        is CreateVisitUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(creationState = UIState.Error("Unable to mark visit, please try again"))
           }
           snackbarManager.showError("Unable to mark visit, please try again")
           Logger.e(TAG, "Cannot mark visit: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }

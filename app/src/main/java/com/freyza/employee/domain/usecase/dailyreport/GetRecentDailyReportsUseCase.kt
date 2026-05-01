@@ -18,7 +18,7 @@ class GetRecentDailyReportsUseCase(private val dailyReportRepository: DailyRepor
       params.withVisits
     )
     return when (result) {
-      is Result.Success -> Result.Success(result.data ?: emptyList())
+      is Result.Success -> Result.Success(result.data)
       else -> result
     }
   }

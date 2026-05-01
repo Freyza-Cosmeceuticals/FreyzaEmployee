@@ -106,7 +106,7 @@ fun TravelPlanScreen(
   val selectedPlanEntry by remember(selectedDate) {
     derivedStateOf {
       uiState.travelPlanEntries.data?.find {
-        it.date.equals(selectedDate!!.date.toKotlinLocalDate())
+        it.date == selectedDate!!.date.toKotlinLocalDate()
       }
     }
   }

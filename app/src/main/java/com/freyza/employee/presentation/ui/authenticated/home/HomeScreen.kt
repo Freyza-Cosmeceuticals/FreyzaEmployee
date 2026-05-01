@@ -124,29 +124,32 @@ private fun HomeScreen(
 
   val fabOptions = listOf(
     FabActionItem(
-      "Doctor Visit", VisitType.DOCTOR.iconResource(), {
-        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-          VisitType.DOCTOR,
-          uiState.currentDailyReport.data.id,
-          uiState.currentDailyReport.data.employeeId
-        )
-      }),
+      "Doctor Visit", VisitType.DOCTOR.iconResource()
+    ) {
+      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+        VisitType.DOCTOR,
+        uiState.currentDailyReport.data.id,
+        uiState.currentDailyReport.data.employeeId
+      )
+    },
     FabActionItem(
-      "Stockist Visit", VisitType.STOCKIST.iconResource(), {
-        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-          VisitType.STOCKIST,
-          uiState.currentDailyReport.data.id,
-          uiState.currentDailyReport.data.employeeId
-        )
-      }),
+      "Stockist Visit", VisitType.STOCKIST.iconResource()
+    ) {
+      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+        VisitType.STOCKIST,
+        uiState.currentDailyReport.data.id,
+        uiState.currentDailyReport.data.employeeId
+      )
+    },
     FabActionItem(
-      "Chemist Visit", VisitType.CHEMIST.iconResource(), {
-        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-          VisitType.CHEMIST,
-          uiState.currentDailyReport.data.id,
-          uiState.currentDailyReport.data.employeeId
-        )
-      }),
+      "Chemist Visit", VisitType.CHEMIST.iconResource()
+    ) {
+      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+        VisitType.CHEMIST,
+        uiState.currentDailyReport.data.id,
+        uiState.currentDailyReport.data.employeeId
+      )
+    },
   )
 
 

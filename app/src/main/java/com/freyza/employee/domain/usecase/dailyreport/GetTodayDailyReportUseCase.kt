@@ -12,7 +12,7 @@ data class GetTodayDailyReportParams(
 )
 
 class GetTodayDailyReportUseCase(private val dailyReportRepository: DailyReportRepository) {
-  suspend operator fun invoke(params: GetTodayDailyReportParams): Result<DailyReport> {
+  suspend operator fun invoke(params: GetTodayDailyReportParams): Result<DailyReport?> {
     return dailyReportRepository.getTodayDailyReport(
       params.today, params.employeeId, params.withVisits
     )

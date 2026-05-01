@@ -28,7 +28,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
     today: LocalDate,
     employeeId: String,
     withVisits: Boolean,
-  ): Result<DailyReport> {
+  ): Result<DailyReport?> {
     return try {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
@@ -118,7 +118,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
   override suspend fun getDailyReport(
     id: String,
     withVisits: Boolean,
-  ): Result<DailyReport> {
+  ): Result<DailyReport?> {
     return try {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying dailyReport with id: $id")

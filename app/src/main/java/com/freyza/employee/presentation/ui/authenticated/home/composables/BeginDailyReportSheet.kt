@@ -222,8 +222,8 @@ fun BeginDailyReportSheet(
             index = i, count = com.freyza.employee.domain.model.dayTypes.size
           ), onClick = {
             selectedDayType = type
-            if (selectedDayType != DayType.WORK) selectedRoute = null
-            else selectedRoute = planEntry.routeId
+            selectedRoute = if (selectedDayType != DayType.WORK) null
+            else planEntry.routeId
           }, selected = selectedDayType == type
         ) {
           Text(type.titleCase())

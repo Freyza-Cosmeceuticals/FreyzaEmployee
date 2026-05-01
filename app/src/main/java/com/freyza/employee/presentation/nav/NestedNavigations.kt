@@ -129,7 +129,7 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
         visitCreated = visitCreated,
         onVisitCreatedConsumed = {
           // The child screen calls this AFTER it has shown the UI change
-          navBackStackEntry.savedStateHandle.set("created", null)
+          navBackStackEntry.savedStateHandle["created"] = null
         },
         onNavigateToUnauthenticated = {
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {

@@ -13,7 +13,7 @@ interface DailyReportRepository {
     today: LocalDate,
     employeeId: String,
     withVisits: Boolean = false,
-  ): Result<DailyReport>
+  ): Result<DailyReport?>
 
   suspend fun getRecentDailyReports(
     numDailyReports: Int,
@@ -22,7 +22,7 @@ interface DailyReportRepository {
   ): Result<List<DailyReport>>
 
   suspend fun getVisits(dailyReportId: String): Result<List<Visit>>
-  suspend fun getDailyReport(id: String, withVisits: Boolean = false): Result<DailyReport>
+  suspend fun getDailyReport(id: String, withVisits: Boolean = false): Result<DailyReport?>
 
   suspend fun createTodayDailyReport(
     today: LocalDate,
