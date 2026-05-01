@@ -3,10 +3,12 @@ package com.freyza.employee.presentation.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
+import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.SnackbarManager
+import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsParams
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCase
 import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
@@ -66,23 +68,25 @@ class DailyReportViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = getAllDailyReportUseCase.execute(
-        GetRecentDailyReportsUseCase.Input(
+      val result = getAllDailyReportUseCase(
+        GetRecentDailyReportsParams(
           Constants.NUM_RECENT_DAILY_REPORTS,
           employeeId,
           true,
         )
-      )) {
-        is GetRecentDailyReportsUseCase.Output.Success -> {
+      )
+
+      when (result) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(dailyReports = UIState.Ready(result.dailyReports))
+            it.copy(dailyReports = UIState.Ready(result.data))
           }
           Logger.d(
-            TAG, "${result.dailyReports.size} Daily Reports Fetched Successfully"
+            TAG, "${result.data.size} Daily Reports Fetched Successfully"
           )
         }
 
-        is GetRecentDailyReportsUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               dailyReports = UIState.Error(message = "Unable to fetch daily reports")
@@ -90,6 +94,8 @@ class DailyReportViewModel(
           }
           Logger.e(TAG, "Cannot fetch daily reports: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -102,8 +108,8 @@ class DailyReportViewModel(
     }
 
     viewModelScope.launch {
-      when (lockReportUseCase.execute(LockReportUseCase.Input(reportId))) {
-        is LockReportUseCase.Output.Success -> {
+      when (lockReportUseCase(reportId)) {
+        is Result.Success -> {
           _uiState.update {
             it.copy(lockingState = UIState.Ready(Unit, "Report locked"))
           }
@@ -114,13 +120,15 @@ class DailyReportViewModel(
           loadAllDailyReports()
         }
 
-        is LockReportUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(lockingState = UIState.Error("Unable to lock, please try again"))
           }
           snackbarManager.showError("Failed to lock report, please try again")
           Logger.e(TAG, "Failed to lock report:$reportId")
         }
+
+        else -> {}
       }
     }
   }
@@ -134,17 +142,17 @@ class DailyReportViewModel(
 
     viewModelScope.launch {
       when (val result =
-        getAllRoutesWithLocationUseCase.execute(GetAllRoutesWithLocationUseCase.Input())) {
-        is GetAllRoutesWithLocationUseCase.Output.Success -> {
+        getAllRoutesWithLocationUseCase()) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(routes = UIState.Ready(result.routes))
+            it.copy(routes = UIState.Ready(result.data))
           }
           Logger.d(
-            TAG, "All routes fetched successfully: ${result.routes.size} routes"
+            TAG, "All routes fetched successfully: ${result.data.size} routes"
           )
         }
 
-        is GetAllRoutesWithLocationUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               routes = UIState.Error(message = "Unable to routes")
@@ -152,6 +160,8 @@ class DailyReportViewModel(
           }
           Logger.e(TAG, "Cannot fetch all routes with location: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }

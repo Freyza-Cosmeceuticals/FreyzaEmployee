@@ -17,10 +17,10 @@ class UserRepositoryImpl(
     private val postgres: Postgrest,
 ) : UserRepository {
     companion object {
-        const val TAG: String = "USER_REPO"
+        const val TAG: String = "UserRepository"
     }
 
-    override suspend fun getUserById(id: String): Result<User> {
+    override suspend fun getUserById(id: String): Result<User?> {
         return try {
             withContext(Dispatchers.IO) {
                 val userDto = postgres.from("user").select {
@@ -37,7 +37,7 @@ class UserRepositoryImpl(
         }
     }
 
-    override suspend fun getCurrentUser(): Result<UserInfo> {
+    override suspend fun getCurrentUser(): Result<UserInfo?> {
         return try {
             val userInfo = auth.currentUserOrNull()
             Result.Success(userInfo)

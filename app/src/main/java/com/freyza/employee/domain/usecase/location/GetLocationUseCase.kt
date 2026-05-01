@@ -1,13 +1,11 @@
 package com.freyza.employee.domain.usecase.location
 
+import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.Location
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.domain.repository.LocationRepository
 
-interface GetLocationUseCase : UseCase<GetLocationUseCase.Input, GetLocationUseCase.Output> {
-    class Input(val id: String)
-
-    sealed class Output() {
-        data class Success(val location: Location?) : Output()
-        data class Failure(val message: String) : Output()
-    }
+class GetLocationUseCase(private val locationRepository: LocationRepository) {
+  suspend operator fun invoke(id: String): Result<Location?> {
+    return locationRepository.getLocation(id)
+  }
 }

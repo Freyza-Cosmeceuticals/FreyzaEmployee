@@ -21,6 +21,8 @@ fun VersionInfo(modifier: Modifier = Modifier) {
       color = MaterialTheme.colorScheme.secondary
     )
 
+    @Suppress("KotlinConstantConditions")
+    // these are build flavors, generated when switching
     when (BuildConfig.FLAVOR) {
       "dev" -> {
         Text(

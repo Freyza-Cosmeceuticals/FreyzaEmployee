@@ -128,23 +128,26 @@ fun DailyReportScreen(
 
   val fabOptions = listOf(
     FabActionItem(
-      "Doctor Visit", VisitType.DOCTOR.iconResource(), {
-        if (todayReport != null) onNavigateToAddVisit(
-          VisitType.DOCTOR, todayReport.id, todayReport.employeeId
-        )
-      }),
+      "Doctor Visit", VisitType.DOCTOR.iconResource()
+    ) {
+      if (todayReport != null) onNavigateToAddVisit(
+        VisitType.DOCTOR, todayReport.id, todayReport.employeeId
+      )
+    },
     FabActionItem(
-      "Stockist Visit", VisitType.STOCKIST.iconResource(), {
-        if (todayReport != null) onNavigateToAddVisit(
-          VisitType.STOCKIST, todayReport.id, todayReport.employeeId
-        )
-      }),
+      "Stockist Visit", VisitType.STOCKIST.iconResource()
+    ) {
+      if (todayReport != null) onNavigateToAddVisit(
+        VisitType.STOCKIST, todayReport.id, todayReport.employeeId
+      )
+    },
     FabActionItem(
-      "Chemist Visit", VisitType.CHEMIST.iconResource(), {
-        if (todayReport != null) onNavigateToAddVisit(
-          VisitType.CHEMIST, todayReport.id, todayReport.employeeId
-        )
-      }),
+      "Chemist Visit", VisitType.CHEMIST.iconResource()
+    ) {
+      if (todayReport != null) onNavigateToAddVisit(
+        VisitType.CHEMIST, todayReport.id, todayReport.employeeId
+      )
+    },
   )
 
   Scaffold(

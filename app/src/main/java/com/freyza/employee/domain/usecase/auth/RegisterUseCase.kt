@@ -1,13 +1,18 @@
 package com.freyza.employee.domain.usecase.auth
 
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.core.AuthResponse
+import com.freyza.employee.core.Result
+import com.freyza.employee.domain.repository.AuthenticationRepository
 import io.github.jan.supabase.auth.user.UserInfo
 
-interface RegisterUseCase : UseCase<RegisterUseCase.Input, RegisterUseCase.Output> {
-    class Input(val name: String, val email: String, val password: String)
-    sealed class Output {
-        data class Success(val userInfo: UserInfo? = null) : Output()
-        data class Failure(val message: String) : Output()
-        object Logout : Output()
+data class RegisterParams(val name: String, val email: String, val password: String)
+
+class RegisterUseCase(private val authRepository: AuthenticationRepository) {
+  suspend operator fun invoke(params: RegisterParams): Result<UserInfo?> {
+    return when (val result = authRepository.register(params.name, params.email, params.password)) {
+      is AuthResponse.Success -> Result.Success(result.userInfo)
+      is AuthResponse.Error -> Result.Error(result.message)
+      AuthResponse.Logout -> Result.Error("User logged out")
     }
+  }
 }

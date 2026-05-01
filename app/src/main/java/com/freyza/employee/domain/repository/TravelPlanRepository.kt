@@ -8,9 +8,9 @@ interface TravelPlanRepository {
   suspend fun getCurrentTravelPlan(
     employeeId: String,
     withEntries: Boolean = false,
-  ): Result<TravelPlan>
+  ): Result<TravelPlan?>
 
-  suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry>
+  suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry?>
   suspend fun getTravelPlanEntries(tpId: String): Result<List<TravelPlanEntry>>
-  suspend fun getTravelPlan(id: String): Result<TravelPlan>
+  suspend fun getTravelPlan(id: String): Result<TravelPlan?>
 }

@@ -1,8 +1,11 @@
 package com.freyza.employee.presentation.ui.viewmodels
 
+import android.app.Activity
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
+import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
@@ -82,24 +85,22 @@ class MainViewModel(
           if (validSession) {
             Logger.d(TAG, "Fetching user info using getUserUseCase")
 
-            val result = getUserUseCase.execute(GetUserUseCase.Input(id = supabaseUser.id))
-            val user = when (result) {
-              is GetUserUseCase.Output.Success if result.user != null -> {
-                if (result.user.role == UserRole.EMPLOYEE) {
-                  result.user.copy(userInfo = supabaseUser)
+            val user = when (val result = getUserUseCase(supabaseUser.id)) {
+              is Result.Success -> {
+                if (result.data?.role == UserRole.EMPLOYEE) {
+                  result.data.copy(userInfo = supabaseUser)
                 } else {
                   logout()
                   throw IllegalStateException("Invalid Admin Login on Employee App")
                 }
               }
 
-              is GetUserUseCase.Output.Failure -> {
+              is Result.Error -> {
                 throw Exception(result.message)
               }
 
-              else -> {
-                logout()
-                throw Exception("User data not found or inconsistent")
+              is Result.Loading -> {
+                throw Exception("UseCase still loading")
               }
             }
 
@@ -132,6 +133,11 @@ class MainViewModel(
     }
   }
 
+  fun exit(context: Context) {
+    Logger.i(TAG, "Exiting...")
+    (context as? Activity)?.finishAffinity()
+  }
+
   fun logout() {
     Logger.i(TAG, "Logging out...")
     _uiState.update {
@@ -141,8 +147,8 @@ class MainViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = logoutUseCase.execute(LogoutUseCase.Input())) {
-        is LogoutUseCase.Output.Success -> {
+      when (val result = logoutUseCase()) {
+        is Result.Success -> {
           sessionManager.clearSession()
           _uiState.update {
             UIState.Ready(
@@ -156,10 +162,16 @@ class MainViewModel(
           Logger.d(TAG, "Logout success")
         }
 
-        is LogoutUseCase.Output.Failure -> {
+        is Result.Error -> {
           Logger.e(TAG, "Logout failed: ${result.message}")
           _uiState.update {
             UIState.Error("Error logging out", it.data?.copy(today = getTodayDate()))
+          }
+        }
+
+        is Result.Loading -> {
+          _uiState.update {
+            UIState.Loading(it.data ?: MainUiState(today = getTodayDate()))
           }
         }
       }
@@ -170,7 +182,7 @@ class MainViewModel(
     Logger.d(TAG, "Listening to UI Events")
 
     viewModelScope.launch(Dispatchers.Default) {
-      uiState.collect {state ->
+      uiState.collect { state ->
         when (state) {
           is UIState.Idle -> Logger.d(TAG, "UIState: Idle")
           is UIState.Loading -> Logger.d(TAG, "UIState: Loading")
@@ -243,7 +255,6 @@ class MainViewModel(
       auth.events.collect { event ->
         when (event) {
           is AuthEvent.RefreshFailure -> {
-
             // update UI State
             when (val cause = event.cause) {
               is RefreshFailureCause.NetworkError -> _uiState.update {

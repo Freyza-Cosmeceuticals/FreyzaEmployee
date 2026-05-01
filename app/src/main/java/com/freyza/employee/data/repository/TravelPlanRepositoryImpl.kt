@@ -29,7 +29,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
   override suspend fun getCurrentTravelPlan(
     employeeId: String,
     withEntries: Boolean,
-  ): Result<TravelPlan> {
+  ): Result<TravelPlan?> {
     return try {
       val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
       val thisMonth = DateFormatter.format(
@@ -56,7 +56,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
     }
   }
 
-  override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry> {
+  override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry?> {
     return try {
       // TODO: Reset to 0 after testing
       val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
@@ -102,7 +102,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
     }
   }
 
-  override suspend fun getTravelPlan(id: String): Result<TravelPlan> {
+  override suspend fun getTravelPlan(id: String): Result<TravelPlan?> {
     return try {
       withContext(Dispatchers.IO) {
         val travelPlanDto = postgrest.from("travelPlan").select {

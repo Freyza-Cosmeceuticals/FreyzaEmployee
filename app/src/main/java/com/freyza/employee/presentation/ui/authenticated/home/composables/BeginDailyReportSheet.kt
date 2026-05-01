@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -33,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -80,6 +82,7 @@ fun BeginDailyReportSheet(
   onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
   onRetry: () -> Unit,
   onExit: () -> Unit,
+  onLogout: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
 
@@ -132,13 +135,28 @@ fun BeginDailyReportSheet(
 
   val planEntry = (todayTravelPlanEntry as? UIState.Ready)?.data
   if (planEntry == null) {
-    Box(
+    Column(
       Modifier
         .fillMaxWidth()
         .padding(dimensionResource(R.dimen.screen_padding).times(2)),
-      contentAlignment = Alignment.Center
+      horizontalAlignment = Alignment.CenterHorizontally
     ) {
       Text("No travel plan assigned for today", style = MaterialTheme.typography.bodyLarge)
+
+      Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(3)))
+
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(
+          dimensionResource(R.dimen.default_spacing).times(3)
+        )
+      ) {
+        OutlinedButton(onClick = onLogout, modifier = Modifier.weight(1f)) {
+          Text("Logout")
+        }
+        Button(onClick = onExit, modifier = Modifier.weight(1f)) {
+          Text("Exit")
+        }
+      }
     }
 
     return
@@ -222,8 +240,8 @@ fun BeginDailyReportSheet(
             index = i, count = com.freyza.employee.domain.model.dayTypes.size
           ), onClick = {
             selectedDayType = type
-            if (selectedDayType != DayType.WORK) selectedRoute = null
-            else selectedRoute = planEntry.routeId
+            selectedRoute = if (selectedDayType != DayType.WORK) null
+            else planEntry.routeId
           }, selected = selectedDayType == type
         ) {
           Text(type.titleCase())
@@ -371,7 +389,8 @@ private fun SheetPreviewWork() {
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 
@@ -385,7 +404,8 @@ private fun SheetPreviewHoliday() {
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryHoliday()),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 
@@ -400,7 +420,8 @@ private fun SheetPreviewLeave() {
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryLeave()),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 
@@ -414,7 +435,8 @@ private fun SheetPreviewLoadingRoutes() {
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 
@@ -428,7 +450,8 @@ private fun SheetPreviewNoPlan() {
       todayTravelPlanEntry = UIState.Ready(null),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 
@@ -442,7 +465,8 @@ private fun SheetPreviewLoadingPlan() {
       todayTravelPlanEntry = UIState.Loading(null, "Loading Plan..."),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 
@@ -456,7 +480,8 @@ private fun SheetPreviewErrorPlan() {
       todayTravelPlanEntry = UIState.Error("Error loading plan"),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 
@@ -470,7 +495,8 @@ private fun SheetPreviewErrorRoutes() {
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
       onDailyReportBegin = { dayType, routeId -> },
       onRetry = {},
-      onExit = {})
+      onExit = {},
+      onLogout = {})
   }
 }
 

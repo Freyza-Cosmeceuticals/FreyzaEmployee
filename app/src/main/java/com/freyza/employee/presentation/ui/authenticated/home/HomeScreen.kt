@@ -81,6 +81,7 @@ fun HomeScreenRoute(
   onNavigateToUnauthenticated: () -> Unit,
   onNavigateToReport: () -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
+  onExit: () -> Unit
 ) {
   AuthenticatedRouteWrapper(
     mainUiState, onNavigateToUnauthenticated,
@@ -91,11 +92,14 @@ fun HomeScreenRoute(
     5_000,
   ) { mainUiState ->
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
     HomeScreen(
       uiState = uiState,
       mainUiState = mainUiState,
       modifier = modifier,
       onRefresh = viewModel::refresh,
+      onLogout = onNavigateToUnauthenticated,
+      onExit = onExit,
       onDailyReportBegin = viewModel::createCurrentDailyReport,
       onDailyReportRetry = viewModel::loadCurrentDailyReport,
       onNavigateToReport = onNavigateToReport,
@@ -111,6 +115,8 @@ private fun HomeScreen(
   mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   onRefresh: () -> Unit,
+  onLogout: () -> Unit,
+  onExit: () -> Unit,
   onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
   onDailyReportRetry: () -> Unit,
   onNavigateToReport: () -> Unit,
@@ -124,29 +130,32 @@ private fun HomeScreen(
 
   val fabOptions = listOf(
     FabActionItem(
-      "Doctor Visit", VisitType.DOCTOR.iconResource(), {
-        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-          VisitType.DOCTOR,
-          uiState.currentDailyReport.data.id,
-          uiState.currentDailyReport.data.employeeId
-        )
-      }),
+      "Doctor Visit", VisitType.DOCTOR.iconResource()
+    ) {
+      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+        VisitType.DOCTOR,
+        uiState.currentDailyReport.data.id,
+        uiState.currentDailyReport.data.employeeId
+      )
+    },
     FabActionItem(
-      "Stockist Visit", VisitType.STOCKIST.iconResource(), {
-        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-          VisitType.STOCKIST,
-          uiState.currentDailyReport.data.id,
-          uiState.currentDailyReport.data.employeeId
-        )
-      }),
+      "Stockist Visit", VisitType.STOCKIST.iconResource()
+    ) {
+      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+        VisitType.STOCKIST,
+        uiState.currentDailyReport.data.id,
+        uiState.currentDailyReport.data.employeeId
+      )
+    },
     FabActionItem(
-      "Chemist Visit", VisitType.CHEMIST.iconResource(), {
-        if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-          VisitType.CHEMIST,
-          uiState.currentDailyReport.data.id,
-          uiState.currentDailyReport.data.employeeId
-        )
-      }),
+      "Chemist Visit", VisitType.CHEMIST.iconResource()
+    ) {
+      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
+        VisitType.CHEMIST,
+        uiState.currentDailyReport.data.id,
+        uiState.currentDailyReport.data.employeeId
+      )
+    },
   )
 
 
@@ -191,12 +200,14 @@ private fun HomeScreen(
                 todayTravelPlanEntry = uiState.todayTravelPlanEntry,
                 onDailyReportBegin = onDailyReportBegin,
                 onRetry = onRefresh,
-                onExit = {})
+                onExit = onExit,
+                onLogout = onLogout
+              )
             }
 
             FreyzaSnackbarHost(
-              hostState = LocalSnackbarHostState.current, modifier = Modifier
-                .padding(bottom = 16.dp)
+              hostState = LocalSnackbarHostState.current,
+              modifier = Modifier.padding(bottom = 16.dp)
             )
           }
         }
@@ -400,10 +411,12 @@ private fun HomeScreenPreview() {
       uiState = dummyHomeScreenUiState(),
       mainUiState = dummyMainUiState(),
       onRefresh = {},
-      onDailyReportBegin = { dayType, routeId -> },
+      onLogout = {},
+      onExit = {},
+      onDailyReportBegin = { _, _ -> },
       onDailyReportRetry = {},
       onNavigateToReport = {},
-      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> })
+      onNavigateToAddVisit = { _, _, _ -> })
   }
 }
 
@@ -417,9 +430,11 @@ private fun HomeScreenReportErrorPreview() {
       uiState = dummyHomeScreenUiStateDailyReportError(),
       mainUiState = dummyMainUiState(),
       onRefresh = {},
-      onDailyReportBegin = { dayType, routeId -> },
+      onLogout = {},
+      onExit = {},
+      onDailyReportBegin = { _, _ -> },
       onDailyReportRetry = {},
       onNavigateToReport = {},
-      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> })
+      onNavigateToAddVisit = { _, _, _ -> })
   }
 }

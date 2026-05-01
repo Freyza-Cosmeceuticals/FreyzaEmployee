@@ -3,6 +3,7 @@ package com.freyza.employee.presentation.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
+import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
@@ -11,7 +12,9 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.blankLocation
 import com.freyza.employee.domain.model.routeName
 import com.freyza.employee.domain.model.toRouteWithLocation
+import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
+import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
@@ -83,20 +86,16 @@ class HomeViewModel(
       )
     }
     viewModelScope.launch {
-      when (val result = getCurrentTravelPlanUseCase.execute(
-        GetCurrentTravelPlanUseCase.Input(
-          employeeId
-        )
-      )) {
-        is GetCurrentTravelPlanUseCase.Output.Success -> {
+      when (val result = getCurrentTravelPlanUseCase(employeeId)) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(currentTravelPlan = UIState.Ready(result.travelPlan))
+            it.copy(currentTravelPlan = UIState.Ready(result.data))
           }
-          Logger.d(TAG, "tpId:${result.travelPlan?.id} Current Travel Plan Fetched Successfully")
+          Logger.d(TAG, "tpId:${result.data?.id} Current Travel Plan Fetched Successfully")
 
           // fetch today's entry
-          if (result.travelPlan?.id !== null) {
-            loadTodayTravelPlanEntry(result.travelPlan.id)
+          if (result.data?.id !== null) {
+            loadTodayTravelPlanEntry(result.data.id)
           } else {
             // since we can't fetch any further data, set these to ready
             _uiState.update {
@@ -108,7 +107,7 @@ class HomeViewModel(
           }
         }
 
-        is GetCurrentTravelPlanUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               currentTravelPlan = UIState.Error(message = "Unable to fetch current travel plan")
@@ -116,6 +115,8 @@ class HomeViewModel(
           }
           Logger.e(TAG, "Cannot fetch current travel plan: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -130,19 +131,17 @@ class HomeViewModel(
       )
     }
     viewModelScope.launch {
-      when (val result = getTodayTravelPlanEntryUseCase.execute(
-        GetTodayTravelPlanEntryUseCase.Input(tpId)
-      )) {
-        is GetTodayTravelPlanEntryUseCase.Output.Success -> {
+      when (val result = getTodayTravelPlanEntryUseCase(tpId)) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(todayTravelPlanEntry = UIState.Ready(result.travelPlanEntry))
+            it.copy(todayTravelPlanEntry = UIState.Ready(result.data))
           }
           Logger.d(
-            TAG, "${result.travelPlanEntry?.id} Today Travel Plan Entry Fetched Successfully"
+            TAG, "${result.data?.id} Today Travel Plan Entry Fetched Successfully"
           )
 
           // fetch plan's route
-          if (result.travelPlanEntry?.routeId !== null) loadCurrentRoute(result.travelPlanEntry.routeId)
+          if (result.data?.routeId !== null) loadCurrentRoute(result.data.routeId)
           else {
             _uiState.update {
               it.copy(
@@ -152,7 +151,7 @@ class HomeViewModel(
           }
         }
 
-        is GetTodayTravelPlanEntryUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               todayTravelPlanEntry = UIState.Error(message = "Unable to fetch today travel plan entry")
@@ -160,6 +159,8 @@ class HomeViewModel(
           }
           Logger.e(TAG, "Cannot fetch today travel plan entry: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -173,24 +174,24 @@ class HomeViewModel(
       )
     }
     viewModelScope.launch {
-      when (val result = getRouteUseCase.execute(GetRouteUseCase.Input(routeId))) {
-        is GetRouteUseCase.Output.Success -> {
+      when (val result = getRouteUseCase(routeId)) {
+        is Result.Success -> {
           _uiState.update {
             it.copy(
               todayPlanEntryRoute = UIState.Loading(
-                result.route?.toRouteWithLocation(
+                result.data?.toRouteWithLocation(
                   blankLocation(), blankLocation()
                 )
               )
             )
           }
           Logger.d(
-            TAG, "${result.route?.id} Current (Partial) Route Fetched Successfully ${result.route}"
+            TAG, "${result.data?.id} Current (Partial) Route Fetched Successfully ${result.data}"
           )
 
           // fetch both locations if route exists
-          if (result.route !== null) {
-            loadLocationPair(result.route.srcLocId, result.route.destLocId)
+          if (result.data !== null) {
+            loadLocationPair(result.data.srcLocId, result.data.destLocId)
           } else {
             _uiState.update {
               it.copy(
@@ -200,7 +201,7 @@ class HomeViewModel(
           }
         }
 
-        is GetRouteUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               todayPlanEntryRoute = UIState.Error(message = "Unable to fetch the route")
@@ -208,6 +209,8 @@ class HomeViewModel(
           }
           Logger.e(TAG, "Cannot fetch current route: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -221,19 +224,19 @@ class HomeViewModel(
     viewModelScope.launch {
       coroutineScope {
         val srcDeferred = async(Dispatchers.IO) {
-          getLocationUseCase.execute(GetLocationUseCase.Input(srcLocId))
+          getLocationUseCase(srcLocId)
         }
 
         val destDeferred = async(Dispatchers.IO) {
-          getLocationUseCase.execute(GetLocationUseCase.Input(destLocId))
+          getLocationUseCase(destLocId)
         }
 
         val srcResult = srcDeferred.await()
         val destResult = destDeferred.await()
 
-        if (srcResult is GetLocationUseCase.Output.Success && destResult is GetLocationUseCase.Output.Success) {
+        if (srcResult is Result.Success && destResult is Result.Success) {
           val pair =
-            if (srcResult.location != null && destResult.location != null) srcResult.location to destResult.location else null
+            if (srcResult.data != null && destResult.data != null) srcResult.data to destResult.data else null
           _uiState.update {
             it.copy(
               todayPlanEntryRoute = UIState.Ready(
@@ -246,7 +249,7 @@ class HomeViewModel(
 
           Logger.d(
             TAG,
-            "${srcResult.location?.id} -> ${destResult.location?.id} Location Pair Fetched Successfully ${srcResult.location} -> ${destResult.location}"
+            "${srcResult.data?.id} -> ${destResult.data?.id} Location Pair Fetched Successfully ${srcResult.data} -> ${destResult.data}"
           )
         } else {
           _uiState.update {
@@ -255,10 +258,10 @@ class HomeViewModel(
             )
           }
 
-          if (srcResult is GetLocationUseCase.Output.Failure) Logger.e(
+          if (srcResult is Result.Error) Logger.e(
             TAG, "Cannot fetch location pair: ${srcResult.message}"
           )
-          if (destResult is GetLocationUseCase.Output.Failure) Logger.e(
+          if (destResult is Result.Error) Logger.e(
             TAG, "Cannot fetch location pair: ${destResult.message}"
           )
         }
@@ -291,20 +294,22 @@ class HomeViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = getTodayDailyReportUseCase.execute(
-        GetTodayDailyReportUseCase.Input(
+      val result = getTodayDailyReportUseCase(
+        GetTodayDailyReportParams(
           Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId, true
         )
-      )) {
-        is GetTodayDailyReportUseCase.Output.Success -> {
+      )
+
+      when (result) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(currentDailyReport = UIState.Ready(result.dailyReport))
+            it.copy(currentDailyReport = UIState.Ready(result.data))
           }
           Logger.d(
-            TAG, "dailyReportId:${result.dailyReport?.id} Today Daily Report Fetched Successfully"
+            TAG, "dailyReportId:${result.data?.id} Today Daily Report Fetched Successfully"
           )
 
-          if (result.dailyReport?.id == null) {
+          if (result.data?.id == null) {
             Logger.i(
               TAG,
               "Today's Daily Report does not exists, need to create one before proceeding, showing the bottom sheet"
@@ -317,12 +322,12 @@ class HomeViewModel(
             }
           } else {
             // set the resolved dayType and route if a valid dailyReport is found
-            setReportDayType(result.dailyReport.dayType)
-            result.dailyReport.routeId?.let { setReportRoute(it) }
+            setReportDayType(result.data.dayType)
+            setReportRoute(result.data.routeId)
           }
         }
 
-        is GetTodayDailyReportUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               currentDailyReport = UIState.Error(message = "Unable to fetch today's daily report"),
@@ -332,6 +337,8 @@ class HomeViewModel(
           }
           Logger.e(TAG, "Cannot fetch today's daily report: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -343,7 +350,13 @@ class HomeViewModel(
     }
   }
 
-  private fun setReportRoute(routeId: String) {
+  private fun setReportRoute(routeId: String?) {
+    if (routeId == null) {
+      _uiState.update {
+        it.copy(todayReportRoute = UIState.Ready(null))
+      }
+    }
+
     if (_uiState.value.routes.data?.isEmpty() != true) {
       loadAllRoutes()
     }
@@ -382,32 +395,29 @@ class HomeViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = createTodayDailyReportUseCase.execute(
-        CreateTodayDailyReportUseCase.Input(
+      val result = createTodayDailyReportUseCase(
+        CreateTodayDailyReportParams(
           Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId, dayType, routeId
         )
-      )) {
-        is CreateTodayDailyReportUseCase.Output.Success -> {
+      )
+
+      when (result) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(currentDailyReport = UIState.Ready(result.dailyReport))
+            it.copy(currentDailyReport = UIState.Ready(result.data))
           }
           Logger.d(
-            TAG, "dailyReportId:${result.dailyReport?.id} Today Daily Report Created Successfully"
+            TAG, "dailyReportId:${result.data.id} Today Daily Report Created Successfully"
           )
 
-          if (result.dailyReport?.id == null) {
-            Logger.i(
-              TAG, "Today's Daily Report was not created, check logs"
-            )
-          } else {
-            // set the resolved dayType and route if a valid dailyReport is created
-            setReportDayType(result.dailyReport.dayType)
-            result.dailyReport.routeId?.let { setReportRoute(it) }
-            snackbarManager.showSuccess("Daily report created successfully")
-          }
+          // set the resolved dayType and route if a valid dailyReport is created
+          setReportDayType(result.data.dayType)
+          setReportRoute(result.data.routeId)
+          snackbarManager.showSuccess("Daily report created successfully")
+
         }
 
-        is CreateTodayDailyReportUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
               currentDailyReport = UIState.Error(message = "Unable to create today's daily report")
@@ -416,6 +426,8 @@ class HomeViewModel(
           snackbarManager.showError("Unable to create today's daily report, please try again")
           Logger.e(TAG, "Cannot create today's daily report: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }
@@ -428,25 +440,26 @@ class HomeViewModel(
     }
 
     viewModelScope.launch {
-      when (val result =
-        getAllRoutesWithLocationUseCase.execute(GetAllRoutesWithLocationUseCase.Input())) {
-        is GetAllRoutesWithLocationUseCase.Output.Success -> {
+      when (val result = getAllRoutesWithLocationUseCase()) {
+        is Result.Success -> {
           _uiState.update {
-            it.copy(routes = UIState.Ready(result.routes))
+            it.copy(routes = UIState.Ready(result.data))
           }
           Logger.d(
-            TAG, "All routes fetched successfully: ${result.routes.size} routes"
+            TAG, "All routes fetched successfully: ${result.data.size} routes"
           )
         }
 
-        is GetAllRoutesWithLocationUseCase.Output.Failure -> {
+        is Result.Error -> {
           _uiState.update {
             it.copy(
-              routes = UIState.Error(message = "Unable to routes")
+              routes = UIState.Error(message = "Unable to load routes")
             )
           }
           Logger.e(TAG, "Cannot fetch all routes with location: ${result.message}")
         }
+
+        else -> {}
       }
     }
   }

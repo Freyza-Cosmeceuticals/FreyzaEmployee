@@ -15,10 +15,10 @@ import kotlinx.coroutines.withContext
 
 class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
   companion object {
-    const val TAG: String = "ROUTE_REPO"
+    const val TAG: String = "RouteRepository"
   }
 
-  override suspend fun getRoute(routeId: String): Result<Route> {
+  override suspend fun getRoute(routeId: String): Result<Route?> {
     return try {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying route with ID: $routeId")

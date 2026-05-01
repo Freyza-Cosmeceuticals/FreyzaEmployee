@@ -12,10 +12,10 @@ import kotlinx.coroutines.withContext
 
 class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationRepository {
     companion object {
-        const val TAG: String = "LOCATION_REPO"
+        const val TAG: String = "LocationRepo"
     }
 
-    override suspend fun getLocation(locationId: String): Result<Location> {
+    override suspend fun getLocation(locationId: String): Result<Location?> {
         return try {
             withContext(Dispatchers.IO) {
                 Logger.d(TAG, "Querying location with ID: $locationId")
