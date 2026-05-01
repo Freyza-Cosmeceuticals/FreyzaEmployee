@@ -24,17 +24,34 @@ No Android/Compose dependencies.
 - `domain/repository/` - Repository interfaces
 
 ### UseCase Pattern
+UseCases are implemented as plain classes with an `invoke` operator that returns a `Result<T>` wrapper.
 ```kotlin
-interface UseCase<Input, Output> {
-  suspend fun execute(input: Input): Output
-}
-
-// Output is always sealed class
-sealed class Output {
-  class Success(...) : Output()
-  class Failure(...) : Output()
+class GetUserUseCase(private val repo: UserRepository) {
+  suspend operator fun invoke(userId: String): Result<User> {
+    return repo.getUser(userId)
+  }
 }
 ```
+
+#### Scenario: UseCase implementation
+- **WHEN** implementing a UseCase
+- **THEN** it MUST be a plain class returning `Result<T>`
+
+#### Scenario: Successful UseCase execution
+- **WHEN** UseCase executes and returns data
+- **THEN** result SHALL be `Result.Success(data)`
+
+#### Scenario: Failed UseCase execution
+- **WHEN** UseCase executes and encounters an error
+- **THEN** result SHALL be `Result.Error(message)`
+
+#### Scenario: Loading state
+- **WHEN** UseCase is in a loading state
+- **THEN** result SHALL be `Result.Loading()`
+
+#### Scenario: ViewModel consumption
+- **WHEN** ViewModel calls a UseCase
+- **THEN** it MUST handle the `Result` sealed class (Success, Error, Loading) to update `UIState`
 
 ### Repository Pattern
 ```kotlin

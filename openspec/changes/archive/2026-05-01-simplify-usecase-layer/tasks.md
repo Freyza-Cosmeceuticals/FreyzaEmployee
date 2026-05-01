@@ -11,13 +11,13 @@
 
 ## 3. Dependency Injection
 
-- [ ] 3.1 Update `AppModule.kt` (or relevant DI modules) to register UseCase classes directly instead of interface bindings
+- [x] 3.1 Update `AppModule.kt` (or relevant DI modules) to register UseCase classes directly instead of interface bindings
 
 ## 4. Presentation Layer
 
-- [ ] 4.1 Update ViewModels to call UseCase classes as functions
-- [ ] 4.2 Update ViewModel `when` blocks to handle the global `Result` wrapper
+- [x] 4.1 Update ViewModels to call UseCase classes as functions
+- [x] 4.2 Update ViewModel `when` blocks to handle the global `Result` wrapper
 
 ## 5. Verification
 
-- [ ] 5.1 Run `./gradlew assembleDebug` to verify no compilation errors
+- [x] 5.1 Run `./gradlew assembleDebug` to verify no compilation errors
