@@ -68,7 +68,12 @@ fun NavGraphBuilder.unauthenticatedGraph(navController: NavController) {
 /*
 * Builds the Authenticated Navigation Graph
  */
-fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState: MainUiState) {
+fun NavGraphBuilder.authenticatedGraph(
+  navController: NavController,
+  mainUiState: MainUiState,
+  onExit: () -> Unit,
+  onLogout: () -> Unit,
+) {
 
   navigation<NavRoutes.Authenticated.NavigationRoute>(
     startDestination = NavRoutes.Authenticated.Home
@@ -76,31 +81,40 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
     composable<NavRoutes.Authenticated.Home> {
       val vm = koinViewModel<HomeViewModel>()
 
-      HomeScreenRoute(mainUiState = mainUiState, viewModel = vm, onNavigateToUnauthenticated = {
-        navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
-          popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
-            inclusive = true
+      HomeScreenRoute(
+        mainUiState = mainUiState,
+        viewModel = vm,
+        onNavigateToUnauthenticated = {
+          onLogout()
+          navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
+            popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
+              inclusive = true
+            }
           }
-        }
-      }, onNavigateToReport = {
-        navController.navigateToTab(route = NavRoutes.Authenticated.DailyReports)
-      }, onNavigateToAddVisit = { visitType: VisitType, reportId: String, employeeId: String ->
-        Logger.d(
-          TAG,
-          "Navigating to AddVisit(visitType: ${visitType}, reportId: ${reportId}, employeeId: ${employeeId}) from HomeScreen from reports screen"
-        )
-        navController.navigate(
-          route = NavRoutes.Authenticated.AddVisit(
-            type = visitType, reportId = reportId, employeeId = employeeId
+        },
+        onNavigateToReport = {
+          navController.navigateToTab(route = NavRoutes.Authenticated.DailyReports)
+        },
+        onNavigateToAddVisit = { visitType: VisitType, reportId: String, employeeId: String ->
+          Logger.d(
+            TAG,
+            "Navigating to AddVisit(visitType: ${visitType}, reportId: ${reportId}, employeeId: ${employeeId}) from HomeScreen from reports screen"
           )
-        )
-      })
+          navController.navigate(
+            route = NavRoutes.Authenticated.AddVisit(
+              type = visitType, reportId = reportId, employeeId = employeeId
+            )
+          )
+        },
+        onExit = onExit,
+      )
     }
 
     composable<NavRoutes.Authenticated.TravelPlan> {
       val vm = koinViewModel<TravelPlanViewModel>()
       TravelPlanScreenRoute(
         mainUiState = mainUiState, viewModel = vm, onNavigateToUnauthenticated = {
+          onLogout()
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
             popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
               inclusive = true
@@ -132,6 +146,7 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
           navBackStackEntry.savedStateHandle["created"] = null
         },
         onNavigateToUnauthenticated = {
+          onLogout()
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
             popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
               inclusive = true
@@ -169,6 +184,7 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
         navController.previousBackStackEntry?.savedStateHandle?.set("created", created)
         navController.popBackStack()
       }, onNavigateToUnauthenticated = {
+        onLogout()
         navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
           popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
             inclusive = true
@@ -181,6 +197,7 @@ fun NavGraphBuilder.authenticatedGraph(navController: NavController, mainUiState
       val vm = koinViewModel<ProfileViewModel>()
       ProfileScreenRoute(
         mainUiState = mainUiState, viewModel = vm, onNavigateToUnauthenticated = {
+          onLogout()
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
             popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
               inclusive = true

@@ -1,5 +1,7 @@
 package com.freyza.employee.presentation.ui.viewmodels
 
+import android.app.Activity
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
@@ -131,6 +133,11 @@ class MainViewModel(
     }
   }
 
+  fun exit(context: Context) {
+    Logger.i(TAG, "Exiting...")
+    (context as? Activity)?.finishAffinity()
+  }
+
   fun logout() {
     Logger.i(TAG, "Logging out...")
     _uiState.update {
@@ -175,7 +182,7 @@ class MainViewModel(
     Logger.d(TAG, "Listening to UI Events")
 
     viewModelScope.launch(Dispatchers.Default) {
-      uiState.collect {state ->
+      uiState.collect { state ->
         when (state) {
           is UIState.Idle -> Logger.d(TAG, "UIState: Idle")
           is UIState.Loading -> Logger.d(TAG, "UIState: Loading")

@@ -34,8 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -99,6 +98,7 @@ fun FreyzaEmployeeApp(
         }
 
         is UIState.Ready -> {
+          val context = LocalContext.current
           // if valid login found, start with the Authenticated route, otherwise the Unauthenticated route.
           val startDestination =
             if (res.data?.hasValidSession == true && res.data.user != null) NavRoutes.Authenticated.NavigationRoute else NavRoutes.Unauthenticated.NavigationRoute
@@ -112,7 +112,12 @@ fun FreyzaEmployeeApp(
                 navController = navController, startDestination = startDestination
               ) {
                 unauthenticatedGraph(navController = navController)
-                authenticatedGraph(navController = navController, mainUiState = res.data!!)
+                authenticatedGraph(
+                  navController = navController,
+                  mainUiState = res.data!!,
+                  onExit = { mainViewModel.exit(context) },
+                  onLogout = mainViewModel::logout
+                )
               }
             }
           }
@@ -139,14 +144,14 @@ fun FreyzaEmployeeApp(
         else -> {}
       }
 
-      Popup(
-        alignment = Alignment.BottomCenter, properties = PopupProperties(
-          focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false
-        )
+      Box(
+        modifier = Modifier
+          .fillMaxSize()
+          .zIndex(10f), contentAlignment = Alignment.BottomCenter
       ) {
         FreyzaSnackbarHost(
           hostState = snackbarHostState, modifier = Modifier
-            .padding(bottom = 80.dp)
+            .padding(bottom = 84.dp)
         )
       }
     }
