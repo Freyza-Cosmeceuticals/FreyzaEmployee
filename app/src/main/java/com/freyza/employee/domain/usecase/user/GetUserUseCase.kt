@@ -1,13 +1,11 @@
 package com.freyza.employee.domain.usecase.user
 
+import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.User
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.domain.repository.UserRepository
 
-interface GetUserUseCase : UseCase<GetUserUseCase.Input, GetUserUseCase.Output> {
-    class Input(val id: String)
-
-    sealed class Output() {
-        data class Success(val user: User?) : Output()
-        data class Failure(val message: String) : Output()
-    }
+class GetUserUseCase(private val userRepository: UserRepository) {
+  suspend operator fun invoke(id: String): Result<User> {
+    return userRepository.getUserById(id)
+  }
 }

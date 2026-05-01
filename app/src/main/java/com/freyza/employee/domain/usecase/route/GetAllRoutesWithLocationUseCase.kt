@@ -1,14 +1,14 @@
 package com.freyza.employee.domain.usecase.route
 
+import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.RouteWithLocation
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.domain.repository.RouteRepository
 
-interface GetAllRoutesWithLocationUseCase :
-  UseCase<GetAllRoutesWithLocationUseCase.Input, GetAllRoutesWithLocationUseCase.Output> {
-  class Input()
-
-  sealed class Output() {
-    data class Success(val routes: List<RouteWithLocation>) : Output()
-    data class Failure(val message: String) : Output()
+class GetAllRoutesWithLocationUseCase(private val routeRepository: RouteRepository) {
+  suspend operator fun invoke(): Result<List<RouteWithLocation>> {
+    return when (val result = routeRepository.getAllRoutesWithLocation()) {
+      is Result.Success -> Result.Success(result.data ?: listOf())
+      else -> result
+    }
   }
 }

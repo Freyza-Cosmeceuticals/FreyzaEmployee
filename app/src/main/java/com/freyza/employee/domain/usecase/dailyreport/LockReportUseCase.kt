@@ -1,13 +1,13 @@
 package com.freyza.employee.domain.usecase.dailyreport
 
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.core.Result
+import com.freyza.employee.domain.repository.DailyReportRepository
 
-interface LockReportUseCase :
-  UseCase<LockReportUseCase.Input, LockReportUseCase.Output> {
-  class Input(val reportId: String)
-
-  sealed class Output() {
-    data class Success(val locked: Boolean) : Output()
-    data class Failure(val message: String) : Output()
+class LockReportUseCase(private val dailyReportRepository: DailyReportRepository) {
+  suspend operator fun invoke(reportId: String): Result<Boolean> {
+    return when (val result = dailyReportRepository.lockReport(reportId)) {
+      is Result.Success -> Result.Success(result.data == true)
+      else -> result
+    }
   }
 }

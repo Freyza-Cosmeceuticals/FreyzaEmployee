@@ -1,21 +1,25 @@
 package com.freyza.employee.domain.usecase.dailyreport
 
+import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.domain.repository.DailyReportRepository
 import kotlinx.datetime.LocalDate
 
-interface CreateTodayDailyReportUseCase:
-  UseCase<CreateTodayDailyReportUseCase.Input, CreateTodayDailyReportUseCase.Output> {
-  class Input(
-    val today: LocalDate,
-    val employeeId: String,
-    val dayType: DayType,
-    val routeId: String?,
-  )
+data class CreateTodayDailyReportParams(
+  val today: LocalDate,
+  val employeeId: String,
+  val dayType: DayType,
+  val routeId: String?,
+)
 
-  sealed class Output() {
-    data class Success(val dailyReport: DailyReport?) : Output()
-    data class Failure(val message: String) : Output()
+class CreateTodayDailyReportUseCase(private val dailyReportRepository: DailyReportRepository) {
+  suspend operator fun invoke(params: CreateTodayDailyReportParams): Result<DailyReport> {
+    return dailyReportRepository.createTodayDailyReport(
+      params.today,
+      params.employeeId,
+      params.dayType,
+      params.routeId
+    )
   }
 }

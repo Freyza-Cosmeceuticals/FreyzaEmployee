@@ -1,14 +1,25 @@
 package com.freyza.employee.domain.usecase.dailyreport
 
+import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.DailyReport
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.domain.repository.DailyReportRepository
 
-interface GetRecentDailyReportsUseCase :
-  UseCase<GetRecentDailyReportsUseCase.Input, GetRecentDailyReportsUseCase.Output> {
-  class Input(val numDailyReports: Int, val employeeId: String, val withVisits: Boolean = false)
+data class GetRecentDailyReportsParams(
+  val numDailyReports: Int,
+  val employeeId: String,
+  val withVisits: Boolean = false,
+)
 
-  sealed class Output() {
-    data class Success(val dailyReports: List<DailyReport>) : Output()
-    data class Failure(val message: String) : Output()
+class GetRecentDailyReportsUseCase(private val dailyReportRepository: DailyReportRepository) {
+  suspend operator fun invoke(params: GetRecentDailyReportsParams): Result<List<DailyReport>> {
+    val result = dailyReportRepository.getRecentDailyReports(
+      params.numDailyReports,
+      params.employeeId,
+      params.withVisits
+    )
+    return when (result) {
+      is Result.Success -> Result.Success(result.data ?: emptyList())
+      else -> result
+    }
   }
 }

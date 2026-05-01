@@ -1,14 +1,11 @@
 package com.freyza.employee.domain.usecase.travelplan
 
+import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.TravelPlanEntry
-import com.freyza.employee.domain.usecase.UseCase
+import com.freyza.employee.domain.repository.TravelPlanRepository
 
-interface GetTodayTravelPlanEntryUseCase :
-  UseCase<GetTodayTravelPlanEntryUseCase.Input, GetTodayTravelPlanEntryUseCase.Output> {
-  class Input(val tpId: String)
-
-  sealed class Output() {
-    data class Success(val travelPlanEntry: TravelPlanEntry?) : Output()
-    data class Failure(val message: String) : Output()
+class GetTodayTravelPlanEntryUseCase(private val travelPlanRepository: TravelPlanRepository) {
+  suspend operator fun invoke(tpId: String): Result<TravelPlanEntry> {
+    return travelPlanRepository.getTodayTravelPlanEntry(tpId)
   }
 }
