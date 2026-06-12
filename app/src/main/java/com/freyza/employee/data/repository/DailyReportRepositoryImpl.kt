@@ -22,6 +22,10 @@ import kotlinx.datetime.LocalDate
 class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportRepository {
   companion object {
     const val TAG: String = "DailyReportRepo"
+    private const val TABLE_DAILY_REPORT = "dailyReport"
+    private const val TABLE_VISIT = "visit"
+    private const val SELECT_WITH_VISITS = "*, visits:visit!visit_reportId_fkey(*)"
+    private const val SELECT_ALL = "*"
   }
 
   override suspend fun getTodayDailyReport(
@@ -32,11 +36,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
     return try {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
-      val selectQuery = if (withVisits) {
-        "*, visits:visit!visit_reportId_fkey(*)"
-      } else {
-        "*"
-      }
+      val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
       withContext(Dispatchers.IO) {
         Logger.d(
@@ -44,7 +44,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           "Querying dailyReport for current employee and date: $thisDate, withVisits=${withVisits}"
         )
 
-        val dailyReportDto = postgrest.from("dailyReport").select(
+        val dailyReportDto = postgrest.from(TABLE_DAILY_REPORT).select(
           columns = Columns.raw(selectQuery)
         ) {
           filter {
@@ -67,17 +67,13 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
     employeeId: String,
     withVisits: Boolean,
   ): Result<List<DailyReport>> {
-    val selectQuery = if (withVisits) {
-      "*, visits:visit!visit_reportId_fkey(*)"
-    } else {
-      "*"
-    }
+    val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
     return try {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying recent daily reports withVisits=${withVisits}")
 
-        val reportsDto = postgrest.from("dailyReport").select(
+        val reportsDto = postgrest.from(TABLE_DAILY_REPORT).select(
           columns = Columns.raw(selectQuery)
         ) {
           filter {
@@ -100,7 +96,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying visits for current employee and dailyReportId: $dailyReportId")
 
-        val visitsDto = postgrest.from("visit").select {
+        val visitsDto = postgrest.from(TABLE_VISIT).select {
           filter {
             VisitDto::reportId eq dailyReportId
           }
@@ -123,7 +119,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying dailyReport with id: $id")
 
-        val dailyReportDto = postgrest.from("dailyReport").select {
+        val dailyReportDto = postgrest.from(TABLE_DAILY_REPORT).select {
           filter {
             DailyReportDto::id eq id
           }
@@ -157,7 +153,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           routeId = routeId,
         )
 
-        val dailyReportDto = postgrest.from("dailyReport").insert(initialDailyReportDto) {
+        val dailyReportDto = postgrest.from(TABLE_DAILY_REPORT).insert(initialDailyReportDto) {
           select()
         }.decodeSingle<DailyReportDto>()
 
@@ -184,7 +180,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
           "Creating visit for current employee, dailyReportId: $dailyReportId and date: $thisDate"
         )
 
-        val visitDto = postgrest.from("visit").insert(visitCreateDto) {
+        val visitDto = postgrest.from(TABLE_VISIT).insert(visitCreateDto) {
           select()
         }.decodeSingle<VisitDto>()
 
@@ -201,7 +197,7 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Locking report:$reportId")
 
-        postgrest.from("dailyReport").update(
+        postgrest.from(TABLE_DAILY_REPORT).update(
           {
             DailyReportDto::locked setTo true
           }

@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,7 +39,7 @@ import kotlin.time.Clock
 @Composable
 fun FreyzaDefaultAppBar(modifier: Modifier = Modifier) {
   CenterAlignedTopAppBar(
-    title = { Text("Freyza", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+    title = { Text(stringResource(R.string.app_bar_title_default), maxLines = 1, overflow = TextOverflow.Ellipsis) },
     colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
@@ -100,7 +101,7 @@ fun FreyzaHomeAppBar(
 fun FreyzaTravelPlanAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
     title = {
-      Text("Travel Plan", maxLines = 1, overflow = TextOverflow.Ellipsis)
+      Text(stringResource(R.string.app_bar_title_travel_plan), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
@@ -113,7 +114,7 @@ fun FreyzaTravelPlanAppBar(modifier: Modifier = Modifier) {
 fun FreyzaDailyReportAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
     title = {
-      Text("Daily Reports", maxLines = 1, overflow = TextOverflow.Ellipsis)
+      Text(stringResource(R.string.app_bar_title_daily_reports), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
@@ -130,10 +131,6 @@ fun FreyzaAddVisitAppBar(
 ) {
   var enabled by remember { mutableStateOf(true) }
 
-  val title = remember(visitType) {
-    visitType?.let { "Add ${it.titleCase()} Visit" } ?: "Add Visit"
-  }
-
   TopAppBar(
     navigationIcon = {
       IconButton(
@@ -144,11 +141,15 @@ fun FreyzaAddVisitAppBar(
         enabled = enabled
       ) {
         Icon(
-          painterResource(R.drawable.chevron_left_24px), contentDescription = "Navigate Back"
+          painterResource(R.drawable.chevron_left_24px), contentDescription = stringResource(R.string.content_description_navigate_back)
         )
       }
     }, title = {
-      Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+      if (visitType != null) {
+        Text(stringResource(R.string.app_bar_title_add_specific_visit, visitType.titleCase()), maxLines = 1, overflow = TextOverflow.Ellipsis)
+      } else {
+        Text(stringResource(R.string.app_bar_title_add_visit), maxLines = 1, overflow = TextOverflow.Ellipsis)
+      }
     }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.tertiaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
@@ -162,7 +163,7 @@ fun FreyzaAddVisitAppBar(
 fun FreyzaProfileAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
     title = {
-      Text("Profile & Settings", maxLines = 1, overflow = TextOverflow.Ellipsis)
+      Text(stringResource(R.string.app_bar_title_profile), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
