@@ -32,7 +32,5 @@ class ProfileViewModel(
 
   init {
     Logger.i(TAG, "Init")
-
-    snackbarManager.showMessage("Profile data loading", SnackbarType.DEFAULT)
   }
 }

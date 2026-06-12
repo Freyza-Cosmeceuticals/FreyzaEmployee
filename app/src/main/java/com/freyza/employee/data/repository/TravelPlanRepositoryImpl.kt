@@ -60,7 +60,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
     return try {
       // TODO: Reset to 0 after testing
       val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
-        .plus(0, DateTimeUnit.DateBased.DayBased(1))
+        .plus(1, DateTimeUnit.DayBased(1))
       val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
       withContext(Dispatchers.IO) {

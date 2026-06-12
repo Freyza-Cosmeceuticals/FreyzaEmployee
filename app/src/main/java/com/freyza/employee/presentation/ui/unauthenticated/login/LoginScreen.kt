@@ -242,6 +242,7 @@ private fun LoginScreen(
           keyboardActions = KeyboardActions(
             onDone = {
               focusManager.clearFocus()
+              localSoftwareKeyboardController?.hide()
               onLoginWithEmailClicked(email, password)
             }),
           modifier = Modifier
