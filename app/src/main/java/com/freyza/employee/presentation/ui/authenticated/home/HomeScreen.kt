@@ -158,7 +158,6 @@ private fun HomeScreen(
     },
   )
 
-
   Scaffold(
     topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
@@ -171,10 +170,9 @@ private fun HomeScreen(
     },
     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
   ) {
-    if (mainUiState.user == null || mainUiState.today == null) {
+    if (mainUiState.user == null) {
       return@Scaffold
     }
-
 
     // daily report creation dialog
     // TODO: Note to self, this thing is triggered only on the Home Screen

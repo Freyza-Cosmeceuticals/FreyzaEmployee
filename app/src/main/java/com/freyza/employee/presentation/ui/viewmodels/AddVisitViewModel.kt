@@ -2,7 +2,6 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.freyza.employee.core.Constants
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
@@ -14,15 +13,13 @@ import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitUseCase
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
+import com.freyza.employee.core.util.ServerTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
-import kotlin.time.Clock
 
 class AddVisitViewModel(
   val visitType: VisitType,
@@ -31,6 +28,7 @@ class AddVisitViewModel(
   private val sessionManager: SessionManager,
   private val createVisitUseCase: CreateVisitUseCase,
   private val snackbarManager: SnackbarManager,
+  private val serverTime: ServerTime,
 ) :
   ViewModel() {
   companion object {
@@ -103,7 +101,7 @@ class AddVisitViewModel(
 
       val result = createVisitUseCase(
         CreateVisitParams(
-          today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)),
+          today = serverTime.todayIn(),
           employeeId = employeeId,
           dailyReportId = reportId,
           visitCreateDto = dto

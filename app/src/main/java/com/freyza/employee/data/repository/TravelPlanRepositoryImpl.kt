@@ -10,6 +10,7 @@ import com.freyza.employee.data.network.dto.TravelPlanEntryDto
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.domain.repository.TravelPlanRepository
+import com.freyza.employee.core.util.ServerTime
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,7 +21,10 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 
-class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRepository {
+class TravelPlanRepositoryImpl(
+  private val postgrest: Postgrest,
+  private val serverTime: ServerTime,
+) : TravelPlanRepository {
 
   companion object {
     const val TAG: String = "TravelPlanRepo"
@@ -31,7 +35,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
     withEntries: Boolean,
   ): Result<TravelPlan?> {
     return try {
-      val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
+      val today = serverTime.todayIn()
       val thisMonth = DateFormatter.format(
         LocalDate(year = today.year, month = today.month, day = 1),
         DateFormatter.FormattingType.MACHINE
@@ -59,7 +63,7 @@ class TravelPlanRepositoryImpl(private val postgrest: Postgrest) : TravelPlanRep
   override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry?> {
     return try {
       // TODO: Reset to 0 after testing
-      val today = Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE))
+      val today = serverTime.todayIn()
         .plus(1, DateTimeUnit.DayBased(1))
       val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 

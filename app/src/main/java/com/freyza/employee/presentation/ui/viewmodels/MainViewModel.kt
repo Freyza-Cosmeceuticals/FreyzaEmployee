@@ -4,11 +4,11 @@ import android.app.Activity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.freyza.employee.core.Constants
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.usecase.auth.LogoutUseCase
 import com.freyza.employee.domain.usecase.user.GetUserUseCase
@@ -30,7 +30,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
 
 class MainViewModel(
@@ -38,6 +37,7 @@ class MainViewModel(
   val getUserUseCase: GetUserUseCase,
   val logoutUseCase: LogoutUseCase,
   private val sessionManager: SessionManager,
+  private val serverTime: ServerTime,
 ) : ViewModel() {
 
   companion object {
@@ -65,7 +65,9 @@ class MainViewModel(
 
   fun initializeSession() {
     Logger.i(TAG, "Initializing Session")
+
     viewModelScope.launch(Dispatchers.IO) {
+      serverTime.syncTime()
       _uiState.update {
         UIState.Loading(
           it.data?.copy(today = getTodayDate()) ?: MainUiState(today = getTodayDate())
@@ -293,7 +295,7 @@ class MainViewModel(
   }
 
   private fun getTodayDate(): LocalDateTime {
-    val today = Clock.System.now().toLocalDateTime(TimeZone.of(Constants.TIMEZONE))
+    val today = serverTime.nowLocalDateTime()
     return today
   }
 }

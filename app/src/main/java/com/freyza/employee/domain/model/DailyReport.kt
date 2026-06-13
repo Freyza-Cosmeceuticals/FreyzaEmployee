@@ -1,11 +1,8 @@
 package com.freyza.employee.domain.model
 
-import com.freyza.employee.core.Constants
+import com.freyza.employee.core.util.ServerTime
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 data class DailyReport(
@@ -36,9 +33,7 @@ fun dummyDailyReportWork(
 ): DailyReport = DailyReport(
   id = UUID.randomUUID().toString(),
   employeeId = "25de9fec-f4c0-4927-9e9f-ecf4c0a9271c",
-  date = if (dateNow) Clock.System.now().toLocalDateTime(
-    TimeZone.of(Constants.TIMEZONE)
-  ).date else LocalDate.parse("2026-03-01"),
+  date = if (dateNow) ServerTime().nowLocalDateTime().date else LocalDate.parse("2026-03-01"),
   dayType = DayType.WORK,
   routeId = "3f6b851f-5c47-42b0-ab85-1f5c47c2b0d7",
   ta = 500.00,

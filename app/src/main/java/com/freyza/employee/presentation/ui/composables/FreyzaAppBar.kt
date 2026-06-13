@@ -25,15 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.freyza.employee.R
-import com.freyza.employee.core.Constants
 import com.freyza.employee.core.util.DateFormatter
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.toLocalDate
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,18 +48,10 @@ fun FreyzaDefaultAppBar(modifier: Modifier = Modifier) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FreyzaHomeAppBar(
-  today: LocalDateTime?,
+  today: LocalDateTime,
   scrollBehavior: TopAppBarScrollBehavior,
   modifier: Modifier = Modifier,
 ) {
-  var today = today
-  if (today == null) {
-    today = Clock.System.now().toLocalDateTime(
-      TimeZone.of(
-        Constants.TIMEZONE
-      )
-    )
-  }
   TopAppBar(
     title = {
       Column(
@@ -135,7 +124,6 @@ fun FreyzaAddVisitAppBar(
     navigationIcon = {
       IconButton(
         onClick = {
-//          enabled = false
           navigateUp()
         },
         enabled = enabled
@@ -184,7 +172,7 @@ private fun FreyzaDefaultAppBarPreview() {
 @Preview
 private fun FreyzaHomeAppBarPreview() {
   FreyzaEmployeeTheme {
-    FreyzaHomeAppBar(today = null, scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior())
+    FreyzaHomeAppBar(today = ServerTime().nowLocalDateTime(), scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior())
   }
 }
 
@@ -201,6 +189,22 @@ private fun FreyzaTravelPlanAppBarPreview() {
 private fun FreyzaDailyReportAppBarPreview() {
   FreyzaEmployeeTheme {
     FreyzaDailyReportAppBar()
+  }
+}
+
+@Composable
+@Preview
+private fun FreyzaAddVisitAppBarPreview() {
+  FreyzaEmployeeTheme {
+    FreyzaAddVisitAppBar(null, navigateUp = {})
+  }
+}
+
+@Composable
+@Preview
+private fun FreyzaAddVisitWithTypeAppBarPreview() {
+  FreyzaEmployeeTheme {
+    FreyzaAddVisitAppBar(VisitType.DOCTOR, navigateUp = {})
   }
 }
 

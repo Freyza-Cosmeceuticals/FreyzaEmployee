@@ -29,7 +29,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
-import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
@@ -49,16 +48,15 @@ import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import com.kizitonwose.calendar.core.CalendarDay
 import com.kizitonwose.calendar.core.daysOfWeek
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinDayOfWeek
 import kotlinx.datetime.toKotlinLocalDate
-import kotlinx.datetime.todayIn
 import kotlinx.datetime.yearMonth
 import org.koin.androidx.compose.koinViewModel
-import kotlin.time.Clock
+import org.koin.compose.koinInject
+import com.freyza.employee.core.util.ServerTime
 
 @Composable
 fun TravelPlanScreenRoute(
@@ -94,10 +92,11 @@ fun TravelPlanScreen(
   mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   loadSelectedPlanEntryRoute: (tpEntryId: String) -> Unit,
+  serverTime: ServerTime = koinInject(),
 ) {
   val sheetState = rememberModalBottomSheetState()
 
-  val currentMonth = remember { Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)).yearMonth }
+  val currentMonth = remember { serverTime.todayIn().yearMonth }
   val startMonth = remember { currentMonth }
   val endMonth = remember { currentMonth }
   val daysOfWeek = remember { daysOfWeek().map { it.toKotlinDayOfWeek() } }

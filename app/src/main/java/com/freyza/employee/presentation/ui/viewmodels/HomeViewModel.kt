@@ -2,7 +2,6 @@ package com.freyza.employee.presentation.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.freyza.employee.core.Constants
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
@@ -16,6 +15,7 @@ import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportPara
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetRouteUseCase
@@ -35,9 +35,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
-import kotlin.time.Clock
 
 class HomeViewModel(
   private val sessionManager: SessionManager,
@@ -49,6 +46,7 @@ class HomeViewModel(
   private val getTodayDailyReportUseCase: GetTodayDailyReportUseCase,
   private val createTodayDailyReportUseCase: CreateTodayDailyReportUseCase,
   private val snackbarManager: SnackbarManager,
+  private val serverTime: ServerTime,
 ) : ViewModel() {
 
   companion object {
@@ -296,7 +294,7 @@ class HomeViewModel(
     viewModelScope.launch {
       val result = getTodayDailyReportUseCase(
         GetTodayDailyReportParams(
-          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId, true
+          serverTime.todayIn(), employeeId, true
         )
       )
 
@@ -397,7 +395,7 @@ class HomeViewModel(
     viewModelScope.launch {
       val result = createTodayDailyReportUseCase(
         CreateTodayDailyReportParams(
-          Clock.System.todayIn(TimeZone.of(Constants.TIMEZONE)), employeeId, dayType, routeId
+          serverTime.todayIn(), employeeId, dayType, routeId
         )
       )
 

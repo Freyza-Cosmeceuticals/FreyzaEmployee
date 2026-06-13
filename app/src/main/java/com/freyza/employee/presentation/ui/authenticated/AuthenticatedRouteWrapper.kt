@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.state.MainUiState
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun AuthenticatedRouteWrapper(
@@ -25,7 +26,7 @@ fun AuthenticatedRouteWrapper(
   LaunchedEffect(mainUiState) {
     timedOut = false
     if (!mainUiState.hasValidSession || mainUiState.user == null) {
-      delay(timeoutMillis)
+      delay(timeoutMillis.milliseconds)
       timedOut = true
     }
   }

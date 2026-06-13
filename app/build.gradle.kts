@@ -45,6 +45,7 @@ android {
     buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "")
     buildConfigField("String", "SUPABASE_URL", "")
     buildConfigField("String", "WEB_CLIENT_ID", "")
+    buildConfigField("String", "API_URL", "")
   }
 
   signingConfigs {
@@ -80,6 +81,11 @@ android {
         "WEB_CLIENT_ID",
         "\"${secretDevProperties.getProperty("WEB_CLIENT_ID")}\""
       )
+      buildConfigField(
+        "String",
+        "API_URL",
+        "\"${secretDevProperties.getProperty("API_URL")}\""
+      )
     }
 
     create("preview") {
@@ -103,6 +109,11 @@ android {
         "WEB_CLIENT_ID",
         "\"${secretPreviewProperties.getProperty("WEB_CLIENT_ID")}\""
       )
+      buildConfigField(
+        "String",
+        "API_URL",
+        "\"${secretPreviewProperties.getProperty("API_URL")}\""
+      )
     }
 
     create("prod") {
@@ -122,6 +133,11 @@ android {
         "String",
         "WEB_CLIENT_ID",
         "\"${secretProdProperties.getProperty("WEB_CLIENT_ID")}\""
+      )
+      buildConfigField(
+        "String",
+        "API_URL",
+        "\"${secretProdProperties.getProperty("API_URL")}\""
       )
     }
   }
@@ -198,6 +214,9 @@ dependencies {
   implementation(libs.postgrest.kt)
 
   implementation(libs.ktor.client.android)
+  implementation(libs.ktor.client.content.negotiation)
+  implementation(libs.ktor.serialization.kotlinx.json)
+  implementation(libs.ktor.client.logging)
 
   // google login
   implementation(libs.googleid)

@@ -12,14 +12,14 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val viewModelModule = module {
-  viewModel { MainViewModel(get(), get(), get(), get()) }
+  viewModel { MainViewModel(get(), get(), get(), get(), get()) }
   viewModel { LoginViewModel(get(), get(), get(), get()) }
-  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
   viewModel { TravelPlanViewModel(get(), get(), get(), get(), get()) }
   viewModel { DailyReportViewModel(get(), get(), get(), get(), get()) }
   viewModel { (visitType: VisitType, reportId: String, employeeId: String) ->
     AddVisitViewModel(
-      visitType, reportId, employeeId, get(), get(), get()
+      visitType, reportId, employeeId, get(), get(), get(), get()
     )
   }
   viewModel { ProfileViewModel(get(), get()) }

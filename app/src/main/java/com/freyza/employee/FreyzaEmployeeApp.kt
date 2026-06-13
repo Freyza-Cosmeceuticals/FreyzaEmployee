@@ -55,13 +55,13 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
-import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinActivityViewModel
 
 @Composable
 fun FreyzaEmployeeApp(
   navController: NavHostController = rememberNavController(),
-  mainViewModel: MainViewModel = koinViewModel(),
+  mainViewModel: MainViewModel = koinActivityViewModel(),
   snackbarManager: SnackbarManager = koinInject(),
 ) {
   val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
@@ -82,7 +82,9 @@ fun FreyzaEmployeeApp(
     }
   }
 
-  ToastDebug(mainViewModel = mainViewModel)
+  if (BuildConfig.DEBUG) {
+    ToastDebug(mainViewModel = mainViewModel)
+  }
 
   CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
     Box(modifier = Modifier.fillMaxSize()) {

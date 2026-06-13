@@ -1,6 +1,7 @@
 package com.freyza.employee.core
 
 data class AppConfig(
-    val supabaseUrl: String,
-    val supabasePublishableKey: String
+  val supabaseUrl: String,
+  val supabasePublishableKey: String,
+  val apiUrl: String
 )
