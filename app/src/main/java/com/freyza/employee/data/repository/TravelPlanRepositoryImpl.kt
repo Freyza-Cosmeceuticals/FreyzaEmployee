@@ -1,25 +1,21 @@
 package com.freyza.employee.data.repository
 
-import com.freyza.employee.core.Constants
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.TravelPlanDto
 import com.freyza.employee.data.network.dto.TravelPlanEntryDto
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.domain.repository.TravelPlanRepository
-import com.freyza.employee.core.util.ServerTime
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
-import kotlinx.datetime.todayIn
-import kotlin.time.Clock
 
 class TravelPlanRepositoryImpl(
   private val postgrest: Postgrest,

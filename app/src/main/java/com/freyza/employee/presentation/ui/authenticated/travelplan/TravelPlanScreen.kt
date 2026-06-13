@@ -32,6 +32,7 @@ import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
@@ -56,7 +57,6 @@ import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.yearMonth
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
-import com.freyza.employee.core.util.ServerTime
 
 @Composable
 fun TravelPlanScreenRoute(
@@ -116,7 +116,7 @@ fun TravelPlanScreen(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
   ) { paddingValues ->
-    if (mainUiState.user == null || mainUiState.today == null) {
+    if (mainUiState.user == null) {
       return@Scaffold
     }
 

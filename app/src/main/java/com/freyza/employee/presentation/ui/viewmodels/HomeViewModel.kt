@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -364,7 +365,7 @@ class HomeViewModel(
     }
 
     viewModelScope.launch {
-      _uiState.map { it.routes }.filterNotNull().filter { it.data.isNullOrEmpty().not() }.first()
+      _uiState.map { it.routes }.first { it.data.isNullOrEmpty().not() }
         .let { availableRoute ->
           val route = availableRoute.data?.find { it.id == routeId }
 
