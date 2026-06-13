@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
@@ -92,7 +93,7 @@ fun ProfileScreen(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
   ) {
-    if (mainUiState.user == null || mainUiState.today == null) {
+    if (mainUiState.user == null) {
       return@Scaffold
     }
 
@@ -177,10 +178,10 @@ fun ProfileScreen(
             )
             ListItem(
               headlineContent = { Text(user.email) }, trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-                )
-              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     topStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -201,10 +202,10 @@ fun ProfileScreen(
 
             ListItem(
               headlineContent = { Text("Change Password") }, trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-                )
-              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -230,10 +231,10 @@ fun ProfileScreen(
 
             ListItem(
               headlineContent = { Text("Language") }, trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-                )
-              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     topStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -254,10 +255,10 @@ fun ProfileScreen(
 
             ListItem(
               headlineContent = { Text("Permissions") }, trailingContent = {
-                Icon(
-                  painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-                )
-              }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+              Icon(
+                painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
+              )
+            }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
                 .clip(
                   RoundedCornerShape(
                     bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -284,6 +285,13 @@ fun ProfileScreen(
 
           item {
             Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
+
+            Text(
+              "Server time ${DateFormatter.format(mainUiState.today)}",
+              style = MaterialTheme.typography.labelMedium.copy(
+                color = MaterialTheme.colorScheme.tertiary
+              )
+            )
 
             VersionInfo()
             Text(
