@@ -119,6 +119,15 @@ class MainViewModel(
             sessionManager.setCurrentEmployee(user)
           } else {
             sessionManager.clearSession()
+            _uiState.update {
+              UIState.Ready(
+                it.data?.copy(
+                  hasValidSession = false, user = null, today = getTodayDate()
+                ) ?: MainUiState(
+                  hasValidSession = false, user = null, today = getTodayDate()
+                )
+              )
+            }
           }
         }
       } catch (e: Exception) {
@@ -279,15 +288,7 @@ class MainViewModel(
           }
 
           else -> {
-            _uiState.update {
-              UIState.Error(
-                "Unknown Error",
-                it.data?.copy(hasValidSession = false, user = null, today = getTodayDate())
-              )
-            }
-
-            Logger.e(TAG, "AuthEvent: Unhandled event: $event")
-            _toastMessageFlow.tryEmit("AuthEvent: Unhandled event: $event")
+            Logger.d(TAG, "AuthEvent: Unhandled event: $event")
           }
         }
       }

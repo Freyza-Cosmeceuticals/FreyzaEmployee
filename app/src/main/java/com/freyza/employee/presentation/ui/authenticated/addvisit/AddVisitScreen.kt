@@ -145,7 +145,7 @@ fun AddVisitScreen(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
   ) { paddingValues ->
-    if (mainUiState.user == null || mainUiState.today == null) {
+    if (mainUiState.user == null) {
       return@Scaffold
     }
 

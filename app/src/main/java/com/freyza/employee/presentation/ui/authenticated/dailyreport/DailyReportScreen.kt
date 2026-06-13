@@ -112,8 +112,8 @@ fun DailyReportScreen(
 ) {
   val sheetState = rememberModalBottomSheetState()
 
-  val todayReport = remember(uiState.dailyReports.data, mainUiState.today?.date) {
-    uiState.dailyReports.data?.firstOrNull { it.date == mainUiState.today?.date }
+  val todayReport = remember(uiState.dailyReports.data, mainUiState.today.date) {
+    uiState.dailyReports.data?.firstOrNull { it.date == mainUiState.today.date }
   }
   val pastReports = remember(uiState.dailyReports.data, todayReport) {
     if (todayReport != null) uiState.dailyReports.data?.drop(1)
@@ -162,7 +162,7 @@ fun DailyReportScreen(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
   ) { paddingValues ->
-    if (mainUiState.user == null || mainUiState.today == null) {
+    if (mainUiState.user == null) {
       return@Scaffold
     }
 
