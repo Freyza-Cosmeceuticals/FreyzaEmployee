@@ -1,10 +1,8 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.konan.properties.Properties
 import java.io.FileInputStream
 
 plugins {
   alias(libs.plugins.android.application)
-  alias(libs.plugins.kotlin.android)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
 }
@@ -42,10 +40,10 @@ android {
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-    buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "")
-    buildConfigField("String", "SUPABASE_URL", "")
-    buildConfigField("String", "WEB_CLIENT_ID", "")
-    buildConfigField("String", "API_URL", "")
+    buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"\"")
+    buildConfigField("String", "SUPABASE_URL", "\"\"")
+    buildConfigField("String", "WEB_CLIENT_ID", "\"\"")
+    buildConfigField("String", "API_URL", "\"\"")
   }
 
   signingConfigs {
@@ -165,18 +163,13 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
 
-  kotlin {
-    compilerOptions {
-      jvmTarget = JvmTarget.fromTarget("17")
-    }
-  }
-
   buildFeatures {
     compose = true
     buildConfig = true
+    resValues = true
   }
 
-  buildToolsVersion = "35.0.0"
+  buildToolsVersion = "36.0.0"
 }
 
 dependencies {
@@ -224,5 +217,5 @@ dependencies {
   implementation(libs.androidx.credentials.play.services.auth)
 
   implementation(libs.kizitonwose.calendar)
-//    implementation(libs.timber)
+  implementation(libs.timber)
 }
