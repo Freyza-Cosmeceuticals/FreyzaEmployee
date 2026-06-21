@@ -50,7 +50,7 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dayTypes
-import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
+import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.AddVisitFloatingActionButton
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.FabActionItem
 import com.freyza.employee.presentation.ui.authenticated.home.composables.BeginDailyReportSheet
@@ -65,17 +65,14 @@ import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
-import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiStateDailyReportError
-import com.freyza.employee.presentation.ui.state.dummyMainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun HomeScreenRoute(
-  mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = koinViewModel(),
   onNavigateToUnauthenticated: () -> Unit,
@@ -83,25 +80,22 @@ fun HomeScreenRoute(
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
   onExit: () -> Unit
 ) {
-  AuthenticatedRouteWrapper(
-    mainUiState, onNavigateToUnauthenticated,
-    loading = {
-      Logger.e("HomeScreenRoute", "Invalid User/Session on home screen, waiting for 5 seconds")
-      HomeScreenSkeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
-    },
-    5_000,
-  ) { mainUiState ->
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
+  if (currentUser == null) {
+    Logger.e("HomeScreenRoute", "Invalid User/Session on home screen")
+    HomeScreenSkeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
+  } else {
     HomeScreen(
       uiState = uiState,
-      mainUiState = mainUiState,
+      user = currentUser!!,
       modifier = modifier,
       onRefresh = viewModel::refresh,
       onLogout = onNavigateToUnauthenticated,
       onExit = onExit,
       onDailyReportBegin = viewModel::createCurrentDailyReport,
-      onDailyReportRetry = viewModel::loadCurrentDailyReport,
+      onDailyReportRetry = { viewModel.loadCurrentDailyReport(currentUser!!.id) },
       onNavigateToReport = onNavigateToReport,
       onNavigateToAddVisit = onNavigateToAddVisit
     )
@@ -112,7 +106,7 @@ fun HomeScreenRoute(
 @Composable
 private fun HomeScreen(
   uiState: HomeScreenUiState,
-  mainUiState: MainUiState,
+  user: User,
   modifier: Modifier = Modifier,
   onRefresh: () -> Unit,
   onLogout: () -> Unit,
@@ -159,7 +153,7 @@ private fun HomeScreen(
   )
 
   Scaffold(
-    topBar = { FreyzaHomeAppBar(today = mainUiState.today, scrollBehavior = scrollBehavior) },
+    topBar = { FreyzaHomeAppBar(today = uiState.today, scrollBehavior = scrollBehavior) },
     contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     ),
@@ -170,10 +164,6 @@ private fun HomeScreen(
     },
     modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
   ) {
-    if (mainUiState.user == null) {
-      return@Scaffold
-    }
-
     // daily report creation dialog
     // TODO: Note to self, this thing is triggered only on the Home Screen
     // if the user switches tab/page before the bottom sheet shows up, they can perform other app actions
@@ -236,7 +226,7 @@ private fun HomeScreen(
       is UIState.Error -> {
         // since loading daily report data failed, we cannot continue and ask the user to retry
         DailyReportingFailedToLoadDialog(
-          message = result.message, onRetry = onDailyReportRetry, onExit = {})
+          message = result.message, onRetry = onDailyReportRetry, onExit = onExit)
       }
 
       else -> {}
@@ -259,7 +249,7 @@ private fun HomeScreen(
       ) {
         item {
           Text(
-            mainUiState.today.timedGreeting(mainUiState.user.name),
+            uiState.today.timedGreeting(user.name),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
@@ -363,7 +353,7 @@ private fun HomeScreen(
 
         if (BuildConfig.DEBUG) {
           item {
-            DebugUserInfo(mainUiState.user)
+             DebugUserInfo(user)
           }
         }
       }
@@ -407,7 +397,7 @@ private fun HomeScreenPreview() {
   FreyzaEmployeeTheme {
     HomeScreen(
       uiState = dummyHomeScreenUiState(),
-      mainUiState = dummyMainUiState(),
+      user = dummyUserEmployee(),
       onRefresh = {},
       onLogout = {},
       onExit = {},
@@ -426,7 +416,7 @@ private fun HomeScreenReportErrorPreview() {
   FreyzaEmployeeTheme {
     HomeScreen(
       uiState = dummyHomeScreenUiStateDailyReportError(),
-      mainUiState = dummyMainUiState(),
+      user = dummyUserEmployee(),
       onRefresh = {},
       onLogout = {},
       onExit = {},

@@ -7,6 +7,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsParams
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCase
@@ -26,16 +27,19 @@ class DailyReportViewModel(
   private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
   private val lockReportUseCase: LockReportUseCase,
   private val snackbarManager: SnackbarManager,
+  serverTime: ServerTime,
 ) : ViewModel() {
 
   companion object {
     const val TAG = "DailyReportViewModel"
   }
 
-  private val _uiState = MutableStateFlow(DailyReportUiState())
+  private val _uiState = MutableStateFlow(DailyReportUiState(today = serverTime.nowLocalDateTime()))
   val uiState = _uiState.onStart {
     refresh()
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DailyReportUiState())
+  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DailyReportUiState(today = serverTime.nowLocalDateTime()))
+
+  val currentUser = sessionManager.currentEmployee
 
   init {
     Logger.d(TAG, "Init")

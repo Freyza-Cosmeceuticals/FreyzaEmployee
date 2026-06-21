@@ -29,7 +29,7 @@ secretProdProperties.load(FileInputStream(secretProdPropertiesFile))
 
 android {
   namespace = "com.freyza.employee"
-  compileSdk = 36
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "com.freyza.employee"

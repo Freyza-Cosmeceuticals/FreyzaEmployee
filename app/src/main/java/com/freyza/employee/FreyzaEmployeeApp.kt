@@ -1,6 +1,5 @@
 package com.freyza.employee
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -30,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,10 +36,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.freyza.employee.core.UIState
 import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.SnackbarManager
+import com.freyza.employee.domain.model.AuthState
 import com.freyza.employee.presentation.nav.NavRoutes
 import com.freyza.employee.presentation.nav.authenticatedGraph
 import com.freyza.employee.presentation.nav.unauthenticatedGraph
@@ -52,7 +49,7 @@ import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
-import com.freyza.employee.presentation.ui.viewmodels.MainViewModel
+import com.freyza.employee.presentation.ui.viewmodels.SessionViewModel
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import org.koin.compose.koinInject
@@ -61,13 +58,16 @@ import org.koin.compose.viewmodel.koinActivityViewModel
 @Composable
 fun FreyzaEmployeeApp(
   navController: NavHostController = rememberNavController(),
-  mainViewModel: MainViewModel = koinActivityViewModel(),
+  sessionViewModel: SessionViewModel = koinActivityViewModel(),
   snackbarManager: SnackbarManager = koinInject(),
 ) {
-  val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+  val authState by sessionViewModel.authState.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
+  val context = LocalContext.current
 
+  // load auth and setup snackbar consumer
   LaunchedEffect(Unit) {
+    sessionViewModel.checkAuth()
     snackbarManager.messages.collect { message ->
       val result = snackbarHostState.showTypedSnackbar(
         message = message.message,
@@ -82,68 +82,59 @@ fun FreyzaEmployeeApp(
     }
   }
 
-  if (BuildConfig.DEBUG) {
-    ToastDebug(mainViewModel = mainViewModel)
-  }
-
   CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
     Box(modifier = Modifier.fillMaxSize()) {
-      when (val res = uiState) {
-        is UIState.Loading -> {
+      when (val state = authState) {
+        is AuthState.Loading -> {
           Scaffold { paddingValues ->
             LoadingIndicator(
-              Modifier
+              message = "Loading, please wait...",
+              modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(paddingValues),
             )
           }
         }
 
-        is UIState.Ready -> {
-          val context = LocalContext.current
-          // if valid login found, start with the Authenticated route, otherwise the Unauthenticated route.
-          val startDestination =
-            if (res.data?.hasValidSession == true && res.data.user != null) NavRoutes.Authenticated.NavigationRoute else NavRoutes.Unauthenticated.NavigationRoute
+        is AuthState.Error -> {
+          Scaffold { paddingValues ->
+            FreyzaEmployeeAppError(
+              message = state.message,
+              date = sessionViewModel.getTodayDateFormatted(),
+              onRetry = sessionViewModel::checkAuth,
+              onLogout = sessionViewModel::logout,
+              modifier = Modifier.padding(paddingValues)
+            )
+          }
+        }
 
+        else -> {
           Scaffold(
-            bottomBar = { FreyzaBottomNavBar(navController) },
-            contentWindowInsets = NavigationBarDefaults.windowInsets,
-          ) {
-            Surface(modifier = Modifier.padding(it)) {
+            bottomBar = {
+              if (state is AuthState.Authenticated) {
+                FreyzaBottomNavBar(navController)
+              }
+            }) { paddingValues ->
+            Surface(modifier = Modifier.padding(paddingValues)) {
+              val startDestination = if (state is AuthState.Authenticated) {
+                NavRoutes.Authenticated.NavigationRoute
+              } else {
+                NavRoutes.Unauthenticated.NavigationRoute
+              }
+
               NavHost(
                 navController = navController, startDestination = startDestination
               ) {
                 unauthenticatedGraph(navController = navController)
                 authenticatedGraph(
                   navController = navController,
-                  mainUiState = res.data!!,
-                  onExit = { mainViewModel.exit(context) },
-                  onLogout = mainViewModel::logout
+                  onExit = { sessionViewModel.exit(context) },
+                  onLogout = sessionViewModel::logout
                 )
               }
             }
           }
         }
-
-        is UIState.Error -> {
-          val unknownErrorString = stringResource(R.string.error_unknown)
-
-          LaunchedEffect(Unit) {
-            snackbarManager.showError(res.message ?: unknownErrorString)
-          }
-
-          Scaffold { paddingValues ->
-            FreyzaEmployeeAppError(
-              res.message ?: unknownErrorString,
-              date = res.data?.today?.let { DateFormatter.format(it) } ?: "???",
-              onRetry = { mainViewModel.initializeSession() },
-              onLogout = { mainViewModel.logout() },
-              modifier = Modifier.padding(paddingValues)
-            )
-          }
-        }
-
-        else -> {}
       }
 
       Box(
@@ -152,8 +143,7 @@ fun FreyzaEmployeeApp(
           .zIndex(10f), contentAlignment = Alignment.BottomCenter
       ) {
         FreyzaSnackbarHost(
-          hostState = snackbarHostState, modifier = Modifier
-            .padding(bottom = 84.dp)
+          hostState = snackbarHostState, modifier = Modifier.padding(bottom = 84.dp)
         )
       }
     }
@@ -173,7 +163,7 @@ private fun FreyzaEmployeeAppError(
       .fillMaxSize()
       .padding(dimensionResource(R.dimen.screen_padding)),
     verticalArrangement = Arrangement.spacedBy(
-      dimensionResource(R.dimen.default_spacing).times(4), Alignment.CenterVertically
+      dimensionResource(R.dimen.default_spacing).times(2), Alignment.CenterVertically
     ),
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
@@ -225,28 +215,18 @@ private fun FreyzaEmployeeAppError(
   }
 }
 
-/*
-* Authentication Debug Toasts
-*/
-@Composable
-fun ToastDebug(mainViewModel: MainViewModel) {
-  val context = LocalContext.current
-  LaunchedEffect(Unit) {
-    mainViewModel.toastMessageFlow.collect { message ->
-      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-    }
-  }
-}
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun ErrorPreview() {
   FreyzaEmployeeTheme {
     FreyzaEmployeeAppError(
-      "Random Error", date = DateFormatter.format(
+      "Random Error",
+      date = DateFormatter.format(
         LocalDate(
           year = 2025, month = Month.DECEMBER, day = 25
         )
-      ), onRetry = {}, onLogout = {})
+      ),
+      onRetry = {}, onLogout = {},
+    )
   }
 }

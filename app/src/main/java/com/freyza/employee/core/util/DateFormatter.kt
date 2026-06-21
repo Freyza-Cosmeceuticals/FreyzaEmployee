@@ -11,6 +11,9 @@ import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
+/**
+ * Date formatter
+ */
 object DateFormatter {
   enum class FormattingType {
     MACHINE,

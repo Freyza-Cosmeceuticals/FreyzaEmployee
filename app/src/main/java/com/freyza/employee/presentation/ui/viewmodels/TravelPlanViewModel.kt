@@ -6,6 +6,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
@@ -13,10 +14,8 @@ import com.freyza.employee.domain.usecase.travelplan.GetTravelPlanEntriesUseCase
 import com.freyza.employee.presentation.ui.state.TravelPlanUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -28,21 +27,24 @@ class TravelPlanViewModel(
   private val getTravelPlanEntries: GetTravelPlanEntriesUseCase,
   private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
   private val snackbarManager: SnackbarManager,
+  serverTime: ServerTime,
 ) : ViewModel() {
 
   companion object {
     const val TAG = "TravelPlanViewModel"
   }
 
-  private val _uiState = MutableStateFlow(TravelPlanUiState())
+  private val _uiState = MutableStateFlow(TravelPlanUiState(today = serverTime.nowLocalDateTime()))
   val uiState = _uiState.onStart {
     loadAllRoutes()
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) loadCurrentTravelPlan(employeeId)
   }.stateIn(
-    viewModelScope, SharingStarted.WhileSubscribed(5_000), TravelPlanUiState()
+    viewModelScope, SharingStarted.WhileSubscribed(5_000), TravelPlanUiState(today = serverTime.nowLocalDateTime())
   )
+
+  val currentUser = sessionManager.currentEmployee
 
   init {
     Logger.d(TAG, "Init")
@@ -158,7 +160,7 @@ class TravelPlanViewModel(
     }
 
     viewModelScope.launch {
-      _uiState.map { it.routes }.filterNotNull().filter { it.isNotEmpty() }.first()
+      _uiState.mapNotNull { it.routes }.first { it.isNotEmpty() }
         .let { availableRoutes ->
           val thisTravelPlan = _uiState.value.travelPlanEntries.data?.find { it.id == tpEntryId }
           val thisRoute = availableRoutes.find { it.id == thisTravelPlan?.routeId }

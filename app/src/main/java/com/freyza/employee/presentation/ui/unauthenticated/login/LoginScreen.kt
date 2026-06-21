@@ -5,11 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,7 +26,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,7 +59,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
-import com.freyza.employee.presentation.ui.composables.FreyzaDefaultAppBar
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
@@ -72,7 +69,6 @@ import org.koin.compose.viewmodel.koinViewModel
 fun LoginScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: LoginViewModel = koinViewModel(),
-  onNavigateToRegistration: () -> Unit,
   onNavigateToAuthenticatedRoute: () -> Unit,
 ) {
 
@@ -81,14 +77,9 @@ fun LoginScreenRoute(
   val onLoginWithEmailClicked = { email: String, password: String ->
     viewModel.loginWithEmail(email, password)
   }
-  val onLoginWithGoogleClicked = { viewModel.loginWithGoogle() }
 
   LoginScreen(
-    uiState,
-    onLoginWithEmailClicked,
-    onLoginWithGoogleClicked,
-    onNavigateToAuthenticatedRoute,
-    modifier
+    uiState, onLoginWithEmailClicked, onNavigateToAuthenticatedRoute, modifier
   )
 }
 
@@ -96,7 +87,6 @@ fun LoginScreenRoute(
 private fun LoginScreen(
   uiState: UIState<UserInfo>,
   onLoginWithEmailClicked: (email: String, password: String) -> Unit,
-  onLoginWithGoogleClicked: () -> Unit,
   onNavigateToAuthenticatedRoute: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
@@ -109,22 +99,20 @@ private fun LoginScreen(
 
   var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-  Scaffold(
-    topBar = { FreyzaDefaultAppBar() },
-    contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
-      WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-    )) { paddingValues ->
+  Scaffold { paddingValues ->
     Column(
       modifier = modifier
         .fillMaxSize()
-        .verticalScroll(rememberScrollState())
+        .imePadding()
         .padding(paddingValues)
-        .padding(dimensionResource(R.dimen.screen_padding)),
+        .verticalScroll(rememberScrollState()),
       verticalArrangement = Arrangement.Center,
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
       Column(
-        modifier = modifier.weight(1f),
+        modifier = Modifier
+          .weight(1f)
+          .padding(dimensionResource(R.dimen.screen_padding)),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
       ) {
@@ -179,11 +167,11 @@ private fun LoginScreen(
 
         OutlinedTextField(
           label = {
-            Text(
-              stringResource(R.string.email_placeholder),
-              style = MaterialTheme.typography.titleMedium
-            )
-          },
+          Text(
+            stringResource(R.string.email_placeholder),
+            style = MaterialTheme.typography.titleMedium
+          )
+        },
           singleLine = true,
           isError = uiState is UIState.Error,
           leadingIcon = {
@@ -210,11 +198,11 @@ private fun LoginScreen(
 
         OutlinedTextField(
           label = {
-            Text(
-              stringResource(R.string.password_placeholder),
-              style = MaterialTheme.typography.titleMedium
-            )
-          },
+          Text(
+            stringResource(R.string.password_placeholder),
+            style = MaterialTheme.typography.titleMedium
+          )
+        },
           singleLine = true,
           isError = uiState is UIState.Error,
           leadingIcon = {
@@ -311,7 +299,6 @@ private fun LoginScreenPreview() {
     LoginScreen(
       uiState = UIState.Idle(),
       onLoginWithEmailClicked = { _, _ -> },
-      onLoginWithGoogleClicked = {},
       onNavigateToAuthenticatedRoute = {})
   }
 }
@@ -323,7 +310,6 @@ private fun LoginScreenLoadingPreview() {
     LoginScreen(
       uiState = UIState.Loading(),
       onLoginWithEmailClicked = { _, _ -> },
-      onLoginWithGoogleClicked = {},
       onNavigateToAuthenticatedRoute = {})
   }
 }
@@ -334,12 +320,7 @@ private fun LoginScreenErrorPreview() {
   FreyzaEmployeeTheme {
     LoginScreen(
       uiState = UIState.Error(
-        "This is a long error message, with any kind of error may happen. Be ready for that. " +
-                "This is wholesome in it's own that this error has occurred. " +
-                "We are happy to announce that this is an error."
-      ),
-      onLoginWithEmailClicked = { _, _ -> },
-      onLoginWithGoogleClicked = {},
-      onNavigateToAuthenticatedRoute = {})
+      "This is a long error message, with any kind of error may happen. Be ready for that. " + "This is wholesome in it's own that this error has occurred. " + "We are happy to announce that this is an error."
+    ), onLoginWithEmailClicked = { _, _ -> }, onNavigateToAuthenticatedRoute = {})
   }
 }

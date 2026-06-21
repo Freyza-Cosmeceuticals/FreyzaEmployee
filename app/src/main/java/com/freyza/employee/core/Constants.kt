@@ -1,5 +1,8 @@
 package com.freyza.employee.core
 
+/**
+ * Global Application Constants
+ */
 object Constants {
     const val TIMEZONE: String = "Asia/Kolkata"
 

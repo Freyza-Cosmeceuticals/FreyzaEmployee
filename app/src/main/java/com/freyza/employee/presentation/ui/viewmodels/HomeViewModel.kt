@@ -6,6 +6,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.blankLocation
@@ -15,7 +16,6 @@ import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportPara
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
-import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetRouteUseCase
@@ -27,11 +27,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -54,10 +51,12 @@ class HomeViewModel(
     const val TAG = "HomeViewModel"
   }
 
-  private val _uiState = MutableStateFlow(HomeScreenUiState())
+  private val _uiState = MutableStateFlow(HomeScreenUiState(today = serverTime.nowLocalDateTime()))
   val uiState = _uiState.onStart {
     refresh()
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeScreenUiState())
+  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeScreenUiState(today = serverTime.nowLocalDateTime()))
+
+  val currentUser = sessionManager.currentEmployee
 
   init {
     Logger.d(TAG, "Init")

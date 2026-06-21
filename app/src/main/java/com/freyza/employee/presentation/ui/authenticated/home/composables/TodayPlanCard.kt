@@ -391,7 +391,7 @@ fun RouteArrow(
 
 @Preview(showBackground = false, showSystemUi = false)
 @Composable
-fun TodayPlanCardPreviewWork() {
+private fun TodayPlanCardPreviewWork() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryWork(),
@@ -402,7 +402,7 @@ fun TodayPlanCardPreviewWork() {
 
 @Preview(showBackground = false, showSystemUi = false)
 @Composable
-fun TodayPlanCardPreviewWorkLoading() {
+private fun TodayPlanCardPreviewWorkLoading() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryWork(),
@@ -413,7 +413,7 @@ fun TodayPlanCardPreviewWorkLoading() {
 
 @Preview(showBackground = false, showSystemUi = false)
 @Composable
-fun TodayPlanCardPreviewWorkError() {
+private fun TodayPlanCardPreviewWorkError() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryWork(),
@@ -424,7 +424,7 @@ fun TodayPlanCardPreviewWorkError() {
 
 @Preview
 @Composable
-fun TodayPlanCardPreviewHoliday() {
+private fun TodayPlanCardPreviewHoliday() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryHoliday(),
@@ -435,7 +435,7 @@ fun TodayPlanCardPreviewHoliday() {
 
 @Preview
 @Composable
-fun TodayPlanCardPreviewLeave() {
+private fun TodayPlanCardPreviewLeave() {
   FreyzaEmployeeTheme {
     TodayPlanCard(
       planEntry = dummyTravelPlanEntryLeave(),

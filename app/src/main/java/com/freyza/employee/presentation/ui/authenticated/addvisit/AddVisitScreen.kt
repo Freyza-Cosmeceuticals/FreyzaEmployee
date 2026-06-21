@@ -46,18 +46,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.ProductDetail
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitCreate
 import com.freyza.employee.domain.model.VisitType
-import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
+import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.addvisit.composables.TagInputField
 import com.freyza.employee.presentation.ui.authenticated.addvisit.composables.ToggleableRow
 import com.freyza.employee.presentation.ui.composables.FreyzaAddVisitAppBar
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
-import com.freyza.employee.presentation.ui.state.MainUiState
-import com.freyza.employee.presentation.ui.state.dummyMainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.AddVisitViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -70,27 +70,23 @@ data class ProductEntry(
 
 @Composable
 fun AddVisitScreenRoute(
-  mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   viewModel: AddVisitViewModel = koinViewModel(),
   onNavigateUp: (created: Boolean?) -> Unit,
   onNavigateToUnauthenticated: () -> Unit,
 ) {
-  AuthenticatedRouteWrapper(
-    mainUiState, onNavigateToUnauthenticated,
-    loading = {
-      Logger.e(
-        "AddVisitScreenRoute", "Invalid User/Session on addvisit screen, waiting for 5seconds"
-      )
-      Skeleton(modifier = modifier.padding(dimensionResource(R.dimen.screen_padding)))
-    },
-    timeoutMillis = 5_000,
-  ) { mainUiState ->
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
+  if (currentUser == null) {
+    Logger.e(
+      "AddVisitScreenRoute", "Invalid User/Session on add visit screen"
+    )
+    Skeleton(modifier = modifier.padding(dimensionResource(R.dimen.screen_padding)))
+  } else {
     AddVisitScreen(
       uiState = uiState,
-      mainUiState = mainUiState,
+      user = currentUser!!,
       onNavigateUp = onNavigateUp,
       onRetry = viewModel::refresh,
       onSubmitVisit = viewModel::submitVisit,
@@ -102,7 +98,7 @@ fun AddVisitScreenRoute(
 @Composable
 fun AddVisitScreen(
   uiState: AddVisitUiState,
-  mainUiState: MainUiState,
+  user: User,
   onNavigateUp: (created: Boolean?) -> Unit,
   onRetry: () -> Unit,
   onSubmitVisit: (visitCreate: VisitCreate) -> Unit,
@@ -145,10 +141,6 @@ fun AddVisitScreen(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
   ) { paddingValues ->
-    if (mainUiState.user == null) {
-      return@Scaffold
-    }
-
     // handle screen transitions and error states
     LaunchedEffect(uiState.creationState) {
       if (uiState.creationState is UIState.Ready) {
@@ -431,8 +423,11 @@ fun AddVisitScreen(
 private fun AddVisitScreenPreviewDoctor() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
-      uiState = AddVisitUiState(visitType = VisitType.DOCTOR),
-      mainUiState = dummyMainUiState(),
+      uiState = AddVisitUiState(
+        today = ServerTime().nowLocalDateTime(),
+        visitType = VisitType.DOCTOR
+      ),
+      user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
       onSubmitVisit = {})
@@ -444,8 +439,11 @@ private fun AddVisitScreenPreviewDoctor() {
 private fun AddVisitScreenPreviewStockist() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
-      uiState = AddVisitUiState(visitType = VisitType.STOCKIST),
-      mainUiState = dummyMainUiState(),
+      uiState = AddVisitUiState(
+        today = ServerTime().nowLocalDateTime(),
+        visitType = VisitType.STOCKIST
+      ),
+      user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
       onSubmitVisit = {})
@@ -457,8 +455,11 @@ private fun AddVisitScreenPreviewStockist() {
 private fun AddVisitScreenPreviewChemist() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
-      uiState = AddVisitUiState(visitType = VisitType.CHEMIST),
-      mainUiState = dummyMainUiState(),
+      uiState = AddVisitUiState(
+        today = ServerTime().nowLocalDateTime(),
+        visitType = VisitType.CHEMIST
+      ),
+      user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
       onSubmitVisit = {})
@@ -470,8 +471,11 @@ private fun AddVisitScreenPreviewChemist() {
 private fun AddVisitScreenPreviewNull() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
-      uiState = AddVisitUiState(visitType = null),
-      mainUiState = dummyMainUiState(),
+      uiState = AddVisitUiState(
+        today = ServerTime().nowLocalDateTime(),
+        visitType = null
+      ),
+      user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
       onSubmitVisit = {})

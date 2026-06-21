@@ -33,6 +33,9 @@ data class FreyzaSnackbarVisuals(
   val type: SnackbarType = SnackbarType.DEFAULT,
 ) : SnackbarVisuals
 
+/**
+ * Shows a typed snackbar of [type] with the given [message] and [actionLabel].
+ */
 suspend fun SnackbarHostState.showTypedSnackbar(
   message: String,
   type: SnackbarType = SnackbarType.DEFAULT,
