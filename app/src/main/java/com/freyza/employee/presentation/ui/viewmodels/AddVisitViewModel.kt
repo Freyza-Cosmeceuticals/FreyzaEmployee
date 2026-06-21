@@ -35,12 +35,14 @@ class AddVisitViewModel(
     const val TAG = "AddVisitViewModel"
   }
 
-  private val _uiState = MutableStateFlow(AddVisitUiState(visitType = visitType))
+  private val _uiState = MutableStateFlow(AddVisitUiState(today = serverTime.nowLocalDateTime(), visitType = visitType))
   val uiState = _uiState.onStart {
     refresh()
   }.stateIn(
-    viewModelScope, SharingStarted.WhileSubscribed(5_000), AddVisitUiState(visitType = visitType)
+    viewModelScope, SharingStarted.WhileSubscribed(5_000), AddVisitUiState(today = serverTime.nowLocalDateTime(), visitType = visitType)
   )
+
+  val currentUser = sessionManager.currentEmployee
 
   init {
     Logger.d(TAG, "Init with visitType: ${visitType.name}")

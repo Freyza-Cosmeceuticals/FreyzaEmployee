@@ -2,6 +2,9 @@ package com.freyza.employee.core.util
 
 import kotlinx.datetime.LocalDateTime
 
+/**
+ * Extension function to greet the user based on the time of day.
+ */
 fun LocalDateTime.timedGreeting(
     suffix: String,
     morning: String = "Morning",

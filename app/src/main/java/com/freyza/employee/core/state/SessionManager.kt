@@ -5,6 +5,9 @@ import com.freyza.employee.domain.model.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/**
+ * Holds current employee session.
+ */
 class SessionManager {
 
     companion object {

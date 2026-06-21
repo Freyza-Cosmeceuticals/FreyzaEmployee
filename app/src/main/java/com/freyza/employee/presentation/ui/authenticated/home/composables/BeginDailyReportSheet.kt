@@ -16,8 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -51,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
@@ -150,11 +150,14 @@ fun BeginDailyReportSheet(
           dimensionResource(R.dimen.default_spacing).times(3)
         )
       ) {
-        OutlinedButton(onClick = onLogout, modifier = Modifier.weight(1f)) {
-          Text("Logout")
+        Button(onClick = onRetry, modifier = Modifier.weight(1f)) {
+          Text("Refresh")
         }
         Button(onClick = onExit, modifier = Modifier.weight(1f)) {
           Text("Exit")
+        }
+        OutlinedButton(onClick = onLogout, modifier = Modifier.weight(1f)) {
+          Text("Logout")
         }
       }
     }
@@ -163,18 +166,20 @@ fun BeginDailyReportSheet(
   }
 
 
-  var selectedDayType by remember { mutableStateOf(planEntry.dayType) }
-  var selectedRoute by remember { mutableStateOf(planEntry.routeId) }
+  var selectedDayType by remember(planEntry) { mutableStateOf(planEntry.dayType) }
+  var selectedRoute by remember(planEntry) { mutableStateOf(planEntry.routeId) }
   var searchQuery by remember { mutableStateOf("") }
 
-  val selectedRouteName by remember(routes) {
+  val focusManager = LocalFocusManager.current
+
+  val selectedRouteName by remember(routes, selectedRoute) {
     derivedStateOf {
       val route = routes.data?.find { it.id == selectedRoute }
       route?.routeName() ?: "Select your assigned route"
     }
   }
 
-  val startButtonEnabled by remember(routes) {
+  val startButtonEnabled by remember(routes, selectedDayType, selectedRoute) {
     derivedStateOf {
       val isRoutesReady = routes is UIState.Ready
       val isWork = selectedDayType == DayType.WORK
@@ -191,7 +196,7 @@ fun BeginDailyReportSheet(
     }
   }
 
-  // TODO: complex route search login, will simplify later
+  // TODO: complex route search logic, will simplify later
   val filteredRoutes = remember(searchQuery, routes) {
     derivedStateOf {
       val list = routes.data ?: emptyList()
@@ -214,7 +219,7 @@ fun BeginDailyReportSheet(
     modifier = modifier
       .fillMaxWidth()
       .padding(dimensionResource(R.dimen.screen_padding))
-      .navigationBarsPadding()
+      .imePadding()
       .animateContentSize(),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(
@@ -254,7 +259,8 @@ fun BeginDailyReportSheet(
     AnimatedVisibility(
       visible = selectedDayType == DayType.WORK,
       enter = fadeIn() + expandVertically(),
-      exit = fadeOut() + shrinkVertically()
+      exit = fadeOut() + shrinkVertically(),
+      modifier = Modifier.weight(1f, fill = false)
     ) {
       Column(verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))) {
         ElevatedCard(
@@ -295,7 +301,7 @@ fun BeginDailyReportSheet(
 
         when (routes) {
           is UIState.Ready -> {
-            LazyColumn(modifier = Modifier.heightIn(max = 350.dp)) {
+            LazyColumn {
               items(filteredRoutes.value, key = { it.id }) { route ->
                 val isSelected = selectedRoute == route.id
 
@@ -305,7 +311,10 @@ fun BeginDailyReportSheet(
                   colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                   supportingContent = { Text("${route.distanceKm} km") },
                   modifier = Modifier
-                    .clickable { selectedRoute = route.id }
+                    .clickable {
+                      selectedRoute = route.id
+                      focusManager.clearFocus()
+                    }
                     .border(
                       2.dp,
                       if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
@@ -317,11 +326,13 @@ fun BeginDailyReportSheet(
 
           is UIState.Error -> {
             Text(
-              "Unable to load routes. I will move routes to mainUiState later anyways.",
+              "Unable to load routes.",
               textAlign = TextAlign.Center,
-              modifier = Modifier.padding(
-                vertical = dimensionResource(R.dimen.default_spacing)
-              )
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                  vertical = dimensionResource(R.dimen.default_spacing)
+                )
             )
           }
 
@@ -387,7 +398,7 @@ private fun SheetPreviewWork() {
       dayTypes = dayTypes,
       routes = UIState.Ready(listOf(dummyRouteWithLocation())),
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
@@ -402,7 +413,7 @@ private fun SheetPreviewHoliday() {
       dayTypes = dayTypes,
       routes = UIState.Ready(listOf(dummyRouteWithLocation())),
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryHoliday()),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
@@ -418,7 +429,7 @@ private fun SheetPreviewLeave() {
       dayTypes = dayTypes,
       routes = UIState.Ready(listOf(dummyRouteWithLocation())),
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryLeave()),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
@@ -433,7 +444,7 @@ private fun SheetPreviewLoadingRoutes() {
       dayTypes = dayTypes,
       routes = UIState.Loading(),
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
@@ -448,7 +459,7 @@ private fun SheetPreviewNoPlan() {
       dayTypes = dayTypes,
       routes = UIState.Ready(listOf(dummyRouteWithLocation())),
       todayTravelPlanEntry = UIState.Ready(null),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
@@ -463,7 +474,7 @@ private fun SheetPreviewLoadingPlan() {
       dayTypes = dayTypes,
       routes = UIState.Ready(listOf(dummyRouteWithLocation())),
       todayTravelPlanEntry = UIState.Loading(null, "Loading Plan..."),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
@@ -478,7 +489,7 @@ private fun SheetPreviewErrorPlan() {
       dayTypes = dayTypes,
       routes = UIState.Ready(listOf(dummyRouteWithLocation())),
       todayTravelPlanEntry = UIState.Error("Error loading plan"),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
@@ -493,7 +504,7 @@ private fun SheetPreviewErrorRoutes() {
       dayTypes = dayTypes,
       routes = UIState.Error("Error loading routes"),
       todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-      onDailyReportBegin = { dayType, routeId -> },
+      onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})

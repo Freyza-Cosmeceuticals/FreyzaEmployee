@@ -1,6 +1,7 @@
 package com.freyza.employee.presentation.ui.state
 
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
@@ -11,7 +12,10 @@ import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
 
+import kotlinx.datetime.LocalDateTime
+
 data class HomeScreenUiState(
+  val today: LocalDateTime,
   val currentTravelPlan: UIState<TravelPlan?> = UIState.Idle(),
   val todayTravelPlanEntry: UIState<TravelPlanEntry?> = UIState.Idle(),
 
@@ -25,6 +29,7 @@ data class HomeScreenUiState(
 )
 
 fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
+  today = ServerTime().nowLocalDateTime(),
   currentTravelPlan = UIState.Ready(dummyTravelPlan()),
   todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
 
@@ -38,6 +43,7 @@ fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
 )
 
 fun dummyHomeScreenUiStateDailyReportError(): HomeScreenUiState = HomeScreenUiState(
+  today = ServerTime().nowLocalDateTime(),
   currentTravelPlan = UIState.Ready(dummyTravelPlan()),
   todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
 

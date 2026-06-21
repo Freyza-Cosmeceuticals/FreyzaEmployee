@@ -13,37 +13,37 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class UserRepositoryImpl(
-    private val auth: Auth,
-    private val postgres: Postgrest,
+  private val auth: Auth,
+  private val postgres: Postgrest,
 ) : UserRepository {
-    companion object {
-        const val TAG: String = "UserRepository"
-    }
+  companion object {
+    const val TAG: String = "UserRepository"
+  }
 
-    override suspend fun getUserById(id: String): Result<User?> {
-        return try {
-            withContext(Dispatchers.IO) {
-                val userDto = postgres.from("user").select {
-                    filter {
-                        UserDto::id eq id
-                    }
-                }.decodeSingleOrNull<UserDto>()
+  override suspend fun getUserById(id: String): Result<User?> {
+    return try {
+      withContext(Dispatchers.IO) {
+        val userDto = postgres.from("user").select {
+          filter {
+            UserDto::id eq id
+          }
+        }.decodeSingleOrNull<UserDto>()
 
-                Result.Success(userDto?.toDomain())
-            }
-        } catch (e: Exception) {
-            Logger.e(TAG, e.message.toString())
-            Result.Error(e.message.toString())
-        }
+        Result.Success(userDto?.toDomain())
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
     }
+  }
 
-    override suspend fun getCurrentUser(): Result<UserInfo?> {
-        return try {
-            val userInfo = auth.currentUserOrNull()
-            Result.Success(userInfo)
-        } catch (e: Exception) {
-            Logger.e(TAG, e.message.toString())
-            Result.Error(e.message.toString())
-        }
+  override suspend fun getCurrentUser(): Result<UserInfo?> {
+    return try {
+      val userInfo = auth.currentUserOrNull()
+      Result.Success(userInfo)
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
     }
+  }
 }

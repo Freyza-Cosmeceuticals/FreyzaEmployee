@@ -57,7 +57,7 @@ class ServerTime(
     }
   }
 
-  fun setServerOffset(offset: Long) {
+  private fun setServerOffset(offset: Long) {
     serverOffset = offset
     isSynced = true
   }

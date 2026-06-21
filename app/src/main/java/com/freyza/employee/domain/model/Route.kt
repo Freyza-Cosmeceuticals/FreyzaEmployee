@@ -55,7 +55,7 @@ fun dummyRoute(): Route = Route(
 )
 
 fun dummyRouteWithLocation(): RouteWithLocation = RouteWithLocation(
-  id = "3f6b851f-5c47-42b0-ab85-1f5c47c2b0d7",
+  id = "99fe0183-502d-4b2b-be01-83502ddb2b74",
   srcLoc = dummyLocation(),
   destLoc = dummyLocationAlt(),
   distanceKm = 32.0f,

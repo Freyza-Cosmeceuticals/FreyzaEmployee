@@ -41,11 +41,13 @@ import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyRouteWithLocation
-import com.freyza.employee.presentation.ui.authenticated.AuthenticatedRouteWrapper
+import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.AddVisitFloatingActionButton
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.DailyReportDetailSheetContent
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.DailyReportListCard
@@ -56,16 +58,13 @@ import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.DailyReportUiState
-import com.freyza.employee.presentation.ui.state.MainUiState
 import com.freyza.employee.presentation.ui.state.dummyDailyReportUiState
-import com.freyza.employee.presentation.ui.state.dummyMainUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.DailyReportViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun DailyReportScreenRoute(
-  mainUiState: MainUiState,
   modifier: Modifier = Modifier,
   viewModel: DailyReportViewModel = koinViewModel(),
   visitCreated: Boolean? = null,
@@ -73,21 +72,18 @@ fun DailyReportScreenRoute(
   onNavigateToUnauthenticated: () -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
 ) {
-  AuthenticatedRouteWrapper(
-    mainUiState, onNavigateToUnauthenticated,
-    loading = {
-      Logger.e(
-        "DailyReportScreenRoute", "Invalid User/Session on dailyreport screen, waiting for 5seconds"
-      )
-      Skeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
-    },
-    timeoutMillis = 5_000,
-  ) { mainUiState ->
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
+  if (currentUser == null) {
+    Logger.e(
+      "DailyReportScreenRoute", "Invalid User/Session on daily report screen"
+    )
+    Skeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
+  } else {
     DailyReportScreen(
       uiState = uiState,
-      mainUiState = mainUiState,
+      user = currentUser!!,
       onRefresh = viewModel::refresh,
       onNavigateToAddVisit = onNavigateToAddVisit,
       onLockReport = viewModel::lockReport,
@@ -102,7 +98,7 @@ fun DailyReportScreenRoute(
 @Composable
 fun DailyReportScreen(
   uiState: DailyReportUiState,
-  mainUiState: MainUiState,
+  user: User,
   onRefresh: () -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
   onLockReport: (reportId: String) -> Unit,
@@ -112,8 +108,8 @@ fun DailyReportScreen(
 ) {
   val sheetState = rememberModalBottomSheetState()
 
-  val todayReport = remember(uiState.dailyReports.data, mainUiState.today.date) {
-    uiState.dailyReports.data?.firstOrNull { it.date == mainUiState.today.date }
+  val todayReport = remember(uiState.dailyReports.data, uiState.today.date) {
+    uiState.dailyReports.data?.firstOrNull { it.date == uiState.today.date }
   }
   val pastReports = remember(uiState.dailyReports.data, todayReport) {
     if (todayReport != null) uiState.dailyReports.data?.drop(1)
@@ -162,10 +158,6 @@ fun DailyReportScreen(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
   ) { paddingValues ->
-    if (mainUiState.user == null) {
-      return@Scaffold
-    }
-
     LaunchedEffect(uiState.lockingState) {
       if (uiState.lockingState is UIState.Ready) {
         // close the sheet
@@ -343,9 +335,9 @@ private fun DailyReportScreenPreview() {
   FreyzaEmployeeTheme {
     DailyReportScreen(
       uiState = dummyDailyReportUiState(),
-      mainUiState = dummyMainUiState(),
+      user = dummyUserEmployee(),
       onRefresh = {},
-      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> },
+      onNavigateToAddVisit = { _, _, _ -> },
       onLockReport = {})
   }
 }
@@ -356,12 +348,13 @@ private fun DailyReportScreenPreviewLoading() {
   FreyzaEmployeeTheme {
     DailyReportScreen(
       uiState = DailyReportUiState(
+        today = ServerTime().nowLocalDateTime(),
         dailyReports = UIState.Loading(null, "Cooking reports"),
         routes = UIState.Ready(listOf(dummyRouteWithLocation()))
       ),
-      mainUiState = dummyMainUiState(),
+      user = dummyUserEmployee(),
       onRefresh = {},
-      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> },
+      onNavigateToAddVisit = { _, _, _ -> },
       onLockReport = {})
   }
 }
@@ -373,12 +366,13 @@ private fun DailyReportScreenPreviewError() {
   FreyzaEmployeeTheme {
     DailyReportScreen(
       uiState = DailyReportUiState(
+        today = ServerTime().nowLocalDateTime(),
         dailyReports = UIState.Error("Cannot to load reports"),
         routes = UIState.Ready(listOf(dummyRouteWithLocation()))
       ),
-      mainUiState = dummyMainUiState(),
+      user = dummyUserEmployee(),
       onRefresh = {},
-      onNavigateToAddVisit = { type: VisitType, string: String, string1: String -> },
+      onNavigateToAddVisit = { _, _, _ -> },
       onLockReport = {})
   }
 }

@@ -45,11 +45,15 @@ sealed class NavRoutes {
 
 sealed class BottomNavItem(val route: NavRoutes, val icon: Int?, val label: String) {
   object Home : BottomNavItem(
-    NavRoutes.Authenticated.Home, icon = R.drawable.home_24px, label = "Today"
+    NavRoutes.Authenticated.Home,
+    icon = R.drawable.home_24px,
+    label = "Today",
   )
 
   object TravelPlan : BottomNavItem(
-    NavRoutes.Authenticated.TravelPlan, icon = R.drawable.calendar_month_24px, label = "Travel Plan"
+    NavRoutes.Authenticated.TravelPlan,
+    icon = R.drawable.calendar_month_24px,
+    label = "Travel Plan",
   )
 
   object DailyReports : BottomNavItem(
@@ -59,6 +63,8 @@ sealed class BottomNavItem(val route: NavRoutes, val icon: Int?, val label: Stri
   )
 
   object Profile : BottomNavItem(
-    NavRoutes.Authenticated.Profile, icon = R.drawable.account_circle_24px, label = "Profile"
+    NavRoutes.Authenticated.Profile,
+    icon = R.drawable.account_circle_24px,
+    label = "Profile",
   )
 }
