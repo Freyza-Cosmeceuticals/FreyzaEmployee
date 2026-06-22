@@ -106,7 +106,7 @@ private fun HomeScreen(
   onRefresh: () -> Unit,
   onLogout: () -> Unit,
   onExit: () -> Unit,
-  onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
+  onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?) -> Unit,
   onDailyReportRetry: () -> Unit,
   onNavigateToReport: () -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
@@ -155,21 +155,18 @@ private fun HomeScreen(
       ModalBottomSheet(
         onDismissRequest = onDismissSheet,
         sheetState = reportCreationSheetState,
-        sheetGesturesEnabled = false,
+        sheetGesturesEnabled = true,
         scrimColor = Color.Black.copy(alpha = 0.75f),
-        properties = ModalBottomSheetProperties(
-          shouldDismissOnBackPress = true, shouldDismissOnClickOutside = true
-        )
       ) {
         Box {
           BeginDailyReportSheet(
             dayTypes = dayTypes,
             routes = uiState.routes,
+            locations = uiState.locations,
             todayTravelPlanEntry = uiState.todayTravelPlanEntry,
             onDailyReportBegin = onDailyReportBegin,
             onRetry = onRefresh,
-            onExit = onExit,
-            onLogout = onLogout
+            onExit = onExit
           )
         }
 
@@ -183,7 +180,7 @@ private fun HomeScreen(
       ModalBottomSheet(
         onDismissRequest = {},
         sheetState = reportCreationSheetState,
-        sheetGesturesEnabled = true,
+        sheetGesturesEnabled = false,
         properties = ModalBottomSheetProperties(
           shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
         )
@@ -361,7 +358,7 @@ private fun HomeScreenPreview() {
       onRefresh = {},
       onLogout = {},
       onExit = {},
-      onDailyReportBegin = { _, _ -> },
+      onDailyReportBegin = { _, _, _ -> },
       onDailyReportRetry = {},
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },
@@ -381,7 +378,7 @@ private fun HomeScreenReportErrorPreview() {
       onRefresh = {},
       onLogout = {},
       onExit = {},
-      onDailyReportBegin = { _, _ -> },
+      onDailyReportBegin = { _, _, _ -> },
       onDailyReportRetry = {},
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },

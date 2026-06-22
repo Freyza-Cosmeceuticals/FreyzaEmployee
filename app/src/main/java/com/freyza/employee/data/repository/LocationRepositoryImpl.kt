@@ -11,26 +11,41 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationRepository {
-    companion object {
-        const val TAG: String = "LocationRepo"
+  companion object {
+    const val TAG: String = "LocationRepo"
+  }
+
+  override suspend fun getLocation(locationId: String): Result<Location?> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying location with ID: $locationId")
+
+        val locationDto = postgrest.from("location").select {
+          filter {
+            LocationDto::id eq locationId
+          }
+        }.decodeSingleOrNull<LocationDto>()
+
+        Result.Success(locationDto?.toDomain())
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
     }
+  }
 
-    override suspend fun getLocation(locationId: String): Result<Location?> {
-        return try {
-            withContext(Dispatchers.IO) {
-                Logger.d(TAG, "Querying location with ID: $locationId")
+  override suspend fun getAllLocations(): Result<List<Location>> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying all locations")
 
-                val locationDto = postgrest.from("location").select {
-                    filter {
-                        LocationDto::id eq locationId
-                    }
-                }.decodeSingleOrNull<LocationDto>()
+        val locationDtos = postgrest.from("location").select().decodeList<LocationDto>()
 
-                Result.Success(locationDto?.toDomain())
-            }
-        } catch (e: Exception) {
-            Logger.e(TAG, e.message.toString())
-            Result.Error(e.message.toString())
-        }
+        Result.Success(locationDtos.map { it.toDomain() })
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
     }
+  }
 }

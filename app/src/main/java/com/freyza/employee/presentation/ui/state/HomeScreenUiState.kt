@@ -3,6 +3,7 @@ package com.freyza.employee.presentation.ui.state
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.Location
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
@@ -26,6 +27,7 @@ data class HomeScreenUiState(
 
   val currentDailyReport: DailyReport? = null,
   val routes: List<RouteWithLocation> = emptyList(),
+  val locations: List<Location> = emptyList(),
 
   val todayReportDayType: DayType? = null,
   val todayReportRoute: RouteWithLocation? = null,

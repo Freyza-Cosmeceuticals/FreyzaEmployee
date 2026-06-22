@@ -10,6 +10,7 @@ import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.repository.RouteRepository
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -73,6 +74,27 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun getOrCreateRoute(srcLocId: String, destLocId: String): Result<Route> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Calling RPC get_or_create_route for $srcLocId -> $destLocId")
+
+        val routeDto = postgrest.rpc(
+          function = "get_or_create_route",
+          parameters = mapOf(
+            "p_src_loc_id" to srcLocId,
+            "p_dest_loc_id" to destLocId
+          )
+        ).decodeAs<RouteDto>()
+
+        Result.Success(routeDto.toDomain())
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, "RPC get_or_create_route failed: ${e.message}")
       Result.Error(e.message.toString())
     }
   }

@@ -6,8 +6,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,20 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -44,25 +34,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.integerResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.Location
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.domain.model.dayTypes
+import com.freyza.employee.domain.model.dummyLocation
+import com.freyza.employee.domain.model.dummyLocationAlt
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlanEntryHoliday
 import com.freyza.employee.domain.model.dummyTravelPlanEntryLeave
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
 import com.freyza.employee.domain.model.routeName
-import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import com.freyza.employee.presentation.ui.composables.SearchableDropdown
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,15 +59,13 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 fun BeginDailyReportSheet(
   dayTypes: List<DayType>,
   routes: List<RouteWithLocation>,
+  locations: List<Location>,
   todayTravelPlanEntry: TravelPlanEntry?,
-  onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
+  onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?) -> Unit,
   onRetry: () -> Unit,
   onExit: () -> Unit,
-  onLogout: () -> Unit,
   modifier: Modifier = Modifier,
-  isLoadingRoutes: Boolean = false,
 ) {
-
   if (todayTravelPlanEntry == null) {
     Column(
       Modifier
@@ -98,11 +85,8 @@ fun BeginDailyReportSheet(
         Button(onClick = onRetry, modifier = Modifier.weight(1f)) {
           Text("Refresh")
         }
-        Button(onClick = onExit, modifier = Modifier.weight(1f)) {
+        OutlinedButton(onClick = onExit, modifier = Modifier.weight(1f)) {
           Text("Exit")
-        }
-        OutlinedButton(onClick = onLogout, modifier = Modifier.weight(1f)) {
-          Text("Logout")
         }
       }
     }
@@ -112,48 +96,33 @@ fun BeginDailyReportSheet(
 
 
   var selectedDayType by remember(todayTravelPlanEntry) { mutableStateOf(todayTravelPlanEntry.dayType) }
-  var selectedRoute by remember(todayTravelPlanEntry) { mutableStateOf(todayTravelPlanEntry.routeId) }
-  var searchQuery by remember { mutableStateOf("") }
 
-  val focusManager = LocalFocusManager.current
+  var selectedSource by remember(todayTravelPlanEntry, routes) {
+    mutableStateOf(routes.find { it.id == todayTravelPlanEntry.routeId }?.srcLoc)
+  }
+  var selectedDestination by remember(todayTravelPlanEntry, routes) {
+    mutableStateOf(routes.find { it.id == todayTravelPlanEntry.routeId }?.destLoc)
+  }
 
-  val selectedRouteName by remember(routes, selectedRoute) {
+  val matchingRoute by remember(selectedSource, selectedDestination, routes) {
     derivedStateOf {
-      val route = routes.find { it.id == selectedRoute }
-      route?.routeName() ?: "Select your assigned route"
+      if (selectedSource == null || selectedDestination == null) null
+      else routes.find { it.srcLoc.id == selectedSource?.id && it.destLoc.id == selectedDestination?.id }
     }
   }
 
-  val startButtonEnabled by remember(routes, selectedDayType, selectedRoute) {
+  val startButtonEnabled by remember(selectedDayType, selectedSource, selectedDestination) {
     derivedStateOf {
       val isWork = selectedDayType == DayType.WORK
-      val isRouteSelected = selectedRoute != null
-
-      !isWork || isRouteSelected
+      !isWork || (selectedSource != null && selectedDestination != null)
     }
   }
+
   val startButtonText = remember(selectedDayType) {
     when (selectedDayType) {
       DayType.WORK -> "Start Day"
       DayType.LEAVE -> "Mark Leave"
       DayType.HOLIDAY -> "Mark Holiday"
-    }
-  }
-
-  val filteredRoutes = remember(searchQuery, routes) {
-    derivedStateOf {
-      if (searchQuery.isBlank()) return@derivedStateOf routes
-
-      val parts = searchQuery.split(' ').filter { it.isNotBlank() }
-      routes.filter { rt ->
-        when {
-          parts.isEmpty() -> true
-          parts.size == 1 -> rt.routeName().contains(parts[0], ignoreCase = true)
-          else -> rt.srcLoc.name.contains(parts[0], ignoreCase = true) && rt.destLoc.name.contains(
-            parts[1], ignoreCase = true
-          )
-        }
-      }
     }
   }
 
@@ -187,8 +156,11 @@ fun BeginDailyReportSheet(
             index = i, count = dayTypes.size
           ), onClick = {
             selectedDayType = type
-            selectedRoute = if (selectedDayType != DayType.WORK) null
-            else todayTravelPlanEntry.routeId
+            if (selectedDayType == DayType.WORK) {
+              val route = routes.find { it.id == todayTravelPlanEntry.routeId }
+              selectedSource = route?.srcLoc
+              selectedDestination = route?.destLoc
+            }
           }, selected = selectedDayType == type
         ) {
           Text(type.titleCase())
@@ -204,65 +176,77 @@ fun BeginDailyReportSheet(
       exit = fadeOut() + shrinkVertically(),
       modifier = Modifier.weight(1f, fill = false)
     ) {
-      Column(verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))) {
-        ElevatedCard(
-          colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(
-              if (selectedRoute != null) 32.dp else 0.dp
-            )
-          ),
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        ) {
-          Text(
-            selectedRouteName,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(16.dp)
+      Column(
+        verticalArrangement = Arrangement.spacedBy(
+          dimensionResource(R.dimen.default_spacing).times(
+            3
           )
-        }
-
-        OutlinedTextField(
-          value = searchQuery,
-          onValueChange = { searchQuery = it },
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = dimensionResource(R.dimen.screen_padding)),
-          placeholder = { Text("Search routes...") },
-          leadingIcon = { Icon(painterResource(R.drawable.search_24px), null) },
-          trailingIcon = {
-            if (searchQuery.isNotEmpty()) {
-              IconButton(onClick = { searchQuery = "" }) {
-                Icon(painterResource(R.drawable.backspace_24px), "Clear")
-              }
-            }
-          },
-          singleLine = true,
-          shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
+        )
+      ) {
+        SearchableDropdown(
+          label = "Source Location",
+          items = locations,
+          selectedItem = selectedSource,
+          onItemSelect = { selectedSource = it },
+          itemLabeler = { it.name },
+          placeholder = "Search source..."
         )
 
-        if (isLoadingRoutes) {
-          LoadingIndicator(message = "Loading routes...", modifier = Modifier.fillMaxWidth())
-        } else {
-          LazyColumn {
-            items(filteredRoutes.value, key = { it.id }) { route ->
-              val isSelected = selectedRoute == route.id
+        SearchableDropdown(
+          label = "Destination Location",
+          items = locations,
+          selectedItem = selectedDestination,
+          onItemSelect = { selectedDestination = it },
+          itemLabeler = { it.name },
+          placeholder = "Search destination..."
+        )
 
-              ListItem(
-                headlineContent = { Text(route.routeName()) },
-                leadingContent = { Icon(painterResource(R.drawable.route_24px), "Route") },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                supportingContent = { Text("${route.distanceKm} km") },
-                modifier = Modifier
-                  .clickable {
-                    selectedRoute = route.id
-                    focusManager.clearFocus()
-                  }
-                  .border(
-                    2.dp,
-                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                    RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
-                  ))
+        AnimatedVisibility(visible = matchingRoute != null) {
+          ElevatedCard(
+            colors = CardDefaults.elevatedCardColors(
+              containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
+            ),
+            modifier = Modifier.fillMaxWidth(),
+          ) {
+            Column(Modifier.padding(16.dp)) {
+              Text(
+                matchingRoute?.routeName() ?: "",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+              )
+              if (matchingRoute?.distanceKm != 0.0f) {
+                Text(
+                  "${matchingRoute?.distanceKm} km",
+                  style = MaterialTheme.typography.bodyMedium
+                )
+              }
+            }
+          }
+        }
+
+        AnimatedVisibility(visible = selectedSource != null && selectedDestination != null && matchingRoute == null) {
+          ElevatedCard(
+            colors = CardDefaults.elevatedCardColors(
+              containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
+            ),
+            modifier = Modifier.fillMaxWidth(),
+          ) {
+            Column(Modifier.padding(16.dp)) {
+              Text(
+                "New Route",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error
+              )
+              Text(
+                "${selectedSource?.name} -> ${selectedDestination?.name}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+              )
+              Text(
+                "This route will be created automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+              )
             }
           }
         }
@@ -277,7 +261,7 @@ fun BeginDailyReportSheet(
       enabled = startButtonEnabled,
       onClick = {
         onDailyReportBegin(
-          selectedDayType, selectedRoute
+          selectedDayType, selectedSource?.id, selectedDestination?.id
         )
       },
     ) {
@@ -298,11 +282,12 @@ private fun SheetPreviewWork() {
     BeginDailyReportSheet(
       dayTypes = dayTypes,
       routes = listOf(dummyRouteWithLocation()),
+      locations = listOf(dummyLocation(), dummyLocationAlt()),
       todayTravelPlanEntry = dummyTravelPlanEntryWork(),
-      onDailyReportBegin = { _, _ -> },
+      onDailyReportBegin = { _, _, _ -> },
       onRetry = {},
-      onExit = {},
-      onLogout = {})
+      onExit = {}
+    )
   }
 }
 
@@ -313,11 +298,12 @@ private fun SheetPreviewHoliday() {
     BeginDailyReportSheet(
       dayTypes = dayTypes,
       routes = listOf(dummyRouteWithLocation()),
+      locations = listOf(dummyLocation(), dummyLocationAlt()),
       todayTravelPlanEntry = dummyTravelPlanEntryHoliday(),
-      onDailyReportBegin = { _, _ -> },
+      onDailyReportBegin = { _, _, _ -> },
       onRetry = {},
-      onExit = {},
-      onLogout = {})
+      onExit = {}
+    )
   }
 }
 
@@ -329,10 +315,27 @@ private fun SheetPreviewLeave() {
     BeginDailyReportSheet(
       dayTypes = dayTypes,
       routes = listOf(dummyRouteWithLocation()),
+      locations = listOf(dummyLocation(), dummyLocationAlt()),
       todayTravelPlanEntry = dummyTravelPlanEntryLeave(),
-      onDailyReportBegin = { _, _ -> },
+      onDailyReportBegin = { _, _, _ -> },
       onRetry = {},
-      onExit = {},
-      onLogout = {})
+      onExit = {}
+    )
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SheetPreviewNoPlan() {
+  FreyzaEmployeeTheme {
+    BeginDailyReportSheet(
+      dayTypes = dayTypes,
+      routes = listOf(dummyRouteWithLocation()),
+      locations = listOf(dummyLocation(), dummyLocationAlt()),
+      todayTravelPlanEntry = null,
+      onDailyReportBegin = { _, _, _ -> },
+      onRetry = {},
+      onExit = {}
+    )
   }
 }
