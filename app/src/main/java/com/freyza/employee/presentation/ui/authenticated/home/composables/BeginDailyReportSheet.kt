@@ -9,7 +9,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,13 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -39,7 +35,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -55,12 +50,9 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.freyza.employee.R
-import com.freyza.employee.core.UIState
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlanEntry
@@ -77,64 +69,17 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 @Composable
 fun BeginDailyReportSheet(
   dayTypes: List<DayType>,
-  routes: UIState<List<RouteWithLocation>>,
-  todayTravelPlanEntry: UIState<TravelPlanEntry?>,
+  routes: List<RouteWithLocation>,
+  todayTravelPlanEntry: TravelPlanEntry?,
   onDailyReportBegin: (dayType: DayType, routeId: String?) -> Unit,
   onRetry: () -> Unit,
   onExit: () -> Unit,
   onLogout: () -> Unit,
   modifier: Modifier = Modifier,
+  isLoadingRoutes: Boolean = false,
 ) {
 
-  if (todayTravelPlanEntry is UIState.Loading) {
-    Box(
-      modifier
-        .fillMaxWidth()
-        .padding(dimensionResource(R.dimen.screen_padding).times(2)),
-      contentAlignment = Alignment.Center
-    ) {
-      LoadingIndicator(Modifier.fillMaxWidth(), "Loading travel plan")
-    }
-    return
-  }
-
-  if (todayTravelPlanEntry is UIState.Error) {
-    Column(
-      modifier
-        .fillMaxWidth()
-        .padding(dimensionResource(R.dimen.screen_padding).times(2)),
-      horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-      Text(
-        "Unable to load travel plan data", style = MaterialTheme.typography.bodyMedium
-      )
-      Text(
-        "Please retry", style = MaterialTheme.typography.bodyMedium
-      )
-      Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(3)))
-      Row(
-        modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(
-          dimensionResource(R.dimen.default_spacing), Alignment.CenterHorizontally
-        )
-      ) {
-        FilledTonalButton(onClick = onRetry, modifier = Modifier.weight(3f)) {
-          Text("Retry")
-        }
-        FilledTonalButton(
-          modifier = Modifier.weight(1f),
-          onClick = onExit,
-          colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-        ) {
-          Text("Exit")
-        }
-      }
-    }
-
-    return
-  }
-
-  val planEntry = (todayTravelPlanEntry as? UIState.Ready)?.data
-  if (planEntry == null) {
+  if (todayTravelPlanEntry == null) {
     Column(
       Modifier
         .fillMaxWidth()
@@ -166,26 +111,25 @@ fun BeginDailyReportSheet(
   }
 
 
-  var selectedDayType by remember(planEntry) { mutableStateOf(planEntry.dayType) }
-  var selectedRoute by remember(planEntry) { mutableStateOf(planEntry.routeId) }
+  var selectedDayType by remember(todayTravelPlanEntry) { mutableStateOf(todayTravelPlanEntry.dayType) }
+  var selectedRoute by remember(todayTravelPlanEntry) { mutableStateOf(todayTravelPlanEntry.routeId) }
   var searchQuery by remember { mutableStateOf("") }
 
   val focusManager = LocalFocusManager.current
 
   val selectedRouteName by remember(routes, selectedRoute) {
     derivedStateOf {
-      val route = routes.data?.find { it.id == selectedRoute }
+      val route = routes.find { it.id == selectedRoute }
       route?.routeName() ?: "Select your assigned route"
     }
   }
 
   val startButtonEnabled by remember(routes, selectedDayType, selectedRoute) {
     derivedStateOf {
-      val isRoutesReady = routes is UIState.Ready
       val isWork = selectedDayType == DayType.WORK
       val isRouteSelected = selectedRoute != null
 
-      !isWork || (isRoutesReady && isRouteSelected)
+      !isWork || isRouteSelected
     }
   }
   val startButtonText = remember(selectedDayType) {
@@ -196,14 +140,12 @@ fun BeginDailyReportSheet(
     }
   }
 
-  // TODO: complex route search logic, will simplify later
   val filteredRoutes = remember(searchQuery, routes) {
     derivedStateOf {
-      val list = routes.data ?: emptyList()
-      if (searchQuery.isBlank()) return@derivedStateOf list
+      if (searchQuery.isBlank()) return@derivedStateOf routes
 
       val parts = searchQuery.split(' ').filter { it.isNotBlank() }
-      list.filter { rt ->
+      routes.filter { rt ->
         when {
           parts.isEmpty() -> true
           parts.size == 1 -> rt.routeName().contains(parts[0], ignoreCase = true)
@@ -242,11 +184,11 @@ fun BeginDailyReportSheet(
       dayTypes.forEachIndexed { i, type ->
         SegmentedButton(
           shape = SegmentedButtonDefaults.itemShape(
-            index = i, count = com.freyza.employee.domain.model.dayTypes.size
+            index = i, count = dayTypes.size
           ), onClick = {
             selectedDayType = type
             selectedRoute = if (selectedDayType != DayType.WORK) null
-            else planEntry.routeId
+            else todayTravelPlanEntry.routeId
           }, selected = selectedDayType == type
         ) {
           Text(type.titleCase())
@@ -299,45 +241,29 @@ fun BeginDailyReportSheet(
           shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
         )
 
-        when (routes) {
-          is UIState.Ready -> {
-            LazyColumn {
-              items(filteredRoutes.value, key = { it.id }) { route ->
-                val isSelected = selectedRoute == route.id
+        if (isLoadingRoutes) {
+          LoadingIndicator(message = "Loading routes...", modifier = Modifier.fillMaxWidth())
+        } else {
+          LazyColumn {
+            items(filteredRoutes.value, key = { it.id }) { route ->
+              val isSelected = selectedRoute == route.id
 
-                ListItem(
-                  headlineContent = { Text(route.routeName()) },
-                  leadingContent = { Icon(painterResource(R.drawable.route_24px), "Route") },
-                  colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                  supportingContent = { Text("${route.distanceKm} km") },
-                  modifier = Modifier
-                    .clickable {
-                      selectedRoute = route.id
-                      focusManager.clearFocus()
-                    }
-                    .border(
-                      2.dp,
-                      if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                      RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
-                    ))
-              }
+              ListItem(
+                headlineContent = { Text(route.routeName()) },
+                leadingContent = { Icon(painterResource(R.drawable.route_24px), "Route") },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                supportingContent = { Text("${route.distanceKm} km") },
+                modifier = Modifier
+                  .clickable {
+                    selectedRoute = route.id
+                    focusManager.clearFocus()
+                  }
+                  .border(
+                    2.dp,
+                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                    RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)
+                  ))
             }
-          }
-
-          is UIState.Error -> {
-            Text(
-              "Unable to load routes.",
-              textAlign = TextAlign.Center,
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                  vertical = dimensionResource(R.dimen.default_spacing)
-                )
-            )
-          }
-
-          else -> {
-            LoadingIndicator(message = "Loading routes...", modifier = Modifier.fillMaxWidth())
           }
         }
       }
@@ -345,7 +271,7 @@ fun BeginDailyReportSheet(
 
     Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(3)))
 
-    FilledTonalButton(
+    Button(
       modifier = Modifier.fillMaxWidth(),
       contentPadding = PaddingValues(dimensionResource(R.dimen.default_spacing).times(4)),
       enabled = startButtonEnabled,
@@ -364,31 +290,6 @@ fun BeginDailyReportSheet(
   }
 }
 
-@Composable
-fun DailyReportingFailedToLoadDialog(
-  message: String?,
-  onRetry: () -> Unit,
-  onExit: () -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  AlertDialog(
-    properties = DialogProperties(
-      dismissOnBackPress = false, dismissOnClickOutside = false
-    ),
-    onDismissRequest = {},
-    title = { Text("Failed to load daily report") },
-    text = {
-      Text(message ?: "Press Retry to try again")
-    },
-    confirmButton = {
-      TextButton(onClick = onRetry) { Text("Retry") }
-    },
-    dismissButton = {
-      TextButton(onClick = onExit) { Text("Exit") }
-    },
-    modifier = modifier,
-  )
-}
 
 @Preview(showBackground = true)
 @Composable
@@ -396,8 +297,8 @@ private fun SheetPreviewWork() {
   FreyzaEmployeeTheme {
     BeginDailyReportSheet(
       dayTypes = dayTypes,
-      routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-      todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
+      routes = listOf(dummyRouteWithLocation()),
+      todayTravelPlanEntry = dummyTravelPlanEntryWork(),
       onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
@@ -411,8 +312,8 @@ private fun SheetPreviewHoliday() {
   FreyzaEmployeeTheme {
     BeginDailyReportSheet(
       dayTypes = dayTypes,
-      routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-      todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryHoliday()),
+      routes = listOf(dummyRouteWithLocation()),
+      todayTravelPlanEntry = dummyTravelPlanEntryHoliday(),
       onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
@@ -427,94 +328,11 @@ private fun SheetPreviewLeave() {
   FreyzaEmployeeTheme {
     BeginDailyReportSheet(
       dayTypes = dayTypes,
-      routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-      todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryLeave()),
+      routes = listOf(dummyRouteWithLocation()),
+      todayTravelPlanEntry = dummyTravelPlanEntryLeave(),
       onDailyReportBegin = { _, _ -> },
       onRetry = {},
       onExit = {},
       onLogout = {})
-  }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun SheetPreviewLoadingRoutes() {
-  FreyzaEmployeeTheme {
-    BeginDailyReportSheet(
-      dayTypes = dayTypes,
-      routes = UIState.Loading(),
-      todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-      onDailyReportBegin = { _, _ -> },
-      onRetry = {},
-      onExit = {},
-      onLogout = {})
-  }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun SheetPreviewNoPlan() {
-  FreyzaEmployeeTheme {
-    BeginDailyReportSheet(
-      dayTypes = dayTypes,
-      routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-      todayTravelPlanEntry = UIState.Ready(null),
-      onDailyReportBegin = { _, _ -> },
-      onRetry = {},
-      onExit = {},
-      onLogout = {})
-  }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun SheetPreviewLoadingPlan() {
-  FreyzaEmployeeTheme {
-    BeginDailyReportSheet(
-      dayTypes = dayTypes,
-      routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-      todayTravelPlanEntry = UIState.Loading(null, "Loading Plan..."),
-      onDailyReportBegin = { _, _ -> },
-      onRetry = {},
-      onExit = {},
-      onLogout = {})
-  }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun SheetPreviewErrorPlan() {
-  FreyzaEmployeeTheme {
-    BeginDailyReportSheet(
-      dayTypes = dayTypes,
-      routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-      todayTravelPlanEntry = UIState.Error("Error loading plan"),
-      onDailyReportBegin = { _, _ -> },
-      onRetry = {},
-      onExit = {},
-      onLogout = {})
-  }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun SheetPreviewErrorRoutes() {
-  FreyzaEmployeeTheme {
-    BeginDailyReportSheet(
-      dayTypes = dayTypes,
-      routes = UIState.Error("Error loading routes"),
-      todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-      onDailyReportBegin = { _, _ -> },
-      onRetry = {},
-      onExit = {},
-      onLogout = {})
-  }
-}
-
-@Preview
-@Composable
-private fun ReportFailedToLoadDialogPreview() {
-  FreyzaEmployeeTheme {
-    DailyReportingFailedToLoadDialog("Failed to load since preview", {}, {})
   }
 }

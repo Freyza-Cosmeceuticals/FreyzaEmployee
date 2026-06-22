@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -38,6 +39,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
+import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.model.AuthState
 import com.freyza.employee.presentation.nav.NavRoutes
@@ -86,24 +88,24 @@ fun FreyzaEmployeeApp(
     Box(modifier = Modifier.fillMaxSize()) {
       when (val state = authState) {
         is AuthState.Loading -> {
-          Scaffold { paddingValues ->
+          Scaffold {
             LoadingIndicator(
               message = "Loading, please wait...",
               modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(it),
             )
           }
         }
 
         is AuthState.Error -> {
-          Scaffold { paddingValues ->
+          Scaffold {
             FreyzaEmployeeAppError(
               message = state.message,
               date = sessionViewModel.getTodayDateFormatted(),
               onRetry = sessionViewModel::checkAuth,
               onLogout = sessionViewModel::logout,
-              modifier = Modifier.padding(paddingValues)
+              modifier = Modifier.padding(it)
             )
           }
         }
@@ -115,11 +117,17 @@ fun FreyzaEmployeeApp(
                 FreyzaBottomNavBar(navController)
               }
             }) { paddingValues ->
-            Surface(modifier = Modifier.padding(paddingValues)) {
+            Surface(modifier = Modifier.padding(paddingValues).consumeWindowInsets(paddingValues)) {
               val startDestination = if (state is AuthState.Authenticated) {
                 NavRoutes.Authenticated.NavigationRoute
               } else {
                 NavRoutes.Unauthenticated.NavigationRoute
+              }
+
+              LaunchedEffect(navController) {
+                navController.addOnDestinationChangedListener { _, destination, _ ->
+                  Logger.d("AppNavController", "Destination changed: ${destination.route}")
+                }
               }
 
               NavHost(

@@ -93,7 +93,7 @@ fun DayBottomSheetContent(
 
     if (selectedPlanEntry != null) {
       TodayPlanCard(
-        selectedPlanEntry, selectedRoute
+        selectedPlanEntry, selectedRoute.data
       )
     } else {
       Text("No Travel Plan Entry this day")

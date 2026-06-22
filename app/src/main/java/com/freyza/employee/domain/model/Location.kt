@@ -10,14 +10,6 @@ data class Location(
     val updatedAt: Instant?,
 )
 
-fun blankLocation() = Location(
-    id = "19c7417a-1935-4741-8741-7a1935874188",
-    name = "Nowhere",
-    operational = false,
-    createdAt = Instant.parse("2026-01-14T17:03:54.675+05:30"),
-    updatedAt = null,
-)
-
 fun dummyLocation(): Location = Location(
     id = "5754f651-ab79-4541-94f6-51ab790541f2",
     name = "Darbhanga",

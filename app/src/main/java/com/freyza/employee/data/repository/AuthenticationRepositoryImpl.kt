@@ -20,6 +20,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class AuthenticationRepositoryImpl(
@@ -39,6 +41,7 @@ class AuthenticationRepositoryImpl(
 
   init {
     listenToAuthStatus()
+    logAuthState()
   }
 
   private fun listenToAuthStatus() {
@@ -63,26 +66,41 @@ class AuthenticationRepositoryImpl(
 
           is SessionStatus.RefreshFailure -> {
             Logger.e(TAG, "RefreshFailure")
-            _authState.value = AuthState.Error("Session refresh failed. Please check your connection.")
+            sessionManager.clearSession()
+            _authState.value =
+              AuthState.Error("Session refresh failed. Please check your connection.")
           }
         }
       }
     }
   }
 
+  private fun logAuthState() {
+    authState.onEach { state ->
+      when (state) {
+        is AuthState.Authenticated -> {
+          Logger.i(TAG, "AuthState: Authenticated")
+        }
+
+        is AuthState.Error -> {
+          Logger.e(TAG, "AuthState: Error. ${state.message}")
+        }
+
+        is AuthState.Loading -> {
+          Logger.i(TAG, "AuthState: Loading")
+        }
+
+        is AuthState.Unauthenticated -> {
+          Logger.i(TAG, "AuthState: Unauthenticated")
+        }
+      }
+    }.launchIn(repositoryScope)
+  }
+
   override suspend fun checkSession() {
     try {
-      _authState.value = AuthState.Loading
       auth.awaitInitialization()
-      val session = auth.currentSessionOrNull()
-      val user = auth.currentUserOrNull()
-
-      if (session != null && user != null) {
-        validateAndFetchProfile(user.id)
-      } else {
-        sessionManager.clearSession()
-        _authState.value = AuthState.Unauthenticated
-      }
+      auth.refreshCurrentSession()
     } catch (e: Exception) {
       Logger.e(TAG, "checkSession error: ${e.message}")
       sessionManager.clearSession()
@@ -105,7 +123,10 @@ class AuthenticationRepositoryImpl(
           sessionManager.setCurrentEmployee(finalUser)
           _authState.value = AuthState.Authenticated
         } else {
-          Logger.e(TAG, "Invalid role or inactive status. Role: ${user?.role}, Status: ${user?.status}")
+          Logger.e(
+            TAG,
+            "Invalid role or inactive status. Role: ${user?.role}, Status: ${user?.status}"
+          )
           logout()
           _authState.value = AuthState.Unauthenticated
         }

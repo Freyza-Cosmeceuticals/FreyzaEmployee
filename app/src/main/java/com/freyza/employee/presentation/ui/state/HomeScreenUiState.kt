@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.state
 
-import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
@@ -11,44 +10,41 @@ import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
-
 import kotlinx.datetime.LocalDateTime
 
 data class HomeScreenUiState(
+  val isLoading: Boolean = false,
+  val isRefreshing: Boolean = false,
+  val errorMessage: String? = null,
+
+  val greetingName: String = "",
   val today: LocalDateTime,
-  val currentTravelPlan: UIState<TravelPlan?> = UIState.Idle(),
-  val todayTravelPlanEntry: UIState<TravelPlanEntry?> = UIState.Idle(),
 
-  val todayPlanEntryRoute: UIState<RouteWithLocation?> = UIState.Idle(),
+  val currentTravelPlan: TravelPlan? = null,
+  val todayTravelPlanEntry: TravelPlanEntry? = null,
+  val todayPlanEntryRoute: RouteWithLocation? = null,
 
-  val currentDailyReport: UIState<DailyReport?> = UIState.Idle(),
-  val routes: UIState<List<RouteWithLocation>> = UIState.Idle(),
+  val currentDailyReport: DailyReport? = null,
+  val routes: List<RouteWithLocation> = emptyList(),
 
-  val todayReportDayType: UIState<DayType> = UIState.Idle(),
-  val todayReportRoute: UIState<RouteWithLocation?> = UIState.Idle(),
+  val todayReportDayType: DayType? = null,
+  val todayReportRoute: RouteWithLocation? = null,
+
+  val showCreateReportSheet: Boolean = false,
 )
 
 fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
   today = ServerTime().nowLocalDateTime(),
-  currentTravelPlan = UIState.Ready(dummyTravelPlan()),
-  todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-
-  todayPlanEntryRoute = UIState.Ready(dummyRouteWithLocation()),
-
-  currentDailyReport = UIState.Ready(dummyDailyReportWork()),
-  routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-
-  todayReportDayType = UIState.Ready(DayType.WORK),
-  todayReportRoute = UIState.Ready(dummyRouteWithLocation()),
+  currentTravelPlan = dummyTravelPlan(),
+  todayTravelPlanEntry = dummyTravelPlanEntryWork(),
+  todayPlanEntryRoute = dummyRouteWithLocation(),
+  currentDailyReport = dummyDailyReportWork(),
+  routes = listOf(dummyRouteWithLocation()),
+  todayReportDayType = DayType.WORK,
+  todayReportRoute = dummyRouteWithLocation(),
 )
 
 fun dummyHomeScreenUiStateDailyReportError(): HomeScreenUiState = HomeScreenUiState(
   today = ServerTime().nowLocalDateTime(),
-  currentTravelPlan = UIState.Ready(dummyTravelPlan()),
-  todayTravelPlanEntry = UIState.Ready(dummyTravelPlanEntryWork()),
-
-  todayPlanEntryRoute = UIState.Ready(dummyRouteWithLocation()),
-
-  currentDailyReport = UIState.Error("Failed to have a daily report"),
-  routes = UIState.Ready(listOf(dummyRouteWithLocation())),
+  errorMessage = "Failed to have a daily report"
 )

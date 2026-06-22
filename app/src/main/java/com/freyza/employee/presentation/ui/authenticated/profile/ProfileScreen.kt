@@ -7,11 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,12 +18,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -84,10 +83,7 @@ fun ProfileScreen(
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
-    topBar = { FreyzaProfileAppBar() },
-    contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
-      WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-    )
+    topBar = { FreyzaProfileAppBar() }
   ) {
     LazyColumn(
       contentPadding = PaddingValues(
@@ -102,7 +98,7 @@ fun ProfileScreen(
         .fillMaxSize()
         .padding(it)
     ) {
-      item {
+      item("dp") {
         Skeleton(
           Modifier
             .width(96.dp)
@@ -113,7 +109,7 @@ fun ProfileScreen(
         Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
       }
 
-      item {
+      item("name_details") {
         Text(
           user.name,
           style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -145,7 +141,7 @@ fun ProfileScreen(
         Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(6)))
       }
 
-      item {
+      item("acc_settings") {
         Text(
           "Account Settings".uppercase(), style = MaterialTheme.typography.labelMedium.copy(
             color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Start
@@ -197,7 +193,7 @@ fun ProfileScreen(
         Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
       }
 
-      item {
+      item("app_preferences") {
         Text(
           "App Preferences".uppercase(), style = MaterialTheme.typography.labelMedium.copy(
             color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Start
@@ -248,7 +244,7 @@ fun ProfileScreen(
             .clickable {})
       }
 
-      item {
+      item("logout_btn") {
         Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(8)))
         Button(
           onClick = onLogoutClicked,
@@ -263,7 +259,7 @@ fun ProfileScreen(
         ) { Text("Logout") }
       }
 
-      item {
+      item("footer") {
         Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
 
         Text(
@@ -287,7 +283,7 @@ fun ProfileScreen(
       }
 
       if (BuildConfig.DEBUG) {
-        item {
+        item("debug_info") {
           val horizontalScrollState = rememberScrollState()
 
           Column(
@@ -313,9 +309,47 @@ fun ProfileScreen(
             )
           }
         }
+
+        item("userinfo") {
+          DebugUser(user)
+        }
       }
     }
+  }
+}
 
+@Composable
+private fun DebugUser(user: User) {
+  Card {
+    Column(modifier = Modifier.padding(8.dp)) {
+      Text(user.id, fontFamily = FontFamily.Monospace)
+      Text(user.name)
+      Text(user.email)
+      Text(user.phone)
+
+      Text("Role: ${user.role.titleCase()}")
+      Text("Status: ${user.status.titleCase()}")
+
+      Text("Tier: ${user.tier?.toString()}")
+      Text("hqId: ${user.hqId.toString()}")
+
+      Text("joiningDate: ${DateFormatter.format(user.joiningDate)}")
+      user.resignDate?.let {
+        Text(DateFormatter.format(it))
+      }
+
+      Text("createdAt: ${DateFormatter.format(user.createdAt)}")
+      user.updatedAt?.let {
+        Text(DateFormatter.format(it))
+      }
+
+      user.userInfo?.lastSignInAt?.let {
+        Text("lastSignIn: ${DateFormatter.format(it)}")
+      }
+
+      Text("userInfo.userMetadata: ${user.userInfo?.userMetadata}")
+      Text("userInfo.appMetadata: ${user.userInfo?.appMetadata}")
+    }
   }
 }
 
