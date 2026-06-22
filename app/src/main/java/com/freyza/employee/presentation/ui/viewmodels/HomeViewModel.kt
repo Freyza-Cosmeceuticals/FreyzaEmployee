@@ -8,25 +8,18 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.model.DayType
-import com.freyza.employee.domain.model.Route
-import com.freyza.employee.domain.model.toRouteWithLocation
+import com.freyza.employee.domain.repository.LocationRepository
+import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
-import com.freyza.employee.domain.usecase.location.GetLocationUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
-import com.freyza.employee.domain.usecase.route.GetRouteUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
 import com.freyza.employee.domain.usecase.travelplan.GetTodayTravelPlanEntryUseCase
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -36,8 +29,8 @@ class HomeViewModel(
   private val sessionManager: SessionManager,
   private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
   private val getTodayTravelPlanEntryUseCase: GetTodayTravelPlanEntryUseCase,
-  private val getRouteUseCase: GetRouteUseCase,
-  private val getLocationUseCase: GetLocationUseCase,
+  private val locationRepository: LocationRepository,
+  private val routeRepository: RouteRepository,
   private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
   private val getTodayDailyReportUseCase: GetTodayDailyReportUseCase,
   private val createTodayDailyReportUseCase: CreateTodayDailyReportUseCase,
@@ -77,13 +70,17 @@ class HomeViewModel(
     viewModelScope.launch {
       _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
 
-      // Execute independent fetches concurrently
-      val reportJob = launch { loadCurrentDailyReport(employeeId) }
+      // fetch routes and locations first
       val routesJob = launch { loadAllRoutes() }
+      val locationsJob = launch { loadAllLocations() }
+
+      routesJob.join()
+      locationsJob.join()
+
+      val reportJob = launch { loadCurrentDailyReport(employeeId) }
       val planJob = launch { loadCurrentTravelPlan(employeeId) }
 
       reportJob.join()
-      routesJob.join()
       planJob.join()
 
       _uiState.update { it.copy(isRefreshing = false, isLoading = false) }
@@ -109,8 +106,10 @@ class HomeViewModel(
   private suspend fun loadTodayTravelPlanEntry(tpId: String) {
     when (val result = getTodayTravelPlanEntryUseCase(tpId)) {
       is Result.Success -> {
-        _uiState.update { it.copy(todayTravelPlanEntry = result.data) }
-        result.data?.routeId?.let { loadCurrentRoute(it) }
+        val entry = result.data
+        val route = _uiState.value.routes.find { it.id == entry?.routeId }
+
+        _uiState.update { it.copy(todayTravelPlanEntry = entry, todayPlanEntryRoute = route) }
       }
 
       is Result.Error -> {
@@ -118,44 +117,6 @@ class HomeViewModel(
       }
 
       else -> {}
-    }
-  }
-
-  private suspend fun loadCurrentRoute(routeId: String) {
-    when (val result = getRouteUseCase(routeId)) {
-      is Result.Success -> {
-        if (result.data != null) {
-          loadLocations(result.data)
-        }
-      }
-
-      is Result.Error -> Logger.e(TAG, "Fetch route failed: ${result.message}")
-      else -> {}
-    }
-  }
-
-  private suspend fun loadLocations(route: Route) {
-    coroutineScope {
-      val srcDeferred = async(Dispatchers.IO) { getLocationUseCase(route.srcLocId) }
-      val destDeferred = async(Dispatchers.IO) { getLocationUseCase(route.destLocId) }
-
-      val srcResult = srcDeferred.await()
-      val destResult = destDeferred.await()
-
-      if (srcResult is Result.Success && destResult is Result.Success) {
-        if (srcResult.data != null && destResult.data != null) {
-
-          _uiState.update { state ->
-            state.copy(
-              todayPlanEntryRoute = route.toRouteWithLocation(
-                srcLoc = srcResult.data, destLoc = destResult.data
-              )
-            )
-          }
-        }
-      } else {
-        Logger.e(TAG, "Failed to fetch location pair")
-      }
     }
   }
 
@@ -190,23 +151,53 @@ class HomeViewModel(
 
   private fun setReportRoute(routeId: String?) {
     if (routeId == null) return
-
-    viewModelScope.launch {
-      _uiState.map { it.routes }.first { it.isNotEmpty() }.let { routes ->
-        val route = routes.find { it.id == routeId }
-        _uiState.update { it.copy(todayReportRoute = route) }
-      }
-    }
+    val route = _uiState.value.routes.find { it.id == routeId }
+    _uiState.update { it.copy(todayReportRoute = route) }
   }
 
-  fun createCurrentDailyReport(dayType: DayType, routeId: String?) {
+  fun createCurrentDailyReport(dayType: DayType, srcLocId: String?, destLocId: String?) {
     val employeeId = sessionManager.currentEmployee.value?.id ?: return
 
     _uiState.update { it.copy(isLoading = true) }
 
     viewModelScope.launch {
+      var finalRouteId: String? = null
+
+      if (dayType == DayType.WORK && srcLocId != null && destLocId != null) {
+        val localRoute = _uiState.value.routes.find {
+          it.srcLoc.id == srcLocId && it.destLoc.id == destLocId
+        }
+
+        if (localRoute != null) {
+          finalRouteId = localRoute.id
+        } else {
+          // New route detected, call RPC
+          when (val routeResult = routeRepository.getOrCreateRoute(srcLocId, destLocId)) {
+            is Result.Success -> {
+              val newRoute = routeResult.data
+              finalRouteId = newRoute.id
+              Logger.w(
+                TAG,
+                "New route created on-the-fly: ID=${newRoute.id}, " +
+                  "SrcLocId=$srcLocId, DestLocId=$destLocId. Manual tweak may be needed."
+              )
+              // Refresh routes list to include the newly created route
+              loadAllRoutes()
+            }
+
+            is Result.Error -> {
+              _uiState.update { it.copy(isLoading = false) }
+              snackbarManager.showError("Unable to resolve route, please try again")
+              return@launch
+            }
+
+            else -> {}
+          }
+        }
+      }
+
       val result = createTodayDailyReportUseCase(
-        CreateTodayDailyReportParams(serverTime.todayIn(), employeeId, dayType, routeId)
+        CreateTodayDailyReportParams(serverTime.todayIn(), employeeId, dayType, finalRouteId)
       )
 
       when (result) {
@@ -237,6 +228,14 @@ class HomeViewModel(
     when (val result = getAllRoutesWithLocationUseCase()) {
       is Result.Success -> _uiState.update { it.copy(routes = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch routes failed: ${result.message}")
+      else -> {}
+    }
+  }
+
+  private suspend fun loadAllLocations() {
+    when (val result = locationRepository.getAllLocations()) {
+      is Result.Success -> _uiState.update { it.copy(locations = result.data) }
+      is Result.Error -> Logger.e(TAG, "Fetch locations failed: ${result.message}")
       else -> {}
     }
   }

@@ -8,4 +8,5 @@ interface RouteRepository {
   suspend fun getRoute(routeId: String): Result<Route?>
   suspend fun getAllRoutes(): Result<List<Route>>
   suspend fun getAllRoutesWithLocation(): Result<List<RouteWithLocation>>
+  suspend fun getOrCreateRoute(srcLocId: String, destLocId: String): Result<Route>
 }

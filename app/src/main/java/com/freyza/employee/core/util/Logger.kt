@@ -19,6 +19,10 @@ object Logger {
     Log.d("$BASE_TAG/$tag", formatMessage(message))
   }
 
+  fun w(tag: String, message: String) {
+    Log.w("$BASE_TAG/$tag", formatMessage(message))
+  }
+
   fun i(tag: String, message: String) {
     Log.i("$BASE_TAG/$tag", formatMessage(message))
   }
