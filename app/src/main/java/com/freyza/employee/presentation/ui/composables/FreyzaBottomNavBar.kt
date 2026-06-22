@@ -20,7 +20,6 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.freyza.employee.core.util.Logger
 import com.freyza.employee.presentation.nav.BottomNavItem
 import com.freyza.employee.presentation.nav.navigateToTab
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -36,15 +35,6 @@ fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifi
   )
 
   val navBackStackEntry by navController.currentBackStackEntryAsState()
-
-  Logger.d(
-    TAG,
-    "Current Screen Changed: ${
-      navBackStackEntry?.destination?.route.toString()
-        .replace(ROUTE_PREFIX, "")
-    }"
-  )
-
   val currentDestination = navBackStackEntry?.destination
 
   val bottomBarDestination = screens.any { screen ->

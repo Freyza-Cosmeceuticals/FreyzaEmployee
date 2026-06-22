@@ -3,27 +3,24 @@ package com.freyza.employee.presentation.ui.authenticated.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -35,15 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
-import com.freyza.employee.core.UIState
-import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.timedGreeting
 import com.freyza.employee.domain.model.DayType
@@ -56,7 +51,6 @@ import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables
 import com.freyza.employee.presentation.ui.authenticated.home.composables.BeginDailyReportSheet
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportCardSkeleton
-import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyReportingFailedToLoadDialog
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanCardSkeleton
@@ -78,14 +72,14 @@ fun HomeScreenRoute(
   onNavigateToUnauthenticated: () -> Unit,
   onNavigateToReport: () -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
-  onExit: () -> Unit
+  onExit: () -> Unit,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
   if (currentUser == null) {
     Logger.e("HomeScreenRoute", "Invalid User/Session on home screen")
-    HomeScreenSkeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
+    HomeScreenSkeleton(modifier = modifier.padding(dimensionResource(R.dimen.screen_padding)))
   } else {
     HomeScreen(
       uiState = uiState,
@@ -95,9 +89,10 @@ fun HomeScreenRoute(
       onLogout = onNavigateToUnauthenticated,
       onExit = onExit,
       onDailyReportBegin = viewModel::createCurrentDailyReport,
-      onDailyReportRetry = { viewModel.loadCurrentDailyReport(currentUser!!.id) },
+      onDailyReportRetry = viewModel::refresh,
       onNavigateToReport = onNavigateToReport,
-      onNavigateToAddVisit = onNavigateToAddVisit
+      onNavigateToAddVisit = onNavigateToAddVisit,
+      onDismissSheet = viewModel::dismissCreateReportSheet
     )
   }
 }
@@ -115,6 +110,7 @@ private fun HomeScreen(
   onDailyReportRetry: () -> Unit,
   onNavigateToReport: () -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
+  onDismissSheet: () -> Unit,
 ) {
   val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
@@ -126,116 +122,91 @@ private fun HomeScreen(
     FabActionItem(
       "Doctor Visit", VisitType.DOCTOR.iconResource()
     ) {
-      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-        VisitType.DOCTOR,
-        uiState.currentDailyReport.data.id,
-        uiState.currentDailyReport.data.employeeId
+      if (uiState.currentDailyReport != null) onNavigateToAddVisit(
+        VisitType.DOCTOR, uiState.currentDailyReport.id, uiState.currentDailyReport.employeeId
       )
     },
     FabActionItem(
       "Stockist Visit", VisitType.STOCKIST.iconResource()
     ) {
-      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-        VisitType.STOCKIST,
-        uiState.currentDailyReport.data.id,
-        uiState.currentDailyReport.data.employeeId
+      if (uiState.currentDailyReport != null) onNavigateToAddVisit(
+        VisitType.STOCKIST, uiState.currentDailyReport.id, uiState.currentDailyReport.employeeId
       )
     },
     FabActionItem(
       "Chemist Visit", VisitType.CHEMIST.iconResource()
     ) {
-      if (uiState.currentDailyReport.data != null) onNavigateToAddVisit(
-        VisitType.CHEMIST,
-        uiState.currentDailyReport.data.id,
-        uiState.currentDailyReport.data.employeeId
+      if (uiState.currentDailyReport != null) onNavigateToAddVisit(
+        VisitType.CHEMIST, uiState.currentDailyReport.id, uiState.currentDailyReport.employeeId
       )
     },
   )
 
   Scaffold(
     topBar = { FreyzaHomeAppBar(today = uiState.today, scrollBehavior = scrollBehavior) },
-    contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
-      WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-    ),
     floatingActionButton = {
-      if (uiState.currentDailyReport.data != null && !uiState.currentDailyReport.data.locked && uiState.todayReportDayType.data == DayType.WORK) AddVisitFloatingActionButton(
+      if (uiState.currentDailyReport != null && !uiState.currentDailyReport.locked && uiState.todayReportDayType == DayType.WORK) AddVisitFloatingActionButton(
         options = fabOptions
       )
     },
-    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+    modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
   ) {
-    // daily report creation dialog
-    // TODO: Note to self, this thing is triggered only on the Home Screen
-    // if the user switches tab/page before the bottom sheet shows up, they can perform other app actions
-    // but this will eventually show up when they go back to the home screen
-    when (val result = uiState.currentDailyReport) {
-      is UIState.Ready -> {
-        if (result.data == null) {
-          // no daily report, ask the user to create one in a blocking way.
-          ModalBottomSheet(
-            onDismissRequest = {},
-            sheetState = reportCreationSheetState,
-            sheetGesturesEnabled = false,
-            scrimColor = Color.Black.copy(alpha = 0.75f),
-            properties = ModalBottomSheetProperties(
-              shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
-            )
-          ) {
-            Box {
-              BeginDailyReportSheet(
-                dayTypes = dayTypes,
-                routes = uiState.routes,
-                todayTravelPlanEntry = uiState.todayTravelPlanEntry,
-                onDailyReportBegin = onDailyReportBegin,
-                onRetry = onRefresh,
-                onExit = onExit,
-                onLogout = onLogout
-              )
-            }
-
-            FreyzaSnackbarHost(
-              hostState = LocalSnackbarHostState.current,
-              modifier = Modifier.padding(bottom = 16.dp)
-            )
-          }
+    if (uiState.showCreateReportSheet) {
+      ModalBottomSheet(
+        onDismissRequest = onDismissSheet,
+        sheetState = reportCreationSheetState,
+        sheetGesturesEnabled = false,
+        scrimColor = Color.Black.copy(alpha = 0.75f),
+        properties = ModalBottomSheetProperties(
+          shouldDismissOnBackPress = true, shouldDismissOnClickOutside = true
+        )
+      ) {
+        Box {
+          BeginDailyReportSheet(
+            dayTypes = dayTypes,
+            routes = uiState.routes,
+            todayTravelPlanEntry = uiState.todayTravelPlanEntry,
+            onDailyReportBegin = onDailyReportBegin,
+            onRetry = onRefresh,
+            onExit = onExit,
+            onLogout = onLogout
+          )
         }
-      }
 
-      is UIState.Loading -> {
-        // show loading sheet only if no dailyReport data has been fetched yet (i.e. fresh state) but NOT if other states are also null (i.e. app launch)
-        if (result.data == null && uiState.currentTravelPlan.data != null) {
-          // since it is annoying to see it on every refresh and app launch.
-          ModalBottomSheet(
-            onDismissRequest = {},
-            sheetState = reportCreationSheetState,
-            sheetGesturesEnabled = true,
-            properties = ModalBottomSheetProperties(
-              shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
-            )
-          ) {
-            LoadingIndicator(
-              Modifier
-                .fillMaxWidth()
-                .padding(dimensionResource(R.dimen.screen_padding).times(2)),
-              result.message ?: "Working on it..."
-            )
-          }
-        }
+        FreyzaSnackbarHost(
+          hostState = LocalSnackbarHostState.current, modifier = Modifier.padding(bottom = 16.dp)
+        )
       }
+    }
 
-      is UIState.Error -> {
-        // since loading daily report data failed, we cannot continue and ask the user to retry
-        DailyReportingFailedToLoadDialog(
-          message = result.message, onRetry = onDailyReportRetry, onExit = onExit)
+    if (uiState.isLoading && uiState.currentDailyReport == null) {
+      ModalBottomSheet(
+        onDismissRequest = {},
+        sheetState = reportCreationSheetState,
+        sheetGesturesEnabled = true,
+        properties = ModalBottomSheetProperties(
+          shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
+        )
+      ) {
+        LoadingIndicator(
+          Modifier
+            .fillMaxWidth()
+            .padding(dimensionResource(R.dimen.screen_padding).times(2)),
+          "Working on it..."
+        )
       }
+    }
 
-      else -> {}
+    if (uiState.errorMessage != null) {
+      ErrorDialog(
+        message = uiState.errorMessage, onRetry = onDailyReportRetry, onExit = onExit
+      )
     }
 
     PullToRefreshBox(
-      isRefreshing = uiState.todayPlanEntryRoute is UIState.Loading || uiState.currentDailyReport is UIState.Loading,
+      isRefreshing = uiState.isRefreshing,
       onRefresh = onRefresh,
-      modifier = Modifier.padding(it),
+      modifier = Modifier.padding(it)
     ) {
       LazyColumn(
         contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.screen_padding)),
@@ -243,13 +214,13 @@ private fun HomeScreen(
           dimensionResource(R.dimen.default_spacing), Alignment.Top
         ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
+        modifier = Modifier
           .fillMaxSize()
           .padding(horizontal = dimensionResource(R.dimen.screen_padding))
       ) {
-        item {
+        item("greeting") {
           Text(
-            uiState.today.timedGreeting(user.name),
+            uiState.today.timedGreeting(uiState.greetingName.ifEmpty { user.name }),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
@@ -258,102 +229,71 @@ private fun HomeScreen(
           )
         }
 
-        item {
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(IntrinsicSize.Min)
-              .heightIn(min = 108.dp),
-            horizontalArrangement = Arrangement.spacedBy(
-              dimensionResource(R.dimen.default_spacing).times(4)
-            ),
-            verticalAlignment = Alignment.CenterVertically
-          ) {
-//          TodayCard(
-//            mainUiState.today, modifier = Modifier
-//              .weight(1f)
-//              .fillMaxSize()
-//          )
-
-            when (uiState.todayTravelPlanEntry) {
-              is UIState.Ready -> {
-                TodayPlanCard(
-                  planEntry = uiState.todayTravelPlanEntry.data,
-                  route = uiState.todayPlanEntryRoute,
-                  reportDayType = uiState.todayReportDayType,
-                  reportRoute = uiState.todayReportRoute,
-                  isPending = uiState.todayReportDayType !is UIState.Ready || uiState.todayReportRoute !is UIState.Ready,
-                  modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                )
-              }
-
-              is UIState.Error -> {
-                Text(
-                  "Error Fetching Travel Plan Entry",
-                  style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
-                  modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                )
-              }
-
-              else -> {
-                TravelPlanCardSkeleton(
-                  modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                )
-              }
-            }
+        item("travelplan") {
+          if (uiState.todayTravelPlanEntry != null) {
+            TodayPlanCard(
+              planEntry = uiState.todayTravelPlanEntry,
+              route = uiState.todayPlanEntryRoute,
+              reportDayType = uiState.todayReportDayType,
+              reportRoute = uiState.todayReportRoute,
+              modifier = Modifier.fillMaxSize()
+            )
+          } else {
+            TravelPlanCardSkeleton(
+              modifier = Modifier.fillMaxSize()
+            )
           }
 
           Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
         }
 
-        item {
+        item("report_text") {
           Text(
             "Today's Report",
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
               .fillMaxWidth()
-              .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
+              .padding(vertical = dimensionResource(R.dimen.default_spacing))
               .padding(top = dimensionResource(R.dimen.default_spacing))
           )
         }
 
-        item {
-          when (uiState.currentDailyReport) {
-            is UIState.Ready -> {
-              DailyReportCard(
-                dailyReport = uiState.currentDailyReport.data,
-                route = uiState.todayReportRoute.data,
-                modifier = Modifier.fillMaxSize(),
-                onClick = onNavigateToReport
-              )
+        item("daily_report") {
+          if (uiState.currentDailyReport != null) {
+            DailyReportCard(
+              dailyReport = uiState.currentDailyReport,
+              route = uiState.todayReportRoute,
+              modifier = Modifier.fillMaxSize(),
+              onClick = onNavigateToReport
+            )
+          } else if (uiState.isLoading || uiState.isRefreshing) {
+            DailyReportCardSkeleton(
+              modifier = Modifier.fillMaxSize()
+            )
+          } else {
+            Button(
+              onClick = onDailyReportRetry,
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = dimensionResource(R.dimen.default_spacing))
+            ) {
+              Text("Create Report")
             }
-
-            is UIState.Error -> {
-              Text(
-                "Error Fetching Daily Report",
-                style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Start),
-                modifier = Modifier.fillMaxSize()
-              )
-            }
-
-            else -> {
-              DailyReportCardSkeleton(
-                modifier = Modifier.fillMaxSize()
-              )
-            }
+            Text(
+              "Create a report to start making visits.",
+              textAlign = TextAlign.Start,
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.fillMaxWidth()
+            )
           }
         }
 
         if (BuildConfig.DEBUG) {
           item {
-             DebugUserInfo(user)
+            Spacer(Modifier.height(30.dp))
+            DebugUiState(uiState)
           }
         }
       }
@@ -361,36 +301,56 @@ private fun HomeScreen(
   }
 }
 
+@Composable
+private fun ErrorDialog(
+  message: String?,
+  onRetry: () -> Unit,
+  onExit: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  AlertDialog(
+    properties = DialogProperties(
+      dismissOnBackPress = false, dismissOnClickOutside = false
+    ),
+    onDismissRequest = {},
+    title = { Text("An error has occurred") },
+    text = {
+      Text(message ?: "Press Retry to try again")
+    },
+    confirmButton = {
+      TextButton(onClick = onRetry) { Text("Retry") }
+    },
+    dismissButton = {
+      TextButton(onClick = onExit) { Text("Exit") }
+    },
+    modifier = modifier,
+  )
+}
 
 @Composable
-private fun DebugUserInfo(user: User, modifier: Modifier = Modifier) {
+private fun DebugUiState(uiState: HomeScreenUiState, modifier: Modifier = Modifier) {
   Card {
     Column(modifier = modifier.padding(8.dp)) {
-      Text(user.id, fontFamily = FontFamily.Monospace)
-      Text(user.name)
-      Text(user.email)
-      Text(user.phone)
+      Text("isLoading: ${uiState.isLoading}")
+      Text("isRefreshing: ${uiState.isRefreshing}")
+      Text("errorMsg: ${uiState.errorMessage}")
 
-      Text(user.role.titleCase())
-      Text(user.status.titleCase())
+      Text("travelPlan: ${uiState.currentTravelPlan?.id}")
+      Text("planEntry: ${uiState.todayTravelPlanEntry?.id}")
+      Text("planRoute: ${uiState.todayPlanEntryRoute?.id}")
 
-      Text(user.tier?.fullForm.toString())
-      Text(user.hqId.toString())
+      Text("dailyReport: ${uiState.currentDailyReport?.id}")
+      Text("reportType: ${uiState.todayReportDayType}")
+      Text("reportRoute: ${uiState.todayReportRoute?.id}")
 
-      Text(DateFormatter.format(user.createdAt))
-      user.updatedAt?.let {
-        Text(DateFormatter.format(it))
-      }
-
-      user.userInfo?.lastSignInAt?.let {
-        Text(DateFormatter.format(it))
-      }
+      Text("routes.size: ${uiState.routes.size}")
+      Text("showCreateReport: ${uiState.showCreateReportSheet}")
     }
   }
 }
 
 @Preview(
-  showSystemUi = true, showBackground = true
+  showBackground = true
 )
 @Composable
 private fun HomeScreenPreview() {
@@ -404,12 +364,13 @@ private fun HomeScreenPreview() {
       onDailyReportBegin = { _, _ -> },
       onDailyReportRetry = {},
       onNavigateToReport = {},
-      onNavigateToAddVisit = { _, _, _ -> })
+      onNavigateToAddVisit = { _, _, _ -> },
+      onDismissSheet = {})
   }
 }
 
 @Preview(
-  showSystemUi = true, showBackground = true
+  showBackground = true
 )
 @Composable
 private fun HomeScreenReportErrorPreview() {
@@ -423,6 +384,7 @@ private fun HomeScreenReportErrorPreview() {
       onDailyReportBegin = { _, _ -> },
       onDailyReportRetry = {},
       onNavigateToReport = {},
-      onNavigateToAddVisit = { _, _, _ -> })
+      onNavigateToAddVisit = { _, _, _ -> },
+      onDismissSheet = {})
   }
 }

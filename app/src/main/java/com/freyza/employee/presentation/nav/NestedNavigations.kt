@@ -181,7 +181,8 @@ fun NavGraphBuilder.authenticatedGraph(
 
 fun NavController.navigateToTab(route: NavRoutes) {
   navigate(route) {
-    popUpTo(graph.startDestinationId) {
+    popUpTo(NavRoutes.Authenticated.Home) {
+      inclusive = false
       saveState = true
     }
     launchSingleTop = true
