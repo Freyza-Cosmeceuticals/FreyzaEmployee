@@ -5,6 +5,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
+  alias(libs.plugins.sentry.android.gradle)
 }
 
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -44,6 +45,7 @@ android {
     buildConfigField("String", "SUPABASE_URL", "\"\"")
     buildConfigField("String", "WEB_CLIENT_ID", "\"\"")
     buildConfigField("String", "API_URL", "\"\"")
+    buildConfigField("String", "SENTRY_DSN", "\"\"")
   }
 
   signingConfigs {
@@ -112,6 +114,11 @@ android {
         "API_URL",
         "\"${secretPreviewProperties.getProperty("API_URL")}\""
       )
+      buildConfigField(
+        "String",
+        "SENTRY_DSN",
+        "\"${secretPreviewProperties.getProperty("SENTRY_DSN")}\""
+      )
     }
 
     create("prod") {
@@ -136,6 +143,11 @@ android {
         "String",
         "API_URL",
         "\"${secretProdProperties.getProperty("API_URL")}\""
+      )
+      buildConfigField(
+        "String",
+        "SENTRY_DSN",
+        "\"${secretProdProperties.getProperty("SENTRY_DSN")}\""
       )
     }
   }
@@ -218,4 +230,15 @@ dependencies {
 
   implementation(libs.kizitonwose.calendar)
   implementation(libs.timber)
+
+  // Sentry
+  implementation(platform(libs.sentry.bom))
+  implementation(libs.sentry.android)
+  implementation(libs.sentry.timber)
+}
+
+sentry {
+  org.set("freyza-cosmeceuticals")
+  projectName.set("employee-android")
+  includeSourceContext.set(false)
 }

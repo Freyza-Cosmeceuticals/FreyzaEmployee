@@ -52,6 +52,7 @@ import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.SessionViewModel
+import io.sentry.Sentry
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import org.koin.compose.koinInject
@@ -117,7 +118,9 @@ fun FreyzaEmployeeApp(
                 FreyzaBottomNavBar(navController)
               }
             }) { paddingValues ->
-            Surface(modifier = Modifier.padding(paddingValues).consumeWindowInsets(paddingValues)) {
+            Surface(modifier = Modifier
+              .padding(paddingValues)
+              .consumeWindowInsets(paddingValues)) {
               val startDestination = if (state is AuthState.Authenticated) {
                 NavRoutes.Authenticated.NavigationRoute
               } else {
@@ -127,6 +130,10 @@ fun FreyzaEmployeeApp(
               LaunchedEffect(navController) {
                 navController.addOnDestinationChangedListener { _, destination, _ ->
                   Logger.d("AppNavController", "Destination changed: ${destination.route}")
+
+                  if (!BuildConfig.DEBUG) {
+                    Sentry.setTag("current_screen", destination.route)
+                  }
                 }
               }
 
