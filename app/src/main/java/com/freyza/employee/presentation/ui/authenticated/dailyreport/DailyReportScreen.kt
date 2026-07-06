@@ -1,7 +1,6 @@
 package com.freyza.employee.presentation.ui.authenticated.dailyreport
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,18 +16,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
@@ -49,13 +44,10 @@ import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.AddVisitFloatingActionButton
-import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.DailyReportDetailSheetContent
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.DailyReportListCard
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.FabActionItem
 import com.freyza.employee.presentation.ui.composables.FreyzaDailyReportAppBar
-import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
-import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.DailyReportUiState
 import com.freyza.employee.presentation.ui.state.dummyDailyReportUiState
@@ -69,7 +61,7 @@ fun DailyReportScreenRoute(
   viewModel: DailyReportViewModel = koinViewModel(),
   visitCreated: Boolean? = null,
   onVisitCreatedConsumed: () -> Unit,
-  onNavigateToUnauthenticated: () -> Unit,
+  onNavigateToReportDetail: (reportId: String) -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -85,11 +77,11 @@ fun DailyReportScreenRoute(
       uiState = uiState,
       user = currentUser!!,
       onRefresh = viewModel::refresh,
-      onNavigateToAddVisit = onNavigateToAddVisit,
-      onLockReport = viewModel::lockReport,
       modifier = modifier,
       visitCreated = visitCreated,
       onVisitCreatedConsumed = onVisitCreatedConsumed,
+      onNavigateToReportDetail = onNavigateToReportDetail,
+      onNavigateToAddVisit = onNavigateToAddVisit,
     )
   }
 }
@@ -100,14 +92,12 @@ fun DailyReportScreen(
   uiState: DailyReportUiState,
   user: User,
   onRefresh: () -> Unit,
-  onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
-  onLockReport: (reportId: String) -> Unit,
   modifier: Modifier = Modifier,
   visitCreated: Boolean? = null,
   onVisitCreatedConsumed: () -> Unit = {},
+  onNavigateToReportDetail: (reportId: String) -> Unit,
+  onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
 ) {
-  val sheetState = rememberModalBottomSheetState()
-
   val todayReport = remember(uiState.dailyReports.data, uiState.today.date) {
     uiState.dailyReports.data?.firstOrNull { it.date == uiState.today.date }
   }
@@ -119,8 +109,6 @@ fun DailyReportScreen(
   val routeMap = remember(uiState.routes.data) {
     uiState.routes.data?.associateBy { it.id } ?: emptyMap()
   }
-
-  var selectedReport by remember { mutableStateOf<DailyReport?>(null) }
 
   val fabOptions = listOf(
     FabActionItem(
@@ -158,35 +146,6 @@ fun DailyReportScreen(
       WindowInsetsSides.Top + WindowInsetsSides.Horizontal
     )
   ) { paddingValues ->
-    LaunchedEffect(uiState.lockingState) {
-      if (uiState.lockingState is UIState.Ready) {
-        // close the sheet
-        sheetState.hide()
-        selectedReport = null
-      }
-    }
-
-    selectedReport?.let {
-      ModalBottomSheet(
-        onDismissRequest = { selectedReport = null }, sheetState = sheetState
-      ) {
-        Box {
-          DailyReportDetailSheetContent(
-            selectedReport,
-            routeMap[selectedReport!!.routeId],
-            isToday = selectedReport?.id == todayReport?.id,
-            lockingState = uiState.lockingState,
-            onLockReport = onLockReport,
-          )
-
-          FreyzaSnackbarHost(
-            hostState = LocalSnackbarHostState.current, modifier = Modifier
-              .padding(bottom = 16.dp)
-          )
-        }
-      }
-    }
-
     LaunchedEffect(visitCreated) {
       if (visitCreated != null) {
         onVisitCreatedConsumed()
@@ -219,8 +178,7 @@ fun DailyReportScreen(
                   route = routeMap[todayReport.routeId],
                   isToday = true,
                   onClick = {
-                    // TODO: Open another route for editing this report instead
-                    selectedReport = todayReport
+                    onNavigateToReportDetail(todayReport.id)
                   })
               }
 
@@ -249,7 +207,7 @@ fun DailyReportScreen(
                 report = report,
                 route = routeMap[report.routeId],
                 isToday = false,
-                onClick = { selectedReport = report })
+                onClick = { onNavigateToReportDetail(report.id) })
             }
 
             if (BuildConfig.DEBUG) {
@@ -273,7 +231,7 @@ fun DailyReportScreen(
           }
 
           is UIState.Error -> {
-            item {
+            item("error_text") {
               Column(
                 modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding).times(2)),
                 verticalArrangement = Arrangement.spacedBy(
@@ -337,8 +295,8 @@ private fun DailyReportScreenPreview() {
       uiState = dummyDailyReportUiState(),
       user = dummyUserEmployee(),
       onRefresh = {},
-      onNavigateToAddVisit = { _, _, _ -> },
-      onLockReport = {})
+      onNavigateToReportDetail = { _ -> },
+      onNavigateToAddVisit = { _, _, _ -> })
   }
 }
 
@@ -354,13 +312,13 @@ private fun DailyReportScreenPreviewLoading() {
       ),
       user = dummyUserEmployee(),
       onRefresh = {},
-      onNavigateToAddVisit = { _, _, _ -> },
-      onLockReport = {})
+      onNavigateToReportDetail = { _ -> },
+      onNavigateToAddVisit = { _, _, _ -> })
   }
 }
 
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = false, showBackground = true)
 @Composable
 private fun DailyReportScreenPreviewError() {
   FreyzaEmployeeTheme {
@@ -372,7 +330,7 @@ private fun DailyReportScreenPreviewError() {
       ),
       user = dummyUserEmployee(),
       onRefresh = {},
-      onNavigateToAddVisit = { _, _, _ -> },
-      onLockReport = {})
+      onNavigateToReportDetail = { _ -> },
+      onNavigateToAddVisit = { _, _, _ -> })
   }
 }

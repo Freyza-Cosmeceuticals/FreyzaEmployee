@@ -42,9 +42,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun VisitListItem(visit: Visit) {
+fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
   ListItem(
-    modifier = Modifier.clip(RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)),
+    modifier = modifier.clip(RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)),
     leadingContent = {
       Box(
         modifier = Modifier
@@ -99,7 +99,7 @@ fun VisitListItem(visit: Visit) {
                 ?.let { samples -> InfoChip(text = "${samples.size} samples") }
               visit.orderTaken.takeIf { it }?.let {
                 InfoChip(
-                  containerColor = MaterialTheme.colorScheme.primaryContainer, 
+                  containerColor = MaterialTheme.colorScheme.primaryContainer,
                   text = "Order: ₹${"%.2f".format(visit.orderAmount ?: 0.0)}"
                 )
               }

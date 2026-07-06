@@ -23,6 +23,7 @@ interface DailyReportRepository {
 
   suspend fun getVisits(dailyReportId: String): Result<List<Visit>>
   suspend fun getDailyReport(id: String, withVisits: Boolean = false): Result<DailyReport?>
+  suspend fun getVisit(id: String): Result<Visit?>
 
   suspend fun createTodayDailyReport(
     today: LocalDate,
@@ -40,5 +41,9 @@ interface DailyReportRepository {
 
   suspend fun lockReport(
     reportId: String
+  ): Result<Boolean>
+
+  suspend fun deleteVisit(
+    visitId: String
   ): Result<Boolean>
 }

@@ -8,10 +8,8 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
-import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsParams
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCase
-import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
 import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.presentation.ui.state.DailyReportUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +23,6 @@ class DailyReportViewModel(
   private val sessionManager: SessionManager,
   private val getAllDailyReportUseCase: GetRecentDailyReportsUseCase,
   private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
-  private val lockReportUseCase: LockReportUseCase,
-  private val snackbarManager: SnackbarManager,
   serverTime: ServerTime,
 ) : ViewModel() {
 
@@ -37,7 +33,11 @@ class DailyReportViewModel(
   private val _uiState = MutableStateFlow(DailyReportUiState(today = serverTime.nowLocalDateTime()))
   val uiState = _uiState.onStart {
     refresh()
-  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DailyReportUiState(today = serverTime.nowLocalDateTime()))
+  }.stateIn(
+    viewModelScope,
+    SharingStarted.WhileSubscribed(5_000),
+    DailyReportUiState(today = serverTime.nowLocalDateTime())
+  )
 
   val currentUser = sessionManager.currentEmployee
 
@@ -74,9 +74,9 @@ class DailyReportViewModel(
     viewModelScope.launch {
       val result = getAllDailyReportUseCase(
         GetRecentDailyReportsParams(
-          Constants.NUM_RECENT_DAILY_REPORTS,
-          employeeId,
-          true,
+          numDailyReports = Constants.NUM_RECENT_DAILY_REPORTS,
+          employeeId = employeeId,
+          withVisits = true,
         )
       )
 
@@ -97,39 +97,6 @@ class DailyReportViewModel(
             )
           }
           Logger.e(TAG, "Cannot fetch daily reports: ${result.message}")
-        }
-
-        else -> {}
-      }
-    }
-  }
-
-  fun lockReport(reportId: String) {
-    Logger.i(TAG, "Locking report:$reportId")
-
-    _uiState.update {
-      it.copy(lockingState = UIState.Loading())
-    }
-
-    viewModelScope.launch {
-      when (lockReportUseCase(reportId)) {
-        is Result.Success -> {
-          _uiState.update {
-            it.copy(lockingState = UIState.Ready(Unit, "Report locked"))
-          }
-          snackbarManager.showSuccess("Report locked successfully")
-          Logger.d(TAG, "report:$reportId locked successfully")
-
-          // refresh
-          loadAllDailyReports()
-        }
-
-        is Result.Error -> {
-          _uiState.update {
-            it.copy(lockingState = UIState.Error("Unable to lock, please try again"))
-          }
-          snackbarManager.showError("Failed to lock report, please try again")
-          Logger.e(TAG, "Failed to lock report:$reportId")
         }
 
         else -> {}

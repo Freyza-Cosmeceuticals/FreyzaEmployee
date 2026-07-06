@@ -132,6 +132,79 @@ fun FreyzaDailyReportAppBar(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun FreyzaReportDetailAppBar(
+  navigateUp: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  var enabled by remember { mutableStateOf(true) }
+
+  TopAppBar(
+    windowInsets = WindowInsets(),
+    navigationIcon = {
+      IconButton(
+        onClick = {
+          navigateUp()
+        },
+        enabled = enabled
+      ) {
+        Icon(
+          painterResource(R.drawable.chevron_left_24px),
+          contentDescription = stringResource(R.string.content_description_navigate_back)
+        )
+      }
+    }, title = {
+      Text(
+        "Daily Report",
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+      )
+    }, colors = TopAppBarDefaults.topAppBarColors(
+      containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+      titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
+      navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
+    ), modifier = modifier
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FreyzaVisitDetailAppBar(
+  visitType: VisitType?,
+  navigateUp: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  var enabled by remember { mutableStateOf(true) }
+
+  TopAppBar(
+    windowInsets = WindowInsets(),
+    navigationIcon = {
+      IconButton(
+        onClick = {
+          navigateUp()
+        },
+        enabled = enabled
+      ) {
+        Icon(
+          painterResource(R.drawable.chevron_left_24px),
+          contentDescription = stringResource(R.string.content_description_navigate_back)
+        )
+      }
+    }, title = {
+      Text(
+        if (visitType != null) "${visitType.titleCase()} Visit" else "Visit Details",
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+      )
+    }, colors = TopAppBarDefaults.topAppBarColors(
+      containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+      titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
+      navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
+    ), modifier = modifier
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun FreyzaAddVisitAppBar(
   visitType: VisitType?,
   navigateUp: () -> Unit,
