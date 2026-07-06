@@ -115,11 +115,15 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
     id: String,
     withVisits: Boolean,
   ): Result<DailyReport?> {
+    val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
+
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying dailyReport with id: $id")
+        Logger.d(TAG, "Querying dailyReport with id: $id withVisits=$withVisits")
 
-        val dailyReportDto = postgrest.from(TABLE_DAILY_REPORT).select {
+        val dailyReportDto = postgrest.from(TABLE_DAILY_REPORT).select(
+          columns = Columns.raw(selectQuery)
+        ) {
           filter {
             DailyReportDto::id eq id
           }
@@ -127,6 +131,26 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
 
         val dailyReport = dailyReportDto?.toDomain()
         Result.Success(dailyReport)
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun getVisit(id: String): Result<Visit?> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying visit with id: $id")
+
+        val visitDto = postgrest.from(TABLE_VISIT).select {
+          filter {
+            VisitDto::id eq id
+          }
+        }.decodeSingleOrNull<VisitDto>()
+
+        val visit = visitDto?.toDomain()
+        Result.Success(visit)
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())
@@ -204,6 +228,25 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
         ) {
           filter {
             DailyReportDto::id eq reportId
+          }
+        }
+
+        Result.Success(true)
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun deleteVisit(visitId: String): Result<Boolean> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Deleting visit:$visitId")
+
+        postgrest.from(TABLE_VISIT).delete {
+          filter {
+            VisitDto::id eq visitId
           }
         }
 
