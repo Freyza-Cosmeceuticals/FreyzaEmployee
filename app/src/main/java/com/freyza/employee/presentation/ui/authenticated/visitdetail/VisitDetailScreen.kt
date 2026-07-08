@@ -36,7 +36,9 @@ import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.Money
 import com.freyza.employee.core.util.ServerTime
+import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.presentation.ui.composables.FreyzaVisitDetailAppBar
 import com.freyza.employee.presentation.ui.composables.Skeleton
@@ -87,11 +89,9 @@ fun VisitDetailScreen(
   Scaffold(
     topBar = {
       FreyzaVisitDetailAppBar(
-        visitType = uiState.visit.data?.visitType,
-        navigateUp = onNavigateUp
+        visitType = uiState.visit.data?.visitType, navigateUp = onNavigateUp
       )
-    }
-  ) { paddingValues ->
+    }) { paddingValues ->
     Column(
       modifier = modifier
         .padding(paddingValues)
@@ -105,7 +105,7 @@ fun VisitDetailScreen(
           } else {
             val report = uiState.report.data
             val isToday = report?.date?.let { it == today.date } ?: false
-            val canDelete = isToday && report?.locked == false
+            val canDelete = isToday && report.locked == false
 
             LazyColumn(
               modifier = Modifier.weight(1f),
@@ -183,9 +183,11 @@ fun VisitDetailScreen(
         }
 
         is UIState.Loading -> {
-          Skeleton(Modifier
-            .fillMaxSize()
-            .padding(16.dp))
+          Skeleton(
+            Modifier
+              .fillMaxSize()
+              .padding(16.dp)
+          )
         }
 
         is UIState.Error -> {
@@ -224,8 +226,7 @@ fun VisitDetailScreen(
         TextButton(onClick = { showDeleteDialog = false }) {
           Text("Cancel")
         }
-      }
-    )
+      })
   }
 }
 
@@ -276,16 +277,20 @@ fun VisitSpecificDetails(visit: Visit) {
       is Visit.DoctorVisit -> {
         DetailRow("Order Taken", if (visit.orderTaken) "Yes" else "No")
         if (visit.orderTaken) {
-          DetailRow("Order Amount", "₹${visit.orderAmount ?: 0.0}")
+          DetailRow("Order Amount", visit.orderAmount.toCurrencyString())
         }
-        DetailRow("Outstanding", "₹${visit.outstandingAmount}")
+        DetailRow("Outstanding", visit.outstandingAmount.toCurrencyString())
 
         if (visit.productDetails.isNotEmpty()) {
           DetailSection(title = "Products", icon = R.drawable.inventory_2_24px) {
             visit.productDetails.forEach { product ->
               Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(product.name, modifier = Modifier.weight(1f))
-                Text("₹${product.rate} x ${product.quantity} = ₹${product.total}")
+                Text(
+                  "${Money(product.rate).toCurrencyString()} x ${product.quantity} = ${
+                    Money(product.total).toCurrencyString()
+                  }"
+                )
               }
             }
           }
@@ -303,9 +308,9 @@ fun VisitSpecificDetails(visit: Visit) {
         DetailRow("Order Taken", if (visit.orderTaken) "Yes" else "No")
         DetailRow("Payment Collected", if (visit.paymentCollected) "Yes" else "No")
         DetailRow("Stock Checked", if (visit.stockChecked) "Yes" else "No")
-        DetailRow("Amount (Excl. GST)", "₹${visit.amountWithoutGST}")
-        DetailRow("Amount (Incl. GST)", "₹${visit.amountWithGST}")
-        DetailRow("Outstanding", "₹${visit.outstandingAmount}")
+        DetailRow("Amount (Excl. GST)", visit.amountWithoutGST.toCurrencyString())
+        DetailRow("Amount (Incl. GST)", visit.amountWithGST.toCurrencyString())
+        DetailRow("Outstanding", visit.outstandingAmount.toCurrencyString())
 
         if (visit.samplesGiven.isNotEmpty()) {
           DetailSection(title = "Samples Given", icon = R.drawable.labs_24px) {
@@ -316,7 +321,7 @@ fun VisitSpecificDetails(visit: Visit) {
 
       is Visit.ChemistVisit -> {
         DetailRow("Order Taken", if (visit.orderTaken) "Yes" else "No")
-        DetailRow("Outstanding", "₹${visit.outstandingAmount}")
+        DetailRow("Outstanding", visit.outstandingAmount.toCurrencyString())
       }
     }
   }
@@ -347,9 +352,7 @@ fun DetailSection(title: String, icon: Int, content: @Composable () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp)
       ) {
         Icon(
-          painterResource(icon),
-          contentDescription = null,
-          tint = MaterialTheme.colorScheme.primary
+          painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.primary
         )
         Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
       }
@@ -366,7 +369,6 @@ fun VisitDetailScreenPreview() {
       uiState = dummyVisitDetailUiState(),
       today = ServerTime().nowLocalDateTime(),
       onNavigateUp = {},
-      onDeleteVisit = {}
-    )
+      onDeleteVisit = {})
   }
 }

@@ -6,6 +6,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.domain.model.VisitCreate
@@ -13,7 +14,6 @@ import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitUseCase
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
-import com.freyza.employee.core.util.ServerTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -93,10 +93,10 @@ class AddVisitViewModel(
         orderTaken = visitCreate.orderTaken,
         billNo = visitCreate.billNo,
         paymentCollected = visitCreate.paymentCollected,
-        amountWithGST = visitCreate.amountWithGST,
-        amountWithoutGST = visitCreate.amountWithoutGST,
-        outstandingAmount = visitCreate.outstandingAmount,
-        orderAmount = visitCreate.orderAmount,
+        amountWithGST = visitCreate.amountWithGST.amount,
+        amountWithoutGST = visitCreate.amountWithoutGST.amount,
+        outstandingAmount = visitCreate.outstandingAmount.amount,
+        orderAmount = visitCreate.orderAmount?.amount,
         stockChecked = visitCreate.stockChecked,
         additionalNotes = visitCreate.notes
       )

@@ -4,8 +4,12 @@ import androidx.annotation.Keep
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
 import com.freyza.employee.R
+import com.freyza.employee.core.util.BigDecimalSerializer
+import com.freyza.employee.core.util.Money
 import com.freyza.employee.core.util.times
+import com.freyza.employee.core.util.toMoney
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 import java.util.UUID
 import kotlin.random.Random
 import kotlin.time.Instant
@@ -13,10 +17,11 @@ import kotlin.time.Instant
 @Serializable
 data class ProductDetail(
   val name: String,
-  val rate: Double,
-  val quantity: Int
+  @Serializable(with = BigDecimalSerializer::class)
+  val rate: BigDecimal,
+  val quantity: Int,
 ) {
-  val total: Double get() = rate * quantity
+  val total: BigDecimal get() = rate.multiply(BigDecimal(quantity))
 }
 
 sealed class Visit {
@@ -24,82 +29,82 @@ sealed class Visit {
   abstract val reportId: String
   abstract val employeeId: String
   abstract val visitType: VisitType
-  
+
   abstract val latitude: Double
   abstract val longitude: Double
   abstract val distanceMetersFromPOI: Int
-  
+
   abstract val additionalNotes: String?
-  
+
   abstract val createdAt: Instant
   abstract val updatedAt: Instant?
-  
+
   data class DoctorVisit(
     override val id: String,
     override val reportId: String,
     override val employeeId: String,
-    
+
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
-    
+
     val doctorName: String,
     val productDetails: List<ProductDetail> = emptyList(),
     val samplesGiven: List<String> = emptyList(),
     val orderTaken: Boolean = false,
-    val orderAmount: Double? = null,
-    val outstandingAmount: Double = 0.0,
-    
+    val orderAmount: Money? = null,
+    val outstandingAmount: Money = Money.ZERO,
+
     override val additionalNotes: String?,
-    
+
     override val createdAt: Instant,
     override val updatedAt: Instant?,
   ) : Visit() {
     override val visitType = VisitType.DOCTOR
   }
-  
+
   data class StockistVisit(
     override val id: String,
     override val reportId: String,
     override val employeeId: String,
-    
+
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
-    
+
     val stockistName: String,
     val samplesGiven: List<String> = emptyList(),
     val orderTaken: Boolean = false,
     val billNo: String,
     val paymentCollected: Boolean,
-    val amountWithGST: Double,
-    val amountWithoutGST: Double,
-    val outstandingAmount: Double = 0.0,
+    val amountWithGST: Money,
+    val amountWithoutGST: Money,
+    val outstandingAmount: Money = Money.ZERO,
     val stockChecked: Boolean = false,
-    
+
     override val additionalNotes: String?,
-    
+
     override val createdAt: Instant,
     override val updatedAt: Instant?,
   ) : Visit() {
     override val visitType = VisitType.STOCKIST
   }
-  
+
   data class ChemistVisit(
     override val id: String,
     override val reportId: String,
     override val employeeId: String,
-    
+
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
-    
+
     val chemistName: String,
     val orderTaken: Boolean = false,
-    val outstandingAmount: Double = 0.0,
-    
+    val outstandingAmount: Money = Money.ZERO,
+
     override val additionalNotes: String?,
-    
+
     override val createdAt: Instant,
     override val updatedAt: Instant?,
   ) : Visit() {
@@ -116,10 +121,10 @@ data class VisitCreate(
   val orderTaken: Boolean,
   val billNo: String?,
   val paymentCollected: Boolean,
-  val amountWithGST: Double,
-  val amountWithoutGST: Double,
-  val outstandingAmount: Double,
-  val orderAmount: Double?,
+  val amountWithGST: Money,
+  val amountWithoutGST: Money,
+  val outstandingAmount: Money,
+  val orderAmount: Money?,
   val stockChecked: Boolean,
   val notes: String?,
 )
@@ -150,9 +155,9 @@ fun dummyVisitDoctor(): Visit = Visit.DoctorVisit(
   distanceMetersFromPOI = 55,
   doctorName = "Dr. X",
   productDetails = if (Random.nextBoolean()) listOf(
-    ProductDetail("Generator", 100.0, 1),
-    ProductDetail("Repulsor", 200.0, 2),
-    ProductDetail("Reactor", 300.0, 1)
+    ProductDetail("Generator", BigDecimal("100.00"), 1),
+    ProductDetail("Repulsor", BigDecimal("200.00"), 2),
+    ProductDetail("Reactor", BigDecimal("300.00"), 1)
   ) else emptyList(),
   samplesGiven = if (Random.nextBoolean()) listOf("Capacitor", "Inductor").times(
     Random.nextInt(
@@ -160,8 +165,8 @@ fun dummyVisitDoctor(): Visit = Visit.DoctorVisit(
     )
   ) else emptyList(),
   orderTaken = Random.nextBoolean(),
-  orderAmount = if (Random.nextBoolean()) 1000.0 else null,
-  outstandingAmount = Random.nextDouble(0.0, 1000.0),
+  orderAmount = if (Random.nextBoolean()) "1000.00".toMoney() else null,
+  outstandingAmount = Random.nextDouble(0.0, 1000.0).toMoney(),
   additionalNotes = if (Random.nextBoolean()) "Doctor was a genius..." else null,
   createdAt = Instant.parse("2026-02-11T21:32:38.409+05:30"),
   updatedAt = null,
@@ -176,14 +181,14 @@ fun dummyVisitDoctorAllTrue(): Visit = Visit.DoctorVisit(
   distanceMetersFromPOI = 55,
   doctorName = "Dr. X",
   productDetails = listOf(
-    ProductDetail("Generator", 100.0, 1),
-    ProductDetail("Repulsor", 200.0, 2),
-    ProductDetail("Reactor", 300.0, 1)
+    ProductDetail("Generator", BigDecimal("100.00"), 1),
+    ProductDetail("Repulsor", BigDecimal("200.00"), 2),
+    ProductDetail("Reactor", BigDecimal("300.00"), 1)
   ),
   samplesGiven = listOf("Capacitor", "Inductor").times(Random.nextInt(1, 3)),
   orderTaken = true,
-  orderAmount = 1000.0,
-  outstandingAmount = Random.nextDouble(0.0, 1000.0),
+  orderAmount = "1000.00".toMoney(),
+  outstandingAmount = Random.nextDouble(0.0, 1000.0).toMoney(),
   additionalNotes = "Doctor was a genius...",
   createdAt = Instant.parse("2026-02-11T21:32:38.409+05:30"),
   updatedAt = null,
@@ -198,7 +203,7 @@ fun dummyVisitChemist(): Visit = Visit.ChemistVisit(
   distanceMetersFromPOI = 34,
   chemistName = "Ch. Y",
   orderTaken = Random.nextBoolean(),
-  outstandingAmount = Random.nextDouble(0.0, 1000.0),
+  outstandingAmount = Random.nextDouble(0.0, 1000.0).toMoney(),
   additionalNotes = if (Random.nextBoolean()) "Chemist was good" else null,
   createdAt = Instant.parse("2026-02-11T21:33:28.453+05:30"),
   updatedAt = null
@@ -213,7 +218,7 @@ fun dummyVisitChemistAllTrue(): Visit = Visit.ChemistVisit(
   distanceMetersFromPOI = 34,
   chemistName = "Ch. Y",
   orderTaken = true,
-  outstandingAmount = 500.0,
+  outstandingAmount = "500.00".toMoney(),
   additionalNotes = "Chemist was good",
   createdAt = Instant.parse("2026-02-11T21:33:28.453+05:30"),
   updatedAt = null
@@ -229,9 +234,9 @@ fun dummyVisitStockist(): Visit = Visit.StockistVisit(
   stockistName = "Stockist XYZ Holmes",
   billNo = "Bill 222345",
   paymentCollected = Random.nextBoolean(),
-  amountWithGST = Random.nextDouble(300.00, 500.00),
-  amountWithoutGST = Random.nextDouble(100.00, 300.00),
-  outstandingAmount = Random.nextDouble(0.0, 1000.0),
+  amountWithGST = Random.nextDouble(300.00, 500.00).toMoney(),
+  amountWithoutGST = Random.nextDouble(100.00, 300.00).toMoney(),
+  outstandingAmount = Random.nextDouble(0.0, 1000.0).toMoney(),
   stockChecked = Random.nextBoolean(),
   samplesGiven = if (Random.nextBoolean()) listOf("Capacitor", "Inductor").times(
     Random.nextInt(
@@ -255,9 +260,9 @@ fun dummyVisitStockistAllTrue(): Visit = Visit.StockistVisit(
   billNo = "Bill 222345",
   paymentCollected = true,
   samplesGiven = listOf("Capacitor", "Inductor").times(Random.nextInt(1, 3)),
-  amountWithGST = Random.nextDouble(300.00, 500.00),
-  amountWithoutGST = Random.nextDouble(100.00, 300.00),
-  outstandingAmount = 500.0,
+  amountWithGST = Random.nextDouble(300.00, 500.00).toMoney(),
+  amountWithoutGST = Random.nextDouble(100.00, 300.00).toMoney(),
+  outstandingAmount = "500.00".toMoney(),
   orderTaken = true,
   stockChecked = true,
   additionalNotes = "Stockist is well... a stockist who stocks things permanently, well, kind of...",

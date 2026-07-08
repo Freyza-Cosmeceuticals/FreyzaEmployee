@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
+import com.freyza.employee.core.util.Money
+import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
@@ -161,7 +163,7 @@ fun DailyReportDetailSheetContent(
 }
 
 @Composable
-private fun ExpenseSummaryCard(ta: Double?, da: Double?, total: Double?) {
+private fun ExpenseSummaryCard(ta: Money?, da: Money?, total: Money?) {
   Card(
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
@@ -181,7 +183,7 @@ private fun ExpenseSummaryCard(ta: Double?, da: Double?, total: Double?) {
 }
 
 @Composable
-private fun ExpenseItem(label: String, amount: Double?) {
+private fun ExpenseItem(label: String, amount: Money?) {
   Column(horizontalAlignment = Alignment.CenterHorizontally) {
     Text(
       text = label.uppercase(),
@@ -189,7 +191,7 @@ private fun ExpenseItem(label: String, amount: Double?) {
       fontWeight = FontWeight.SemiBold
     )
     Text(
-      text = if (amount != null) "₹${amount}" else "-",
+      text = amount.toCurrencyString(),
       style = MaterialTheme.typography.titleMedium,
       fontWeight = FontWeight.Bold
     )

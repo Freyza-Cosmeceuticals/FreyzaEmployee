@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.core.Constants
 import com.freyza.employee.core.util.DateFormatter
+import com.freyza.employee.core.util.Money
+import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.dummyVisitChemistAllTrue
 import com.freyza.employee.domain.model.dummyVisitDoctorAllTrue
@@ -100,13 +102,13 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
               visit.orderTaken.takeIf { it }?.let {
                 InfoChip(
                   containerColor = MaterialTheme.colorScheme.primaryContainer,
-                  text = "Order: ₹${"%.2f".format(visit.orderAmount ?: 0.0)}"
+                  text = "Order: ${visit.orderAmount.toCurrencyString()}"
                 )
               }
-              if (visit.outstandingAmount > 0) {
+              if (visit.outstandingAmount > Money.ZERO) {
                 InfoChip(
                   containerColor = MaterialTheme.colorScheme.errorContainer,
-                  text = "Outstanding: ₹${visit.outstandingAmount}"
+                  text = "Outstanding: ${visit.outstandingAmount.toCurrencyString()}"
                 )
               }
             }
@@ -131,10 +133,10 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
                   text = "Payment Collected"
                 )
               }
-              if (visit.outstandingAmount > 0) {
+              if (visit.outstandingAmount > Money.ZERO) {
                 InfoChip(
                   containerColor = MaterialTheme.colorScheme.errorContainer,
-                  text = "Outstanding: ₹${visit.outstandingAmount}"
+                  text = "Outstanding: ${visit.outstandingAmount.toCurrencyString()}"
                 )
               }
             }
@@ -145,10 +147,10 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
                   containerColor = MaterialTheme.colorScheme.primaryContainer, text = "Order taken"
                 )
               }
-              if (visit.outstandingAmount > 0) {
+              if (visit.outstandingAmount > Money.ZERO) {
                 InfoChip(
                   containerColor = MaterialTheme.colorScheme.errorContainer,
-                  text = "Outstanding: ₹${visit.outstandingAmount}"
+                  text = "Outstanding: ${visit.outstandingAmount.toCurrencyString()}"
                 )
               }
             }
