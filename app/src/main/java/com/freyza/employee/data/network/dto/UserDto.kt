@@ -8,39 +8,39 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserDto(
-    @SerialName("id")
-    val id: String,
+  @SerialName("id")
+  val id: String,
 
-    @SerialName("name")
-    val name: String,
+  @SerialName("name")
+  val name: String,
 
-    @SerialName("email")
-    val email: String,
+  @SerialName("email")
+  val email: String,
 
-    @SerialName("phone")
-    val phone: String,
+  @SerialName("phone")
+  val phone: String,
 
-    @SerialName("role")
-    val role: UserRole,
+  @SerialName("role")
+  val role: UserRole,
 
-    @SerialName("status")
-    val status: UserStatus,
+  @SerialName("status")
+  val status: UserStatus,
 
-    @SerialName("tier")
-    val tier: EmployeeTier?,
+  @SerialName("tier")
+  val tier: EmployeeTier?,
 
-    @SerialName("hqId")
-    val hqId: String?,
+  @SerialName("hqId")
+  val hqId: String?,
 
-    @SerialName("joiningDate")
-    val joiningDate: String,
+  @SerialName("joiningDate")
+  val joiningDate: String,
 
-    @SerialName("resignDate")
-    val resignDate: String?,
+  @SerialName("resignDate")
+  val resignDate: String?,
 
-    @SerialName("createdAt")
-    val createdAt: String,
+  @SerialName("createdAt")
+  val createdAt: String,
 
-    @SerialName("updatedAt")
-    val updatedAt: String?
+  @SerialName("updatedAt")
+  val updatedAt: String?,
 )

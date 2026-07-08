@@ -167,11 +167,11 @@ private fun LoginScreen(
 
         OutlinedTextField(
           label = {
-          Text(
-            stringResource(R.string.email_placeholder),
-            style = MaterialTheme.typography.titleMedium
-          )
-        },
+            Text(
+              stringResource(R.string.email_placeholder),
+              style = MaterialTheme.typography.titleMedium
+            )
+          },
           singleLine = true,
           isError = uiState is UIState.Error,
           leadingIcon = {
@@ -198,11 +198,11 @@ private fun LoginScreen(
 
         OutlinedTextField(
           label = {
-          Text(
-            stringResource(R.string.password_placeholder),
-            style = MaterialTheme.typography.titleMedium
-          )
-        },
+            Text(
+              stringResource(R.string.password_placeholder),
+              style = MaterialTheme.typography.titleMedium
+            )
+          },
           singleLine = true,
           isError = uiState is UIState.Error,
           leadingIcon = {
@@ -320,7 +320,7 @@ private fun LoginScreenErrorPreview() {
   FreyzaEmployeeTheme {
     LoginScreen(
       uiState = UIState.Error(
-      "This is a long error message, with any kind of error may happen. Be ready for that. " + "This is wholesome in it's own that this error has occurred. " + "We are happy to announce that this is an error."
-    ), onLoginWithEmailClicked = { _, _ -> }, onNavigateToAuthenticatedRoute = {})
+        "This is a long error message, with any kind of error may happen. Be ready for that. " + "This is wholesome in it's own that this error has occurred. " + "We are happy to announce that this is an error."
+      ), onLoginWithEmailClicked = { _, _ -> }, onNavigateToAuthenticatedRoute = {})
   }
 }

@@ -9,8 +9,8 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.repository.DailyReportRepository
+import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
-import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.presentation.ui.state.ReportDetailUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +23,7 @@ class ReportDetailViewModel(
   reportId: String,
   private val sessionManager: SessionManager,
   private val dailyReportRepository: DailyReportRepository,
-  private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
+  private val routeRepository: RouteRepository,
   private val lockReportUseCase: LockReportUseCase,
   private val snackbarManager: SnackbarManager,
   serverTime: ServerTime,
@@ -131,7 +131,7 @@ class ReportDetailViewModel(
     Logger.i(TAG, "Fetching all routes")
 
     viewModelScope.launch {
-      when (val result = getAllRoutesWithLocationUseCase()) {
+      when (val result = routeRepository.getAllRoutesWithLocation()) {
         is Result.Success -> {
           _uiState.update {
             it.copy(routes = result.data)

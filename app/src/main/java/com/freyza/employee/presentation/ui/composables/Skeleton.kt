@@ -18,9 +18,9 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 fun Skeleton(modifier: Modifier = Modifier) {
   Box(
     modifier = modifier
-        .padding(2.dp)
-        .clip(RoundedCornerShape(15))
-        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+      .padding(2.dp)
+      .clip(RoundedCornerShape(15))
+      .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
   )
 }
 
@@ -30,8 +30,8 @@ private fun SkeletonPreview() {
   FreyzaEmployeeTheme {
     Skeleton(
       modifier = Modifier
-          .width(100.dp)
-          .height(25.dp)
+        .width(100.dp)
+        .height(25.dp)
     )
   }
 }

@@ -35,7 +35,6 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
   ): Result<DailyReport?> {
     return try {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
-
       val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
       withContext(Dispatchers.IO) {

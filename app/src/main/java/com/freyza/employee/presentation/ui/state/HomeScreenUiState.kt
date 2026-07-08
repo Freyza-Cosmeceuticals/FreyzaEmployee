@@ -47,6 +47,5 @@ fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
 )
 
 fun dummyHomeScreenUiStateDailyReportError(): HomeScreenUiState = HomeScreenUiState(
-  today = ServerTime().nowLocalDateTime(),
-  errorMessage = "Failed to have a daily report"
+  today = ServerTime().nowLocalDateTime(), errorMessage = "Failed to have a daily report"
 )

@@ -40,10 +40,10 @@ interface DailyReportRepository {
   ): Result<Visit>
 
   suspend fun lockReport(
-    reportId: String
+    reportId: String,
   ): Result<Boolean>
 
   suspend fun deleteVisit(
-    visitId: String
+    visitId: String,
   ): Result<Boolean>
 }

@@ -47,8 +47,8 @@ fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifi
   AnimatedVisibility(
     bottomBarDestination,
     label = "BottomBar",
-    enter = slideInVertically(initialOffsetY = { it / 2}),
-    exit = slideOutVertically(targetOffsetY = { it / 2})
+    enter = slideInVertically(initialOffsetY = { it / 2 }),
+    exit = slideOutVertically(targetOffsetY = { it / 2 })
   ) {
     ActualNavBar(screens, navController, currentDestination, modifier)
   }

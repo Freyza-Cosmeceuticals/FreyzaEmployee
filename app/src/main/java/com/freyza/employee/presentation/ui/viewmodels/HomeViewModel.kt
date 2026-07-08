@@ -10,13 +10,11 @@ import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.repository.LocationRepository
 import com.freyza.employee.domain.repository.RouteRepository
+import com.freyza.employee.domain.repository.TravelPlanRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
-import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
-import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
-import com.freyza.employee.domain.usecase.travelplan.GetTodayTravelPlanEntryUseCase
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,11 +25,9 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(
   private val sessionManager: SessionManager,
-  private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
-  private val getTodayTravelPlanEntryUseCase: GetTodayTravelPlanEntryUseCase,
   private val locationRepository: LocationRepository,
   private val routeRepository: RouteRepository,
-  private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
+  private val travelPlanRepository: TravelPlanRepository,
   private val getTodayDailyReportUseCase: GetTodayDailyReportUseCase,
   private val createTodayDailyReportUseCase: CreateTodayDailyReportUseCase,
   private val snackbarManager: SnackbarManager,
@@ -88,7 +84,7 @@ class HomeViewModel(
   }
 
   private suspend fun loadCurrentTravelPlan(employeeId: String) {
-    when (val result = getCurrentTravelPlanUseCase(employeeId)) {
+    when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId)) {
       is Result.Success -> {
         _uiState.update { it.copy(currentTravelPlan = result.data) }
         result.data?.id?.let { loadTodayTravelPlanEntry(it) }
@@ -104,7 +100,7 @@ class HomeViewModel(
   }
 
   private suspend fun loadTodayTravelPlanEntry(tpId: String) {
-    when (val result = getTodayTravelPlanEntryUseCase(tpId)) {
+    when (val result = travelPlanRepository.getTodayTravelPlanEntry(tpId)) {
       is Result.Success -> {
         val entry = result.data
         val route = _uiState.value.routes.find { it.id == entry?.routeId }
@@ -225,7 +221,7 @@ class HomeViewModel(
   }
 
   private suspend fun loadAllRoutes() {
-    when (val result = getAllRoutesWithLocationUseCase()) {
+    when (val result = routeRepository.getAllRoutesWithLocation()) {
       is Result.Success -> _uiState.update { it.copy(routes = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch routes failed: ${result.message}")
       else -> {}

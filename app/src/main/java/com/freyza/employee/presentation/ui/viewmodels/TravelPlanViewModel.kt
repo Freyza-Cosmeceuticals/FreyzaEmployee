@@ -8,9 +8,8 @@ import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
-import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
-import com.freyza.employee.domain.usecase.travelplan.GetCurrentTravelPlanUseCase
-import com.freyza.employee.domain.usecase.travelplan.GetTravelPlanEntriesUseCase
+import com.freyza.employee.domain.repository.RouteRepository
+import com.freyza.employee.domain.repository.TravelPlanRepository
 import com.freyza.employee.presentation.ui.state.TravelPlanUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,9 +22,8 @@ import kotlinx.coroutines.launch
 
 class TravelPlanViewModel(
   private val sessionManager: SessionManager,
-  private val getCurrentTravelPlanUseCase: GetCurrentTravelPlanUseCase,
-  private val getTravelPlanEntries: GetTravelPlanEntriesUseCase,
-  private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
+  private val routeRepository: RouteRepository,
+  private val travelPlanRepository: TravelPlanRepository,
   private val snackbarManager: SnackbarManager,
   serverTime: ServerTime,
 ) : ViewModel() {
@@ -41,7 +39,9 @@ class TravelPlanViewModel(
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) loadCurrentTravelPlan(employeeId)
   }.stateIn(
-    viewModelScope, SharingStarted.WhileSubscribed(5_000), TravelPlanUiState(today = serverTime.nowLocalDateTime())
+    viewModelScope,
+    SharingStarted.WhileSubscribed(5_000),
+    TravelPlanUiState(today = serverTime.nowLocalDateTime())
   )
 
   val currentUser = sessionManager.currentEmployee
@@ -59,7 +59,7 @@ class TravelPlanViewModel(
       )
     }
     viewModelScope.launch {
-      when (val result = getCurrentTravelPlanUseCase(employeeId)) {
+      when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(currentTravelPlan = UIState.Ready(result.data))
@@ -91,7 +91,7 @@ class TravelPlanViewModel(
     Logger.i(TAG, "Fetching all routes")
 
     viewModelScope.launch {
-      when (val result = getAllRoutesWithLocationUseCase()) {
+      when (val result = routeRepository.getAllRoutesWithLocation()) {
         is Result.Success -> {
           _uiState.update {
             it.copy(routes = result.data)
@@ -125,7 +125,7 @@ class TravelPlanViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = getTravelPlanEntries(tpId)) {
+      when (val result = travelPlanRepository.getTravelPlanEntries(tpId)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(travelPlanEntries = UIState.Ready(result.data))
