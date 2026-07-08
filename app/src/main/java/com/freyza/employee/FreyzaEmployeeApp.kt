@@ -118,9 +118,11 @@ fun FreyzaEmployeeApp(
                 FreyzaBottomNavBar(navController)
               }
             }) { paddingValues ->
-            Surface(modifier = Modifier
-              .padding(paddingValues)
-              .consumeWindowInsets(paddingValues)) {
+            Surface(
+              modifier = Modifier
+                .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
+            ) {
               val startDestination = if (state is AuthState.Authenticated) {
                 NavRoutes.Authenticated.NavigationRoute
               } else {

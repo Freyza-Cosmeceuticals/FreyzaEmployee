@@ -16,9 +16,13 @@ data class ReportDetailUiState(
   val lockingState: UIState<Unit> = UIState.Idle(),
 )
 
-fun dummyReportDetailUiState(serverTime: ServerTime = ServerTime()) = ReportDetailUiState(
+fun dummyReportDetailUiState(
+  serverTime: ServerTime = ServerTime(),
+  dateNow: Boolean = false,
+  noVisits: Boolean = false,
+) = ReportDetailUiState(
   today = serverTime.nowLocalDateTime(),
   reportId = "fdc8b26f-9a2c-4789-88b2-6f9a2cf789b8",
-  report = UIState.Ready(dummyDailyReportWork()),
+  report = UIState.Ready(dummyDailyReportWork(dateNow = dateNow, noVisits = noVisits)),
   routes = listOf(dummyRouteWithLocation())
 )

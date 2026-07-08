@@ -82,10 +82,10 @@ fun <T> SearchableDropdown(
         filteredItems.forEach { item ->
           DropdownMenuItem(
             text = { Text(itemLabeler(item)) }, onClick = {
-            onItemSelect(item)
-            searchQuery = itemLabeler(item)
-            expanded = false
-          }, contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+              onItemSelect(item)
+              searchQuery = itemLabeler(item)
+              expanded = false
+            }, contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
           )
         }
       }

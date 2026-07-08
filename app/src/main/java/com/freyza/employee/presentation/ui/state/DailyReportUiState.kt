@@ -18,17 +18,18 @@ data class DailyReportUiState(
   val lockingState: UIState<Unit> = UIState.Idle(),
 )
 
-fun dummyDailyReportUiState(serverTime: ServerTime = ServerTime()): DailyReportUiState = DailyReportUiState(
-  today = serverTime.nowLocalDateTime(),
-  dailyReports = UIState.Ready(
-    listOf(
-      dummyDailyReportWork(dateNow = true),
-      dummyDailyReportWork(noVisits = true),
-      dummyDailyReportWork(true),
-      dummyDailyReportLeave(),
-      dummyDailyReportHoliday(),
-      dummyDailyReportWork()
-    ),
-  ), routes = UIState.Ready(listOf(dummyRouteWithLocation())),
-  lockingState = UIState.Idle(Unit)
-)
+fun dummyDailyReportUiState(serverTime: ServerTime = ServerTime()): DailyReportUiState =
+  DailyReportUiState(
+    today = serverTime.nowLocalDateTime(),
+    dailyReports = UIState.Ready(
+      listOf(
+        dummyDailyReportWork(dateNow = true),
+        dummyDailyReportWork(noVisits = true),
+        dummyDailyReportWork(true),
+        dummyDailyReportLeave(),
+        dummyDailyReportHoliday(),
+        dummyDailyReportWork()
+      ),
+    ), routes = UIState.Ready(listOf(dummyRouteWithLocation())),
+    lockingState = UIState.Idle(Unit)
+  )

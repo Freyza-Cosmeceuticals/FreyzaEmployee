@@ -5,18 +5,18 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class LocationDto(
-    @SerialName("id")
-    val id: String,
+  @SerialName("id")
+  val id: String,
 
-    @SerialName("name")
-    val name: String,
+  @SerialName("name")
+  val name: String,
 
-    @SerialName("operational")
-    val operational: Boolean,
+  @SerialName("operational")
+  val operational: Boolean,
 
-    @SerialName("createdAt")
-    val createdAt: String,
+  @SerialName("createdAt")
+  val createdAt: String,
 
-    @SerialName("updatedAt")
-    val updatedAt: String?,
+  @SerialName("updatedAt")
+  val updatedAt: String?,
 )

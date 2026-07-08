@@ -8,9 +8,9 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
+import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsParams
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCase
-import com.freyza.employee.domain.usecase.route.GetAllRoutesWithLocationUseCase
 import com.freyza.employee.presentation.ui.state.DailyReportUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 class DailyReportViewModel(
   private val sessionManager: SessionManager,
   private val getAllDailyReportUseCase: GetRecentDailyReportsUseCase,
-  private val getAllRoutesWithLocationUseCase: GetAllRoutesWithLocationUseCase,
+  private val routeRepository: RouteRepository,
   serverTime: ServerTime,
 ) : ViewModel() {
 
@@ -112,8 +112,7 @@ class DailyReportViewModel(
     }
 
     viewModelScope.launch {
-      when (val result =
-        getAllRoutesWithLocationUseCase()) {
+      when (val result = routeRepository.getAllRoutesWithLocation()) {
         is Result.Success -> {
           _uiState.update {
             it.copy(routes = UIState.Ready(result.data))

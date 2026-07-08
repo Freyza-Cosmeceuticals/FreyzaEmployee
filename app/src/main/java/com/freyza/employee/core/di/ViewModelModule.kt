@@ -11,23 +11,21 @@ import com.freyza.employee.presentation.ui.viewmodels.SessionViewModel
 import com.freyza.employee.presentation.ui.viewmodels.TravelPlanViewModel
 import com.freyza.employee.presentation.ui.viewmodels.VisitDetailViewModel
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val viewModelModule = module {
-  viewModel { SessionViewModel(get(), get()) }
-  viewModel { LoginViewModel(get(), get(), get(), get()) }
-  viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-  viewModel { TravelPlanViewModel(get(), get(), get(), get(), get(), get()) }
-  viewModel { DailyReportViewModel(get(), get(), get(), get(), get(), get()) }
-  viewModel { (visitType: VisitType, reportId: String, employeeId: String) ->
-    AddVisitViewModel(
-      visitType, reportId, employeeId, get(), get(), get(), get()
+  viewModelOf(::SessionViewModel)
+  viewModelOf(::LoginViewModel)
+  viewModelOf(::HomeViewModel)
+  viewModelOf(::TravelPlanViewModel)
+  viewModelOf(::DailyReportViewModel)
   viewModel { (reportId: String) ->
     ReportDetailViewModel(
       reportId = reportId,
       sessionManager = get(),
       dailyReportRepository = get(),
-      getAllRoutesWithLocationUseCase = get(),
+      routeRepository = get(),
       lockReportUseCase = get(),
       snackbarManager = get(),
       serverTime = get()
@@ -53,5 +51,5 @@ val viewModelModule = module {
       serverTime = get()
     )
   }
-  viewModel { ProfileViewModel(get(), get(), get()) }
+  viewModelOf(::ProfileViewModel)
 }

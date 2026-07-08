@@ -8,5 +8,5 @@ import kotlinx.datetime.LocalDateTime
 data class AddVisitUiState(
   val today: LocalDateTime,
   val visitType: VisitType? = null,
-  val creationState: UIState<Unit> = UIState.Idle()
+  val creationState: UIState<Unit> = UIState.Idle(),
 )

@@ -12,6 +12,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
 val appModule = module {
@@ -38,15 +39,7 @@ val appModule = module {
     }
   }
 
-  single<ServerTime> {
-    ServerTime(get(), get())
-  }
-
-  single<SessionManager> {
-    SessionManager()
-  }
-
-  single<SnackbarManager> {
-    SnackbarManager()
-  }
+  singleOf(::ServerTime)
+  singleOf(::SessionManager)
+  singleOf(::SnackbarManager)
 }
