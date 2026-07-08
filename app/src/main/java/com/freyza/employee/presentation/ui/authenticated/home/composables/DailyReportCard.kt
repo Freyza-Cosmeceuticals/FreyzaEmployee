@@ -31,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.core.Constants
+import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
@@ -116,7 +117,7 @@ fun DailyReportCard(
         )
 
         Text(
-          text = "₹${dailyReport.totalExpense ?: 0.0}",
+          text = dailyReport.totalExpense.toCurrencyString(),
           style = MaterialTheme.typography.titleMedium,
           fontWeight = FontWeight.Bold,
           color = MaterialTheme.colorScheme.tertiary
@@ -196,10 +197,8 @@ private fun WorkStatusContent(
     latestVisits.forEachIndexed { index, visit ->
       Row(
         horizontalArrangement = Arrangement.spacedBy(
-          dimensionResource(R.dimen.default_spacing),
-          Alignment.CenterHorizontally
-        ),
-        verticalAlignment = Alignment.CenterVertically
+          dimensionResource(R.dimen.default_spacing), Alignment.CenterHorizontally
+        ), verticalAlignment = Alignment.CenterVertically
       ) {
         Icon(
           painter = painterResource(visit.visitType.iconResource()),

@@ -49,6 +49,7 @@ import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
@@ -135,44 +136,47 @@ fun ReportDetailScreen(
   var sortBy by rememberSaveable { mutableStateOf(VisitSortBy.TIME) }
   var sortOrderDesc by rememberSaveable { mutableStateOf(true) }
 
-  val filteredVisits = remember(uiState.report.data?.visits, searchQuery, filterTypes, sortBy, sortOrderDesc) {
-    uiState.report.data?.visits?.filter { visit ->
-      val name = when (visit) {
-        is Visit.DoctorVisit -> visit.doctorName
-        is Visit.StockistVisit -> visit.stockistName
-        is Visit.ChemistVisit -> visit.chemistName
-      }
-      val matchesSearch = searchQuery.isBlank() || name.contains(searchQuery, ignoreCase = true)
-      val matchesType = filterTypes.isEmpty() || visit.visitType in filterTypes
-      matchesSearch && matchesType
-    }?.let { list ->
-      if (sortOrderDesc) {
-        when (sortBy) {
-          VisitSortBy.TIME -> list.sortedByDescending { it.createdAt }
-          VisitSortBy.NAME -> list.sortedByDescending { visit ->
-            when (visit) {
-              is Visit.DoctorVisit -> visit.doctorName
-              is Visit.StockistVisit -> visit.stockistName
-              is Visit.ChemistVisit -> visit.chemistName
-            }
-          }
-          VisitSortBy.TYPE -> list.sortedByDescending { it.visitType.name }
+  val filteredVisits =
+    remember(uiState.report.data?.visits, searchQuery, filterTypes, sortBy, sortOrderDesc) {
+      uiState.report.data?.visits?.filter { visit ->
+        val name = when (visit) {
+          is Visit.DoctorVisit -> visit.doctorName
+          is Visit.StockistVisit -> visit.stockistName
+          is Visit.ChemistVisit -> visit.chemistName
         }
-      } else {
-        when (sortBy) {
-          VisitSortBy.TIME -> list.sortedBy { it.createdAt }
-          VisitSortBy.NAME -> list.sortedBy { visit ->
-            when (visit) {
-              is Visit.DoctorVisit -> visit.doctorName
-              is Visit.StockistVisit -> visit.stockistName
-              is Visit.ChemistVisit -> visit.chemistName
+        val matchesSearch = searchQuery.isBlank() || name.contains(searchQuery, ignoreCase = true)
+        val matchesType = filterTypes.isEmpty() || visit.visitType in filterTypes
+        matchesSearch && matchesType
+      }?.let { list ->
+        if (sortOrderDesc) {
+          when (sortBy) {
+            VisitSortBy.TIME -> list.sortedByDescending { it.createdAt }
+            VisitSortBy.NAME -> list.sortedByDescending { visit ->
+              when (visit) {
+                is Visit.DoctorVisit -> visit.doctorName
+                is Visit.StockistVisit -> visit.stockistName
+                is Visit.ChemistVisit -> visit.chemistName
+              }
             }
+
+            VisitSortBy.TYPE -> list.sortedByDescending { it.visitType.name }
           }
-          VisitSortBy.TYPE -> list.sortedBy { it.visitType.name }
+        } else {
+          when (sortBy) {
+            VisitSortBy.TIME -> list.sortedBy { it.createdAt }
+            VisitSortBy.NAME -> list.sortedBy { visit ->
+              when (visit) {
+                is Visit.DoctorVisit -> visit.doctorName
+                is Visit.StockistVisit -> visit.stockistName
+                is Visit.ChemistVisit -> visit.chemistName
+              }
+            }
+
+            VisitSortBy.TYPE -> list.sortedBy { it.visitType.name }
+          }
         }
-      }
-    } ?: emptyList()
-  }
+      } ?: emptyList()
+    }
 
   val fabOptions = listOf(
     FabActionItem(
@@ -238,14 +242,18 @@ fun ReportDetailScreen(
             } else {
               item("report_header") {
                 Column(
-                  modifier = Modifier.padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
+                  modifier = Modifier.padding(
+                    vertical = dimensionResource(R.dimen.default_spacing).times(
+                      2
+                    )
+                  )
                 ) {
                   ReportDetailHeader(
                     report = result.data,
                     isToday = isToday,
                     route = routeMap[result.data.routeId]
                   )
-                  
+
                   HorizontalDivider(
                     modifier = Modifier.padding(top = 24.dp),
                     thickness = 0.5.dp,
@@ -256,8 +264,16 @@ fun ReportDetailScreen(
 
               item("visit_heading") {
                 Column(
-                  modifier = Modifier.padding(top = dimensionResource(R.dimen.default_spacing).times(4)),
-                  verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing).times(3))
+                  modifier = Modifier.padding(
+                    top = dimensionResource(R.dimen.default_spacing).times(
+                      4
+                    )
+                  ),
+                  verticalArrangement = Arrangement.spacedBy(
+                    dimensionResource(R.dimen.default_spacing).times(
+                      3
+                    )
+                  )
                 ) {
                   Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -273,7 +289,11 @@ fun ReportDetailScreen(
 
                     if (result.data.visits.isNotEmpty()) {
                       Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+                        colors = CardDefaults.cardColors(
+                          containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
+                            alpha = 0.5f
+                          )
+                        ),
                         shape = MaterialTheme.shapes.extraSmall
                       ) {
                         Text(
@@ -329,7 +349,14 @@ fun ReportDetailScreen(
                             ) {
                               VisitSortBy.entries.forEach { sortOption ->
                                 DropdownMenuItem(
-                                  text = { Text("Sort by ${sortOption.name.lowercase().replaceFirstChar { it.uppercase() }}") },
+                                  text = {
+                                    Text(
+                                      "Sort by ${
+                                        sortOption.name.lowercase()
+                                          .replaceFirstChar { it.uppercase() }
+                                      }"
+                                    )
+                                  },
                                   onClick = {
                                     if (sortBy == sortOption) {
                                       sortOrderDesc = !sortOrderDesc
@@ -464,7 +491,10 @@ fun ReportDetailHeader(
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically
     ) {
-      Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+      ) {
         if (isToday) {
           Icon(
             painter = painterResource(R.drawable.calendar_month_24px),
@@ -489,7 +519,11 @@ fun ReportDetailHeader(
     // Day Type & Expense Card
     Card(
       modifier = Modifier.fillMaxWidth(),
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+      colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+          alpha = 0.3f
+        )
+      ),
       shape = MaterialTheme.shapes.medium
     ) {
       Row(
@@ -517,7 +551,7 @@ fun ReportDetailHeader(
 
         Column(horizontalAlignment = Alignment.End) {
           Text(
-            text = "₹${report.totalExpense ?: 0.0}",
+            text = report.totalExpense.toCurrencyString(),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary
@@ -525,12 +559,12 @@ fun ReportDetailHeader(
           if (report.dayType == DayType.WORK) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
               Text(
-                "TA: ₹${report.ta ?: 0.0}",
+                "TA: ${report.ta.toCurrencyString()}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline
               )
               Text(
-                "DA: ₹${report.da ?: 0.0}",
+                "DA: ${report.da.toCurrencyString()}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline
               )

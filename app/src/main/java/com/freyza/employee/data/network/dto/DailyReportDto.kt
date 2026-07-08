@@ -1,8 +1,10 @@
 package com.freyza.employee.data.network.dto
 
+import com.freyza.employee.core.util.BigDecimalSerializer
 import com.freyza.employee.domain.model.DayType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 
 @Serializable
 data class DailyReportDto(
@@ -22,11 +24,14 @@ data class DailyReportDto(
   val routeId: String?,
 
   @SerialName("ta")
-  val ta: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val ta: BigDecimal?,
   @SerialName("da")
-  val da: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val da: BigDecimal?,
   @SerialName("totalExpense")
-  val totalExpense: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val totalExpense: BigDecimal?,
 
   @SerialName("visits")
   val visits: List<VisitDto>? = null,

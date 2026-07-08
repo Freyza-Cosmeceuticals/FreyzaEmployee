@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.core.util.DateFormatter
+import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
@@ -121,7 +122,7 @@ fun DailyReportListCard(
         )
 
         Text(
-          text = "₹${report.totalExpense ?: 0.0}",
+          text = report.totalExpense.toCurrencyString(),
           style = MaterialTheme.typography.titleLarge,
           fontWeight = FontWeight.ExtraBold,
           color = MaterialTheme.colorScheme.primary

@@ -1,9 +1,11 @@
 package com.freyza.employee.data.network.dto
 
+import com.freyza.employee.core.util.BigDecimalSerializer
 import com.freyza.employee.domain.model.ProductDetail
 import com.freyza.employee.domain.model.VisitType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 
 @Serializable
 data class VisitDto(
@@ -43,13 +45,17 @@ data class VisitDto(
   @SerialName("paymentCollected")
   val paymentCollected: Boolean,
   @SerialName("amountWithGST")
-  val amountWithGST: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val amountWithGST: BigDecimal?,
   @SerialName("amountWithoutGST")
-  val amountWithoutGST: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val amountWithoutGST: BigDecimal?,
   @SerialName("outstandingAmount")
-  val outstandingAmount: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val outstandingAmount: BigDecimal?,
   @SerialName("orderAmount")
-  val orderAmount: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val orderAmount: BigDecimal?,
   @SerialName("stockChecked")
   val stockChecked: Boolean,
 
@@ -97,13 +103,17 @@ data class VisitCreateDto(
   @SerialName("paymentCollected")
   val paymentCollected: Boolean,
   @SerialName("amountWithGST")
-  val amountWithGST: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val amountWithGST: BigDecimal?,
   @SerialName("amountWithoutGST")
-  val amountWithoutGST: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val amountWithoutGST: BigDecimal?,
   @SerialName("outstandingAmount")
-  val outstandingAmount: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val outstandingAmount: BigDecimal?,
   @SerialName("orderAmount")
-  val orderAmount: Double?,
+  @Serializable(with = BigDecimalSerializer::class)
+  val orderAmount: BigDecimal?,
   @SerialName("stockChecked")
   val stockChecked: Boolean,
 

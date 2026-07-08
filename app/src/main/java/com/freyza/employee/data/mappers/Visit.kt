@@ -1,5 +1,6 @@
 package com.freyza.employee.data.mappers
 
+import com.freyza.employee.core.util.Money
 import com.freyza.employee.data.network.dto.VisitDto
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
@@ -18,8 +19,8 @@ fun VisitDto.toDomain(): Visit {
       productDetails = productDetails,
       samplesGiven = samplesGiven,
       orderTaken = orderTaken,
-      orderAmount = orderAmount,
-      outstandingAmount = outstandingAmount ?: 0.0,
+      orderAmount = orderAmount?.let { Money(it) },
+      outstandingAmount = outstandingAmount?.let { Money(it) } ?: Money.ZERO,
       additionalNotes = additionalNotes,
       createdAt = Instant.parse(createdAt),
       updatedAt = updatedAt?.let { Instant.parse(it) })
@@ -36,9 +37,9 @@ fun VisitDto.toDomain(): Visit {
       orderTaken = orderTaken,
       billNo = billNo ?: "N/A",
       paymentCollected = paymentCollected,
-      amountWithGST = amountWithGST ?: 0.00,
-      amountWithoutGST = amountWithoutGST ?: 0.00,
-      outstandingAmount = outstandingAmount ?: 0.0,
+      amountWithGST = amountWithGST?.let { Money(it) } ?: Money.ZERO,
+      amountWithoutGST = amountWithoutGST?.let { Money(it) } ?: Money.ZERO,
+      outstandingAmount = outstandingAmount?.let { Money(it) } ?: Money.ZERO,
       stockChecked = stockChecked,
       additionalNotes = additionalNotes,
       createdAt = Instant.parse(createdAt),
@@ -53,7 +54,7 @@ fun VisitDto.toDomain(): Visit {
       distanceMetersFromPOI = distanceMetersFromPOI,
       chemistName = chemistName ?: "Unknown Chemist",
       orderTaken = orderTaken,
-      outstandingAmount = outstandingAmount ?: 0.0,
+      outstandingAmount = outstandingAmount?.let { Money(it) } ?: Money.ZERO,
       additionalNotes = additionalNotes,
       createdAt = Instant.parse(createdAt),
       updatedAt = updatedAt?.let { Instant.parse(it) })
@@ -82,15 +83,15 @@ fun Visit.toDto(): VisitDto {
       is Visit.StockistVisit -> orderTaken
       is Visit.ChemistVisit -> orderTaken
     },
-    orderAmount = (this as? Visit.DoctorVisit)?.orderAmount,
+    orderAmount = (this as? Visit.DoctorVisit)?.orderAmount?.amount,
     stockistName = (this as? Visit.StockistVisit)?.stockistName,
     billNo = (this as? Visit.StockistVisit)?.billNo,
-    amountWithGST = (this as? Visit.StockistVisit)?.amountWithGST,
-    amountWithoutGST = (this as? Visit.StockistVisit)?.amountWithoutGST,
+    amountWithGST = (this as? Visit.StockistVisit)?.amountWithGST?.amount,
+    amountWithoutGST = (this as? Visit.StockistVisit)?.amountWithoutGST?.amount,
     outstandingAmount = when (this) {
-      is Visit.DoctorVisit -> outstandingAmount
-      is Visit.StockistVisit -> outstandingAmount
-      is Visit.ChemistVisit -> outstandingAmount
+      is Visit.DoctorVisit -> outstandingAmount.amount
+      is Visit.StockistVisit -> outstandingAmount.amount
+      is Visit.ChemistVisit -> outstandingAmount.amount
     },
     stockChecked = (this as? Visit.StockistVisit)?.stockChecked ?: false,
     paymentCollected = (this as? Visit.StockistVisit)?.paymentCollected ?: false,

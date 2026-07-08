@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +45,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.core.util.Money
 import com.freyza.employee.core.util.ServerTime
+import com.freyza.employee.core.util.toCurrencyString
+import com.freyza.employee.core.util.toMoney
 import com.freyza.employee.domain.model.ProductDetail
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitCreate
@@ -61,6 +63,7 @@ import com.freyza.employee.presentation.ui.state.AddVisitUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.AddVisitViewModel
 import org.koin.androidx.compose.koinViewModel
+import java.math.BigDecimal
 
 data class ProductEntry(
   val name: String = "",
@@ -116,17 +119,19 @@ fun AddVisitScreen(
   var stockistName by rememberSaveable { mutableStateOf<String?>(null) }
   var billNo by rememberSaveable { mutableStateOf<String?>(null) }
   var paymentCollected by rememberSaveable { mutableStateOf(false) }
-  var amountWithGST by rememberSaveable { mutableDoubleStateOf(0.00) }
-  var amountWithoutGST by rememberSaveable { mutableDoubleStateOf(0.00) }
+  var amountWithGST by rememberSaveable { mutableStateOf(Money.ZERO) }
+  var amountWithoutGST by rememberSaveable { mutableStateOf(Money.ZERO) }
   var stockChecked by rememberSaveable { mutableStateOf(false) }
 
   var chemistName by rememberSaveable { mutableStateOf<String?>(null) }
-  var outstandingAmount by rememberSaveable { mutableDoubleStateOf(0.00) }
+  var outstandingAmount by rememberSaveable { mutableStateOf(Money.ZERO) }
 
   val orderAmount by remember {
     derivedStateOf {
-      productEntries.sumOf {
-        (it.rate.toDoubleOrNull() ?: 0.0) * (it.quantity.toIntOrNull() ?: 0)
+      productEntries.fold(Money.ZERO) { acc, entry ->
+        val rate = entry.rate.toMoney()
+        val quantity = entry.quantity.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        acc.plus(rate.times(quantity))
       }
     }
   }
@@ -276,7 +281,7 @@ fun AddVisitScreen(
             }
 
             Text(
-              text = "Total: ₹${"%.2f".format(orderAmount)}",
+              text = "Total: ${orderAmount.toCurrencyString()}",
               style = MaterialTheme.typography.titleMedium,
               fontWeight = FontWeight.Bold
             )
@@ -285,12 +290,15 @@ fun AddVisitScreen(
       }
 
       item {
-        var outstandingStr by rememberSaveable { mutableStateOf(if (outstandingAmount == 0.0) "" else outstandingAmount.toString()) }
+        var outstandingStr by rememberSaveable {
+          mutableStateOf(if (outstandingAmount == Money.ZERO) "" else outstandingAmount.amount.toPlainString())
+        }
+
         OutlinedTextField(
           value = outstandingStr,
           onValueChange = {
             outstandingStr = it
-            outstandingAmount = it.toDoubleOrNull() ?: 0.0
+            outstandingAmount = it.toMoney()
           },
           label = { Text("Current Outstanding Amount") },
           modifier = Modifier.fillMaxWidth(),
@@ -332,14 +340,18 @@ fun AddVisitScreen(
         if (paymentCollected) {
           item {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-              var amtWithoutGstStr by rememberSaveable { mutableStateOf(if (amountWithoutGST == 0.0) "" else amountWithoutGST.toString()) }
-              var amtWithGstStr by rememberSaveable { mutableStateOf(if (amountWithGST == 0.0) "" else amountWithGST.toString()) }
+              var amtWithoutGstStr by rememberSaveable {
+                mutableStateOf(if (amountWithoutGST == Money.ZERO) "" else amountWithoutGST.amount.toPlainString())
+              }
+              var amtWithGstStr by rememberSaveable {
+                mutableStateOf(if (amountWithGST == Money.ZERO) "" else amountWithGST.amount.toPlainString())
+              }
 
               OutlinedTextField(
                 value = amtWithoutGstStr,
                 onValueChange = {
                   amtWithoutGstStr = it
-                  amountWithoutGST = it.toDoubleOrNull() ?: 0.0
+                  amountWithoutGST = it.toMoney()
                 },
                 label = { Text("W/O GST") },
                 modifier = Modifier.weight(1f),
@@ -350,7 +362,7 @@ fun AddVisitScreen(
                 value = amtWithGstStr,
                 onValueChange = {
                   amtWithGstStr = it
-                  amountWithGST = it.toDoubleOrNull() ?: 0.0
+                  amountWithGST = it.toMoney()
                 },
                 label = { Text("With GST") },
                 modifier = Modifier.weight(1f),
@@ -387,7 +399,7 @@ fun AddVisitScreen(
                 productDetails = productEntries.filter { it.name.isNotBlank() }.map {
                   ProductDetail(
                     name = it.name,
-                    rate = it.rate.toDoubleOrNull() ?: 0.0,
+                    rate = it.rate.toMoney().amount,
                     quantity = it.quantity.toIntOrNull() ?: 0
                   )
                 },
@@ -418,7 +430,7 @@ fun AddVisitScreen(
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun AddVisitScreenPreviewDoctor() {
   FreyzaEmployeeTheme {
@@ -434,7 +446,7 @@ private fun AddVisitScreenPreviewDoctor() {
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun AddVisitScreenPreviewStockist() {
   FreyzaEmployeeTheme {
@@ -450,7 +462,7 @@ private fun AddVisitScreenPreviewStockist() {
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun AddVisitScreenPreviewChemist() {
   FreyzaEmployeeTheme {
@@ -466,7 +478,7 @@ private fun AddVisitScreenPreviewChemist() {
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun AddVisitScreenPreviewNull() {
   FreyzaEmployeeTheme {
