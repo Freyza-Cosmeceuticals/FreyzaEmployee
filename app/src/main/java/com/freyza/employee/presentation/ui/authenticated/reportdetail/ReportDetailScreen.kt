@@ -3,18 +3,17 @@ package com.freyza.employee.presentation.ui.authenticated.reportdetail
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,6 +22,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,20 +51,24 @@ import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.toCurrencyString
+import com.freyza.employee.core.util.toTitleCase
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
+import com.freyza.employee.domain.model.dummyDailyReportWork
+import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyUserEmployee
-import com.freyza.employee.domain.model.routeName
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.AddVisitFloatingActionButton
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.FabActionItem
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.LockReportButton
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.VisitListItem
 import com.freyza.employee.presentation.ui.composables.FreyzaReportDetailAppBar
+import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
+import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.ReportDetailUiState
 import com.freyza.employee.presentation.ui.state.dummyReportDetailUiState
@@ -71,7 +76,9 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.ReportDetailViewModel
 import org.koin.androidx.compose.koinViewModel
 
-enum class VisitSortBy { TIME, NAME, TYPE }
+enum class VisitSortBy(val icon: Int) {
+  TIME(R.drawable.sort_24px), NAME(R.drawable.sort_by_alpha_24px), TYPE(R.drawable.category_24px),
+}
 
 @Composable
 fun ReportDetailScreenRoute(
@@ -126,30 +133,51 @@ fun ReportDetailScreen(
     uiState.routes.associateBy { it.id }
   }
 
-  val isToday =
-    remember(uiState.report) {
-      uiState.report.data?.date?.let { uiState.today.date == it } ?: false
-    }
+  val isToday = remember(uiState.report) {
+    uiState.report.data?.date?.let { uiState.today.date == it } ?: false
+  }
 
   var searchQuery by rememberSaveable { mutableStateOf("") }
   var filterTypes by rememberSaveable { mutableStateOf(setOf<VisitType>()) }
-  var sortBy by rememberSaveable { mutableStateOf(VisitSortBy.TIME) }
-  var sortOrderDesc by rememberSaveable { mutableStateOf(true) }
+  var sortType by rememberSaveable { mutableStateOf(VisitSortBy.TIME) }
+  var sortDesc by rememberSaveable { mutableStateOf(true) }
 
   val filteredVisits =
-    remember(uiState.report.data?.visits, searchQuery, filterTypes, sortBy, sortOrderDesc) {
+    remember(uiState.report.data?.visits, searchQuery, filterTypes, sortType, sortDesc) {
       uiState.report.data?.visits?.filter { visit ->
         val name = when (visit) {
           is Visit.DoctorVisit -> visit.doctorName
           is Visit.StockistVisit -> visit.stockistName
           is Visit.ChemistVisit -> visit.chemistName
         }
-        val matchesSearch = searchQuery.isBlank() || name.contains(searchQuery, ignoreCase = true)
+
+        val matchesName = name.contains(searchQuery, ignoreCase = true)
+        val matchesAdditionalNotes =
+          visit.additionalNotes?.contains(searchQuery, ignoreCase = true) ?: false
+
+        val matchesSamplesDoctor = (visit as? Visit.DoctorVisit)?.samplesGiven?.any {
+          it.contains(
+            searchQuery, ignoreCase = true
+          )
+        } ?: false
+
+        val matchesSampleStockist = (visit as? Visit.StockistVisit)?.samplesGiven?.any {
+          it.contains(
+            searchQuery, ignoreCase = true
+          )
+        } ?: false
+
+        val matchesBillNo =
+          (visit as? Visit.StockistVisit)?.billNo?.contains(searchQuery, ignoreCase = true) ?: false
+
+        val matchesSearch =
+          searchQuery.isBlank() || matchesName || matchesAdditionalNotes || matchesSamplesDoctor || matchesSampleStockist || matchesBillNo
         val matchesType = filterTypes.isEmpty() || visit.visitType in filterTypes
+
         matchesSearch && matchesType
       }?.let { list ->
-        if (sortOrderDesc) {
-          when (sortBy) {
+        if (sortDesc) {
+          when (sortType) {
             VisitSortBy.TIME -> list.sortedByDescending { it.createdAt }
             VisitSortBy.NAME -> list.sortedByDescending { visit ->
               when (visit) {
@@ -162,7 +190,7 @@ fun ReportDetailScreen(
             VisitSortBy.TYPE -> list.sortedByDescending { it.visitType.name }
           }
         } else {
-          when (sortBy) {
+          when (sortType) {
             VisitSortBy.TIME -> list.sortedBy { it.createdAt }
             VisitSortBy.NAME -> list.sortedBy { visit ->
               when (visit) {
@@ -177,6 +205,19 @@ fun ReportDetailScreen(
         }
       } ?: emptyList()
     }
+
+  val visitTypeCounts = remember(uiState.report.data?.visits) {
+    derivedStateOf {
+      mapOf(
+        VisitType.DOCTOR to (uiState.report.data?.visits?.count { it.visitType == VisitType.DOCTOR }
+          ?: 0),
+        VisitType.STOCKIST to (uiState.report.data?.visits?.count { it.visitType == VisitType.STOCKIST }
+          ?: 0),
+        VisitType.CHEMIST to (uiState.report.data?.visits?.count { it.visitType == VisitType.CHEMIST }
+          ?: 0)
+      )
+    }
+  }
 
   val fabOptions = listOf(
     FabActionItem(
@@ -224,7 +265,6 @@ fun ReportDetailScreen(
         .imePadding(),
     ) {
       LazyColumn(
-        contentPadding = PaddingValues(bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(
           dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
         ),
@@ -243,19 +283,15 @@ fun ReportDetailScreen(
               item("report_header") {
                 Column(
                   modifier = Modifier.padding(
-                    vertical = dimensionResource(R.dimen.default_spacing).times(
-                      2
-                    )
+                    vertical = dimensionResource(R.dimen.default_spacing).times(2)
                   )
                 ) {
                   ReportDetailHeader(
-                    report = result.data,
-                    isToday = isToday,
-                    route = routeMap[result.data.routeId]
+                    report = result.data, isToday = isToday, route = routeMap[result.data.routeId]
                   )
 
                   HorizontalDivider(
-                    modifier = Modifier.padding(top = 24.dp),
+                    modifier = Modifier.padding(top = dimensionResource(R.dimen.default_spacing)),
                     thickness = 0.5.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                   )
@@ -266,10 +302,9 @@ fun ReportDetailScreen(
                 Column(
                   modifier = Modifier.padding(
                     top = dimensionResource(R.dimen.default_spacing).times(
-                      4
+                      2
                     )
-                  ),
-                  verticalArrangement = Arrangement.spacedBy(
+                  ), verticalArrangement = Arrangement.spacedBy(
                     dimensionResource(R.dimen.default_spacing).times(
                       3
                     )
@@ -288,27 +323,18 @@ fun ReportDetailScreen(
                     )
 
                     if (result.data.visits.isNotEmpty()) {
-                      Card(
-                        colors = CardDefaults.cardColors(
-                          containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(
-                            alpha = 0.5f
-                          )
-                        ),
-                        shape = MaterialTheme.shapes.extraSmall
-                      ) {
-                        Text(
-                          "${result.data.visits.size} Total",
-                          style = MaterialTheme.typography.labelSmall,
-                          color = MaterialTheme.colorScheme.onSecondaryContainer,
-                          modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                      }
+                      Text(
+                        "${result.data.visits.size} Total",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                      )
                     }
                   }
 
                   if (result.data.visits.isEmpty()) {
                     Text(
-                      "No visits logged yet." + if (isToday) " Use the + button to add one." else "",
+                      "No visits yet." + if (isToday) " Use the Add Visit button to add one." else "",
                       style = MaterialTheme.typography.bodyMedium,
                       color = MaterialTheme.colorScheme.outline
                     )
@@ -317,12 +343,11 @@ fun ReportDetailScreen(
                       value = searchQuery,
                       onValueChange = { searchQuery = it },
                       modifier = Modifier.fillMaxWidth(),
-                      placeholder = { Text("Search by name...") },
+                      placeholder = { Text("Search...") },
                       leadingIcon = {
                         Icon(
                           painter = painterResource(R.drawable.search_24px),
-                          contentDescription = null,
-                          tint = MaterialTheme.colorScheme.primary
+                          contentDescription = null
                         )
                       },
                       trailingIcon = {
@@ -339,45 +364,41 @@ fun ReportDetailScreen(
                           var showSortMenu by remember { mutableStateOf(false) }
                           IconButton(onClick = { showSortMenu = true }) {
                             Icon(
-                              painter = painterResource(R.drawable.work_24px),
-                              contentDescription = "Sort"
+                              painter = painterResource(R.drawable.sort_24px),
+                              contentDescription = "Sort",
+                              tint = if (sortType != VisitSortBy.TIME || !sortDesc) {
+                                MaterialTheme.colorScheme.primary
+                              } else LocalContentColor.current,
                             )
 
                             DropdownMenu(
                               expanded = showSortMenu,
-                              onDismissRequest = { showSortMenu = false }
-                            ) {
+                              onDismissRequest = { showSortMenu = false }) {
                               VisitSortBy.entries.forEach { sortOption ->
-                                DropdownMenuItem(
-                                  text = {
-                                    Text(
-                                      "Sort by ${
-                                        sortOption.name.lowercase()
-                                          .replaceFirstChar { it.uppercase() }
-                                      }"
-                                    )
-                                  },
-                                  onClick = {
-                                    if (sortBy == sortOption) {
-                                      sortOrderDesc = !sortOrderDesc
-                                    } else {
-                                      sortBy = sortOption
-                                      sortOrderDesc = true
-                                    }
-                                    showSortMenu = false
-                                  },
-                                  trailingIcon = {
-                                    if (sortBy == sortOption) {
-                                      Icon(
-                                        painter = painterResource(
-                                          if (sortOrderDesc) R.drawable.chevron_left_24px else R.drawable.chevron_right_24px
-                                        ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                      )
-                                    }
+                                DropdownMenuItem(text = {
+                                  Text("Sort by ${sortOption.name.toTitleCase()}")
+                                }, onClick = {
+                                  if (sortType == sortOption) {
+                                    sortDesc = !sortDesc
+                                  } else {
+                                    sortType = sortOption
+                                    sortDesc = true
                                   }
-                                )
+                                  showSortMenu = false
+                                }, leadingIcon = {
+                                  Icon(
+                                    painter = painterResource(sortOption.icon),
+                                    contentDescription = null
+                                  )
+                                }, trailingIcon = {
+                                  if (sortType == sortOption) {
+                                    Icon(
+                                      painter = painterResource(
+                                        if (sortDesc) R.drawable.arrow_drop_down_24px else R.drawable.arrow_drop_up_24px
+                                      ), contentDescription = null
+                                    )
+                                  }
+                                })
                               }
                             }
                           }
@@ -389,26 +410,39 @@ fun ReportDetailScreen(
 
                     Row(
                       modifier = Modifier.fillMaxWidth(),
-                      horizontalArrangement = Arrangement.spacedBy(8.dp)
+                      horizontalArrangement = Arrangement.spacedBy(
+                        dimensionResource(R.dimen.default_spacing).times(
+                          2
+                        )
+                      )
                     ) {
                       VisitType.entries.forEach { type ->
                         val isSelected = type in filterTypes
-                        FilterChip(
-                          selected = isSelected,
-                          onClick = {
-                            filterTypes = if (isSelected) filterTypes - type else filterTypes + type
-                          },
-                          label = { Text(type.titleCase()) },
-                          leadingIcon = if (isSelected) {
-                            {
+                        BadgedBox(badge = {
+                          Badge(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
+                            Text(visitTypeCounts.value[type].toString())
+                          }
+                        }) {
+                          FilterChip(
+                            selected = isSelected, onClick = {
+                              filterTypes =
+                                if (isSelected) filterTypes - type else filterTypes + type
+                            }, label = { Text(type.titleCase()) }, leadingIcon = {
                               Icon(
-                                painter = painterResource(R.drawable.line_end_diamond_24px),
+                                painter = painterResource(type.iconResource()),
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                               )
-                            }
-                          } else null
-                        )
+                            }, trailingIcon = if (isSelected) {
+                              {
+                                Icon(
+                                  painter = painterResource(R.drawable.check_small_24px),
+                                  contentDescription = null,
+                                  modifier = Modifier.size(18.dp)
+                                )
+                              }
+                            } else null)
+                        }
                       }
                     }
                   }
@@ -418,7 +452,9 @@ fun ReportDetailScreen(
               items(filteredVisits, key = { it.id }) { visit ->
                 VisitListItem(
                   visit = visit,
-                  modifier = Modifier.clickable { onNavigateToVisitDetail(visit.id) })
+                  modifier = Modifier
+                    .padding(0.dp)
+                    .clickable { onNavigateToVisitDetail(visit.id) })
               }
 
               if (isToday && result.data.locked.not()) {
@@ -441,10 +477,11 @@ fun ReportDetailScreen(
 
           is UIState.Loading -> {
             item("loading") {
-              Skeleton(
+              LoadingIndicator(
                 Modifier
-                  .fillMaxWidth()
-                  .height(200.dp)
+                  .fillMaxSize()
+                  .padding(dimensionResource(R.dimen.screen_padding)),
+                message = "Loading Report"
               )
             }
           }
@@ -452,13 +489,13 @@ fun ReportDetailScreen(
           is UIState.Error -> {
             item("error_text") {
               Column(
-                modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding).times(2)),
+                modifier = Modifier.fillMaxSize().padding(dimensionResource(R.dimen.screen_padding).times(2)),
                 verticalArrangement = Arrangement.spacedBy(
                   dimensionResource(R.dimen.default_spacing).times(2)
                 ),
                 horizontalAlignment = Alignment.CenterHorizontally
               ) {
-                Text("Error Loading Reports")
+                Text("Error Loading Report")
 
                 FilledTonalButton(onClick = onRefresh) {
                   Text("Retry")
@@ -483,7 +520,7 @@ fun ReportDetailHeader(
 ) {
   Column(
     modifier = modifier,
-    verticalArrangement = Arrangement.spacedBy(16.dp)
+    verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))
   ) {
     // Date & Lock Status
     Row(
@@ -493,7 +530,7 @@ fun ReportDetailHeader(
     ) {
       Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))
       ) {
         if (isToday) {
           Icon(
@@ -516,60 +553,50 @@ fun ReportDetailHeader(
       }
     }
 
-    // Day Type & Expense Card
-    Card(
-      modifier = Modifier.fillMaxWidth(),
-      colors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
-          alpha = 0.3f
-        )
-      ),
-      shape = MaterialTheme.shapes.medium
+    // Day Type & Expense
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = dimensionResource(R.dimen.screen_padding)),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
     ) {
-      Row(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        Column {
-          Text(
-            text = report.dayType.name,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.secondary,
-            fontWeight = FontWeight.SemiBold
-          )
-          if (report.dayType == DayType.WORK) {
-            Text(
-              text = route?.routeName() ?: "No route assigned",
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-          }
+      Column {
+        Text(
+          text = report.dayType.name,
+          style = MaterialTheme.typography.titleLarge,
+          color = MaterialTheme.colorScheme.secondary,
+          fontWeight = FontWeight.SemiBold
+        )
+        if (report.dayType == DayType.WORK) {
+          RouteItem(route)
         }
+      }
 
-        Column(horizontalAlignment = Alignment.End) {
-          Text(
-            text = report.totalExpense.toCurrencyString(),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary
+      Column(horizontalAlignment = Alignment.End) {
+        Text(
+          text = report.totalExpense.toCurrencyString(),
+          style = MaterialTheme.typography.headlineSmall,
+          fontWeight = FontWeight.ExtraBold,
+          color = MaterialTheme.colorScheme.primary
+        )
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(
+            dimensionResource(R.dimen.default_spacing).times(
+              3
+            )
           )
-          if (report.dayType == DayType.WORK) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-              Text(
-                "TA: ${report.ta.toCurrencyString()}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-              )
-              Text(
-                "DA: ${report.da.toCurrencyString()}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-              )
-            }
-          }
+        ) {
+          Text(
+            "TA: ${report.ta.toCurrencyString()}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline
+          )
+          Text(
+            "DA: ${report.da.toCurrencyString()}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline
+          )
         }
       }
     }
@@ -608,7 +635,33 @@ private fun DebugDailyReport(dailyReport: DailyReport?, modifier: Modifier = Mod
   }
 }
 
-@Preview
+@Preview(showBackground = true)
+@Composable
+private fun ReportDetailHeaderTodayPreview() {
+  FreyzaEmployeeTheme {
+    ReportDetailHeader(dummyDailyReportWork(), isToday = true, dummyRouteWithLocation())
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ReportDetailHeaderPreview() {
+  FreyzaEmployeeTheme {
+    ReportDetailHeader(dummyDailyReportWork(), isToday = false, dummyRouteWithLocation())
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ReportDetailHeaderLockedPreview() {
+  FreyzaEmployeeTheme {
+    ReportDetailHeader(
+      dummyDailyReportWork(locked = true), isToday = false, dummyRouteWithLocation()
+    )
+  }
+}
+
+@Preview(showBackground = true)
 @Composable
 private fun ReportDetailScreenPreview() {
   FreyzaEmployeeTheme {
@@ -619,7 +672,36 @@ private fun ReportDetailScreenPreview() {
       {},
       {},
       { _, _, _ -> },
-      {}
-    )
+      {})
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ReportDetailScreenTodayNoVisitsPreview() {
+  FreyzaEmployeeTheme {
+    ReportDetailScreen(
+      dummyReportDetailUiState(dateNow = true, noVisits = true),
+      dummyUserEmployee(),
+      {},
+      {},
+      {},
+      { _, _, _ -> },
+      {})
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ReportDetailScreenTodayPreview() {
+  FreyzaEmployeeTheme {
+    ReportDetailScreen(
+      dummyReportDetailUiState(dateNow = true),
+      dummyUserEmployee(),
+      {},
+      {},
+      {},
+      { _, _, _ -> },
+      {})
   }
 }

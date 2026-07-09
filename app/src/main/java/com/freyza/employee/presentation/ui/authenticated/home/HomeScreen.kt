@@ -1,5 +1,6 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -59,6 +61,8 @@ import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
+import com.freyza.employee.presentation.ui.state.dummyHomeScreenNoPlanUiState
+import com.freyza.employee.presentation.ui.state.dummyHomeScreenNoReportUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenUiStateDailyReportError
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -70,7 +74,7 @@ fun HomeScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = koinViewModel(),
   onNavigateToUnauthenticated: () -> Unit,
-  onNavigateToReport: () -> Unit,
+  onNavigateToReport: (reportId: String) -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
   onExit: () -> Unit,
 ) {
@@ -89,7 +93,6 @@ fun HomeScreenRoute(
       onLogout = onNavigateToUnauthenticated,
       onExit = onExit,
       onDailyReportBegin = viewModel::createCurrentDailyReport,
-      onDailyReportRetry = viewModel::refresh,
       onNavigateToReport = onNavigateToReport,
       onNavigateToAddVisit = onNavigateToAddVisit,
       onDismissSheet = viewModel::dismissCreateReportSheet
@@ -107,8 +110,7 @@ private fun HomeScreen(
   onLogout: () -> Unit,
   onExit: () -> Unit,
   onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?) -> Unit,
-  onDailyReportRetry: () -> Unit,
-  onNavigateToReport: () -> Unit,
+  onNavigateToReport: (reportId: String) -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
   onDismissSheet: () -> Unit,
 ) {
@@ -196,7 +198,7 @@ private fun HomeScreen(
 
     if (uiState.errorMessage != null) {
       ErrorDialog(
-        message = uiState.errorMessage, onRetry = onDailyReportRetry, onExit = onExit
+        message = uiState.errorMessage, onRetry = onRefresh, onExit = onExit
       )
     }
 
@@ -226,19 +228,27 @@ private fun HomeScreen(
           )
         }
 
+        // show travel plan entry only when report is null
         item("travelplan") {
-          if (uiState.todayTravelPlanEntry != null) {
-            TodayPlanCard(
-              planEntry = uiState.todayTravelPlanEntry,
-              route = uiState.todayPlanEntryRoute,
-              reportDayType = uiState.todayReportDayType,
-              reportRoute = uiState.todayReportRoute,
-              modifier = Modifier.fillMaxSize()
-            )
-          } else {
-            TravelPlanCardSkeleton(
-              modifier = Modifier.fillMaxSize()
-            )
+          AnimatedVisibility(uiState.currentDailyReport == null, label = "travelplan") {
+            if (uiState.todayTravelPlanEntry != null) {
+              TodayPlanCard(
+                planEntry = uiState.todayTravelPlanEntry,
+                route = uiState.todayPlanEntryRoute,
+                reportDayType = uiState.todayReportDayType,
+                reportRoute = uiState.todayReportRoute,
+                modifier = Modifier.fillMaxSize()
+              )
+            } else if (uiState.isLoading || uiState.isRefreshing) {
+              TravelPlanCardSkeleton(
+                modifier = Modifier.fillMaxSize()
+              )
+            } else {
+              TodayPlanCard(
+                planEntry = null, route = null,
+                modifier = Modifier.fillMaxSize()
+              )
+            }
           }
 
           Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
@@ -246,7 +256,7 @@ private fun HomeScreen(
 
         item("report_text") {
           Text(
-            "Today's Report",
+            stringResource(R.string.today_report_header),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
@@ -262,7 +272,7 @@ private fun HomeScreen(
               dailyReport = uiState.currentDailyReport,
               route = uiState.todayReportRoute,
               modifier = Modifier.fillMaxSize(),
-              onClick = onNavigateToReport
+              onClick = { onNavigateToReport(uiState.currentDailyReport.id) }
             )
           } else if (uiState.isLoading || uiState.isRefreshing) {
             DailyReportCardSkeleton(
@@ -270,7 +280,7 @@ private fun HomeScreen(
             )
           } else {
             Button(
-              onClick = onDailyReportRetry,
+              onClick = onRefresh,
               modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = dimensionResource(R.dimen.default_spacing))
@@ -346,9 +356,7 @@ private fun DebugUiState(uiState: HomeScreenUiState, modifier: Modifier = Modifi
   }
 }
 
-@Preview(
-  showBackground = true
-)
+@Preview(showBackground = true)
 @Composable
 private fun HomeScreenPreview() {
   FreyzaEmployeeTheme {
@@ -359,16 +367,47 @@ private fun HomeScreenPreview() {
       onLogout = {},
       onExit = {},
       onDailyReportBegin = { _, _, _ -> },
-      onDailyReportRetry = {},
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
   }
 }
 
-@Preview(
-  showBackground = true
-)
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenNoPlanPreview() {
+  FreyzaEmployeeTheme {
+    HomeScreen(
+      uiState = dummyHomeScreenNoPlanUiState(),
+      user = dummyUserEmployee(),
+      onRefresh = {},
+      onLogout = {},
+      onExit = {},
+      onDailyReportBegin = { _, _, _ -> },
+      onNavigateToReport = {},
+      onNavigateToAddVisit = { _, _, _ -> },
+      onDismissSheet = {})
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenNoReportPreview() {
+  FreyzaEmployeeTheme {
+    HomeScreen(
+      uiState = dummyHomeScreenNoReportUiState(),
+      user = dummyUserEmployee(),
+      onRefresh = {},
+      onLogout = {},
+      onExit = {},
+      onDailyReportBegin = { _, _, _ -> },
+      onNavigateToReport = {},
+      onNavigateToAddVisit = { _, _, _ -> },
+      onDismissSheet = {})
+  }
+}
+
+@Preview(showBackground = true)
 @Composable
 private fun HomeScreenReportErrorPreview() {
   FreyzaEmployeeTheme {
@@ -379,7 +418,6 @@ private fun HomeScreenReportErrorPreview() {
       onLogout = {},
       onExit = {},
       onDailyReportBegin = { _, _, _ -> },
-      onDailyReportRetry = {},
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})

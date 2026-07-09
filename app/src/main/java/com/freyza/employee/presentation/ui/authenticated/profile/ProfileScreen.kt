@@ -364,7 +364,7 @@ fun ProfileScreenSkeleton(modifier: Modifier = Modifier) {
   }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = false, showBackground = false)
 @Composable
 private fun ProfileScreenPreview() {
   FreyzaEmployeeTheme {

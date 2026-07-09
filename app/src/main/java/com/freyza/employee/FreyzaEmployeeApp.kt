@@ -232,7 +232,7 @@ private fun FreyzaEmployeeAppError(
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun ErrorPreview() {
   FreyzaEmployeeTheme {

@@ -86,7 +86,7 @@ fun AddVisitFloatingActionButton(
             Text(
               text = opt.text,
               style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.SemiBold
+              fontWeight = FontWeight.Medium
             )
           }
         }

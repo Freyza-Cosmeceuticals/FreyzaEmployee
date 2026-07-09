@@ -78,8 +78,12 @@ fun NavGraphBuilder.authenticatedGraph(
             }
           }
         },
-        onNavigateToReport = {
-          navController.navigateToTab(route = NavRoutes.Authenticated.DailyReports)
+        onNavigateToReport = { reportId: String ->
+          navController.navigate(
+            route = NavRoutes.Authenticated.ReportDetail(
+              reportId = reportId
+            )
+          )
         },
         onNavigateToAddVisit = { visitType: VisitType, reportId: String, employeeId: String ->
           navController.navigate(

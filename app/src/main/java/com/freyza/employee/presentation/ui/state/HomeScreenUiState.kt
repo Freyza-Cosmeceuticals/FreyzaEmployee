@@ -46,6 +46,21 @@ fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
   todayReportRoute = dummyRouteWithLocation(),
 )
 
+fun dummyHomeScreenNoPlanUiState(): HomeScreenUiState = HomeScreenUiState(
+  today = ServerTime().nowLocalDateTime(),
+  currentTravelPlan = null,
+  routes = listOf(dummyRouteWithLocation()),
+)
+
+fun dummyHomeScreenNoReportUiState(): HomeScreenUiState = HomeScreenUiState(
+  today = ServerTime().nowLocalDateTime(),
+  currentTravelPlan = dummyTravelPlan(),
+  todayTravelPlanEntry = dummyTravelPlanEntryWork(),
+  todayPlanEntryRoute = dummyRouteWithLocation(),
+  currentDailyReport = null,
+  routes = listOf(dummyRouteWithLocation()),
+)
+
 fun dummyHomeScreenUiStateDailyReportError(): HomeScreenUiState = HomeScreenUiState(
   today = ServerTime().nowLocalDateTime(), errorMessage = "Failed to have a daily report"
 )

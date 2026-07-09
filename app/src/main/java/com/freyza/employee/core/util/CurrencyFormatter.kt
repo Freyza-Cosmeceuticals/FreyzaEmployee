@@ -6,6 +6,8 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonPrimitive
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -18,7 +20,15 @@ object BigDecimalSerializer : KSerializer<BigDecimal> {
   override val descriptor: SerialDescriptor =
     PrimitiveSerialDescriptor("BigDecimal", PrimitiveKind.STRING)
 
-  override fun deserialize(decoder: Decoder): BigDecimal = BigDecimal(decoder.decodeString())
+  override fun deserialize(decoder: Decoder): BigDecimal {
+    return if (decoder is JsonDecoder) {
+      val element = decoder.decodeJsonElement() as? JsonPrimitive
+      // content handles both quoted strings and unquoted numbers seamlessly
+      BigDecimal(element?.content ?: "0")
+    } else {
+      BigDecimal(decoder.decodeString())
+    }
+  }
 
   override fun serialize(encoder: Encoder, value: BigDecimal) =
     encoder.encodeString(value.toPlainString()) // toPlainString() prevents scientific notation (e.g., 1E+2)
@@ -90,5 +100,4 @@ fun Money?.toCurrencyString(): String = this?.format() ?: "-"
 fun Double?.toMoney(): Money = Money.fromDouble(this)
 fun String?.toMoney(): Money = Money.fromString(this)
 
-// Private helper to ensure math operations don't leak scale
 private fun BigDecimal.toMoney() = Money(this.setScale(2, Money.DEFAULT_ROUNDING))

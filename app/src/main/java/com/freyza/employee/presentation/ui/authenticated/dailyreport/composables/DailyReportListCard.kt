@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -56,12 +57,12 @@ fun DailyReportListCard(
     onClick = onClick,
     modifier = modifier.fillMaxWidth(),
     shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
-    colors = CardDefaults.cardColors(
-      containerColor = MaterialTheme.colorScheme.surface
-    ),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     border = BorderStroke(
-      width = 1.dp,
-      color = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+      width = 2.dp,
+      color = if (isToday) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant.copy(
+        alpha = 0.5f
+      )
     ),
     elevation = CardDefaults.cardElevation(defaultElevation = if (isToday) 2.dp else 0.dp)
   ) {
@@ -81,7 +82,10 @@ fun DailyReportListCard(
         verticalAlignment = Alignment.CenterVertically
       ) {
         if (report != null) {
-          Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
             if (isToday) {
               Icon(
                 painter = painterResource(R.drawable.calendar_month_24px),
@@ -105,7 +109,7 @@ fun DailyReportListCard(
       }
 
       if (report == null) {
-        Text("No Daily Report", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.no_report), style = MaterialTheme.typography.bodyMedium)
         return@Column
       }
 
@@ -139,13 +143,21 @@ fun DailyReportListCard(
           verticalAlignment = Alignment.CenterVertically
         ) {
           Text(
-            if (report.visits.isEmpty()) "No visits logged" else "${report.visits.size} Visits logged",
+            if (report.visits.isEmpty()) if (isToday) stringResource(R.string.no_visits_hint_add)
+            else stringResource(R.string.no_visits)
+            else "${report.visits.size} Visits logged",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
 
           if (report.visits.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing).times(2))) {
+            Row(
+              horizontalArrangement = Arrangement.spacedBy(
+                dimensionResource(R.dimen.default_spacing).times(
+                  2
+                )
+              )
+            ) {
               val doctors = report.visits.count { it.visitType == VisitType.DOCTOR }
               val chemists = report.visits.count { it.visitType == VisitType.CHEMIST }
               val stockists = report.visits.count { it.visitType == VisitType.STOCKIST }
@@ -185,7 +197,7 @@ fun DailyReportListCardSkeleton(modifier: Modifier = Modifier, isToday: Boolean 
         verticalAlignment = Alignment.CenterVertically
       ) {
         Text(
-          text = "Daily Report Loading".uppercase(),
+          text = "${stringResource(R.string.daily_report_title)} Loading".uppercase(),
           style = MaterialTheme.typography.labelLarge,
           color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
           fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Medium

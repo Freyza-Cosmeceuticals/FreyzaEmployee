@@ -18,3 +18,9 @@ fun dummyVisitDetailUiState() = VisitDetailUiState(
   visit = UIState.Ready(dummyVisitDoctorAllTrue()),
   report = UIState.Ready(dummyDailyReportWork(locked = false, dateNow = true))
 )
+
+fun dummyVisitDetailErrorUiState() = VisitDetailUiState(
+  visitId = "fdc8b26f-9a2c-4789-88b2-6f9a2cf789b8",
+  visit = UIState.Error("Previews don't need visits"),
+  report = UIState.Error("report not there")
+)

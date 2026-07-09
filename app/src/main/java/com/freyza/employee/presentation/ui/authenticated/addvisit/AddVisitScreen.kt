@@ -119,12 +119,12 @@ fun AddVisitScreen(
   var stockistName by rememberSaveable { mutableStateOf<String?>(null) }
   var billNo by rememberSaveable { mutableStateOf<String?>(null) }
   var paymentCollected by rememberSaveable { mutableStateOf(false) }
-  var amountWithGST by rememberSaveable { mutableStateOf(Money.ZERO) }
-  var amountWithoutGST by rememberSaveable { mutableStateOf(Money.ZERO) }
+  var amountWithGST by remember { mutableStateOf(Money.ZERO) }
+  var amountWithoutGST by remember { mutableStateOf(Money.ZERO) }
   var stockChecked by rememberSaveable { mutableStateOf(false) }
 
   var chemistName by rememberSaveable { mutableStateOf<String?>(null) }
-  var outstandingAmount by rememberSaveable { mutableStateOf(Money.ZERO) }
+  var outstandingAmount by remember { mutableStateOf(Money.ZERO) }
 
   val orderAmount by remember {
     derivedStateOf {

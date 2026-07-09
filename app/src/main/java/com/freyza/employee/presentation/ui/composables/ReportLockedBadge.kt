@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
@@ -34,7 +35,7 @@ fun ReportLockedBadge(isLocked: Boolean, modifier: Modifier = Modifier) {
       if (isLocked) {
         Icon(
           painter = painterResource(R.drawable.lock_24px),
-          contentDescription = "Locked",
+          contentDescription = null,
           modifier = Modifier
             .padding(vertical = 2.dp)
             .padding(start = 2.dp)
@@ -42,7 +43,7 @@ fun ReportLockedBadge(isLocked: Boolean, modifier: Modifier = Modifier) {
         )
       }
       Text(
-        (if (isLocked) "Locked" else "Not Locked").uppercase(),
+        (if (isLocked) stringResource(R.string.locked) else stringResource(R.string.not_locked)).uppercase(),
         style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.default_spacing))
       )

@@ -37,8 +37,10 @@ fun LockReportButton(
   lockingState: UIState<Unit>,
   onLockPressed: () -> Unit,
   modifier: Modifier = Modifier,
+  hasVisits: Boolean = false,
 ) {
   var showConfirmDialog by rememberSaveable { mutableStateOf(false) }
+  var showConfirmNoVisitsDialog by rememberSaveable { mutableStateOf(false) }
 
   if (showConfirmDialog) {
     ConfirmLockReportDialog(
@@ -46,9 +48,21 @@ fun LockReportButton(
       onCancel = { showConfirmDialog = false },
       onConfirm = {
         showConfirmDialog = false
+        if (hasVisits) onLockPressed()
+        else showConfirmNoVisitsDialog = true
+      })
+  }
+
+  if (showConfirmNoVisitsDialog) {
+    ConfirmLockReportDialog(
+      message = "The report has no visits.\nAre you still sure?",
+      onCancel = { showConfirmNoVisitsDialog = false },
+      onConfirm = {
+        showConfirmNoVisitsDialog = false
+        showConfirmDialog = false
+
         onLockPressed()
-      }
-    )
+      })
   }
 
   Button(
@@ -104,7 +118,10 @@ fun ConfirmLockReportDialog(
       Text(message)
     },
     confirmButton = {
-      TextButton(onClick = onConfirm) { Text("Lock") }
+      TextButton(
+        onClick = onConfirm,
+        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+      ) { Text("Lock") }
     },
     dismissButton = {
       TextButton(onClick = onCancel) { Text("Cancel") }
@@ -113,7 +130,7 @@ fun ConfirmLockReportDialog(
   )
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 private fun LockReportButtonPreview() {
   FreyzaEmployeeTheme {
@@ -121,7 +138,7 @@ private fun LockReportButtonPreview() {
   }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 private fun LockReportButtonPreviewLoading() {
   FreyzaEmployeeTheme {
@@ -129,7 +146,7 @@ private fun LockReportButtonPreviewLoading() {
   }
 }
 
-@Preview
+@Preview(showSystemUi = true, showBackground = true)
 @Composable
 private fun ConfirmLockReportDialogPreview() {
   FreyzaEmployeeTheme {
