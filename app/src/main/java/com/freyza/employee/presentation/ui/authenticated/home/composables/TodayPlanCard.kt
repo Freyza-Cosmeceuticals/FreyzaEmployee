@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -66,13 +67,13 @@ fun TodayPlanCard(
         modifier = Modifier.fillMaxWidth()
       ) {
         Text(
-          "Travel Plan".uppercase(),
+          stringResource(R.string.travel_plan_title).uppercase(),
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.secondary
         )
 
         if (reportDayType == null && planEntry != null) {
-          Badge(containerColor = MaterialTheme.colorScheme.secondaryContainer) {
+          Badge(containerColor = MaterialTheme.colorScheme.errorContainer) {
             Text(
               "Planned".uppercase(),
               style = MaterialTheme.typography.labelMedium
@@ -91,7 +92,7 @@ fun TodayPlanCard(
       Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
 
       if (planEntry == null) {
-        Text("No travel plan for today", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.no_plan), style = MaterialTheme.typography.bodyMedium)
         return@Column
       }
 
@@ -115,13 +116,13 @@ fun TodayPlanCard(
 
         DayType.HOLIDAY -> {
           Text(
-            "Enjoy the day!", style = MaterialTheme.typography.bodyMedium
+            stringResource(R.string.plan_holiday_msg), style = MaterialTheme.typography.bodyMedium
           )
         }
 
         DayType.LEAVE -> {
           Text(
-            "Enjoy your day off!", style = MaterialTheme.typography.bodyMedium
+            stringResource(R.string.plan_leave_msg), style = MaterialTheme.typography.bodyMedium
           )
         }
       }
@@ -179,7 +180,7 @@ fun TravelPlanCardSkeleton(modifier: Modifier = Modifier) {
     border = CardDefaults.outlinedCardBorder()
   ) {
     Text(
-      "Travel plan Loading...".uppercase(),
+      "${stringResource(R.string.travel_plan_title)} Loading".uppercase(),
       style = MaterialTheme.typography.labelMedium,
       color = MaterialTheme.colorScheme.secondary,
       modifier = Modifier

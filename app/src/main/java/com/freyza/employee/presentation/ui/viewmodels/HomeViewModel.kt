@@ -73,11 +73,11 @@ class HomeViewModel(
       routesJob.join()
       locationsJob.join()
 
-      val reportJob = launch { loadCurrentDailyReport(employeeId) }
       val planJob = launch { loadCurrentTravelPlan(employeeId) }
+      val reportJob = launch { loadCurrentDailyReport(employeeId) }
 
-      reportJob.join()
       planJob.join()
+      reportJob.join()
 
       _uiState.update { it.copy(isRefreshing = false, isLoading = false) }
     }

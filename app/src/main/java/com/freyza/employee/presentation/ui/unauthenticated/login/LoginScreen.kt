@@ -292,7 +292,7 @@ private fun LoginScreen(
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun LoginScreenPreview() {
   FreyzaEmployeeTheme {
@@ -303,7 +303,7 @@ private fun LoginScreenPreview() {
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun LoginScreenLoadingPreview() {
   FreyzaEmployeeTheme {
@@ -314,7 +314,7 @@ private fun LoginScreenLoadingPreview() {
   }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun LoginScreenErrorPreview() {
   FreyzaEmployeeTheme {

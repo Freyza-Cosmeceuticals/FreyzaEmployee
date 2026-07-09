@@ -287,7 +287,7 @@ private fun DebugDailyReport(dailyReport: DailyReport?, modifier: Modifier = Mod
   }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = false, showBackground = true)
 @Composable
 private fun DailyReportScreenPreview() {
   FreyzaEmployeeTheme {
@@ -300,7 +300,7 @@ private fun DailyReportScreenPreview() {
   }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = false, showBackground = true)
 @Composable
 private fun DailyReportScreenPreviewLoading() {
   FreyzaEmployeeTheme {

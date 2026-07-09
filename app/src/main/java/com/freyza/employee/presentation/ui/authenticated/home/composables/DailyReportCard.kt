@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -69,11 +70,11 @@ fun DailyReportCard(
     onClick = onClick,
     modifier = modifier.fillMaxWidth(),
     shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
-    colors = CardDefaults.outlinedCardColors(
-      containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    border = BorderStroke(
+      width = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
     ),
-    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
   ) {
     Column(
       modifier = Modifier
@@ -88,7 +89,7 @@ fun DailyReportCard(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          "Daily Report".uppercase(),
+          stringResource(R.string.daily_report_title).uppercase(),
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.secondary
         )
@@ -100,7 +101,7 @@ fun DailyReportCard(
       }
 
       if (dailyReport == null) {
-        Text("No Daily Report created for today", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.no_report), style = MaterialTheme.typography.bodyMedium)
         return@Column
       }
 
@@ -138,13 +139,13 @@ fun DailyReportCard(
 
         DayType.HOLIDAY -> {
           Text(
-            "Enjoy the day!", style = MaterialTheme.typography.bodyMedium
+            stringResource(R.string.report_holiday_msg), style = MaterialTheme.typography.bodyMedium
           )
         }
 
         DayType.LEAVE -> {
           Text(
-            "Enjoy your day off!", style = MaterialTheme.typography.bodyMedium
+            stringResource(R.string.report_leave_msg), style = MaterialTheme.typography.bodyMedium
           )
         }
       }
@@ -182,7 +183,7 @@ private fun WorkStatusContent(
 ) {
   if (dailyReport.visits.isEmpty()) {
     Text(
-      "No visits recorded. Go to the reports tab to add one.",
+      stringResource(R.string.no_visits_hint_add),
       style = MaterialTheme.typography.bodySmall,
       color = MaterialTheme.colorScheme.secondary
     )
@@ -258,7 +259,7 @@ fun DailyReportCardSkeleton(modifier: Modifier = Modifier) {
         .animateContentSize()
     ) {
       Text(
-        "Daily Report Loading".uppercase(),
+        "${stringResource(R.string.daily_report_title)} Loading".uppercase(),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.secondary
       )
@@ -310,7 +311,7 @@ private fun DailyReportCardHolidayPreview() {
   }
 }
 
-@Preview(showBackground = true, showSystemUi = false)
+@Preview(showBackground = true)
 @Composable
 private fun DailyReportCardLeavePreview() {
   FreyzaEmployeeTheme {
@@ -319,7 +320,7 @@ private fun DailyReportCardLeavePreview() {
 }
 
 
-@Preview(showSystemUi = false, showBackground = true)
+@Preview(showBackground = true)
 @Composable
 private fun DailyReportCardNullPreview() {
   FreyzaEmployeeTheme {
@@ -327,10 +328,10 @@ private fun DailyReportCardNullPreview() {
   }
 }
 
-@Preview(showSystemUi = false, showBackground = true)
+@Preview(showBackground = true)
 @Composable
 private fun DailyReportCardSkeletonPreview() {
   FreyzaEmployeeTheme {
-    DailyReportCardSkeleton()
+    DailyReportCardSkeleton(modifier = Modifier.fillMaxWidth())
   }
 }

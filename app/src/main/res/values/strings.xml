@@ -16,6 +16,25 @@
     <string name="app_bar_title_add_visit">Add Visit</string>
     <string name="app_bar_title_add_specific_visit">Add %1$s Visit</string>
 
+    <!-- Home Screen Texts -->
+    <string name="today_report_header">Today\'s Report</string>
+
+    <!-- Travel Plan Texts -->
+    <string name="travel_plan_title">Travel Plan</string>
+    <string name="no_plan">No travel plan for today.</string>
+    <string name="plan_holiday_msg">Enjoy your day!</string>
+    <string name="plan_leave_msg">Enjoy your leave!</string>
+
+    <!-- Report Body Texts -->
+    <string name="daily_report_title">Daily Report</string>
+    <string name="no_report">No report created for today.</string>
+    <string name="report_holiday_msg">@string/plan_holiday_msg</string>
+    <string name="report_leave_msg">@string/plan_leave_msg</string>
+    <string name="locked">Locked</string>
+    <string name="not_locked">Not Locked</string>
+    <string name="no_visits">No visits made.</string>
+    <string name="no_visits_hint_add">No visits made. Click Add Visit to add one.</string>
+
     <!-- Accessibility -->
     <string name="content_description_navigate_back">Navigate Back</string>
 </resources>

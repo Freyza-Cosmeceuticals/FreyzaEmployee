@@ -50,7 +50,7 @@ import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlanEntryHoliday
 import com.freyza.employee.domain.model.dummyTravelPlanEntryLeave
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
-import com.freyza.employee.domain.model.routeName
+import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.SearchableDropdown
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
@@ -209,17 +209,7 @@ fun BeginDailyReportSheet(
             modifier = Modifier.fillMaxWidth(),
           ) {
             Column(Modifier.padding(16.dp)) {
-              Text(
-                matchingRoute?.routeName() ?: "",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-              )
-              if (matchingRoute?.distanceKm != 0.0f) {
-                Text(
-                  "${matchingRoute?.distanceKm} km",
-                  style = MaterialTheme.typography.bodyMedium
-                )
-              }
+              RouteItem(matchingRoute)
             }
           }
         }

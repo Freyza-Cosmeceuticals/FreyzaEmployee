@@ -50,7 +50,7 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
     leadingContent = {
       Box(
         modifier = Modifier
-          .size(48.dp)
+          .size(36.dp)
           .clip(CircleShape)
           .background(MaterialTheme.colorScheme.tertiaryContainer),
         contentAlignment = Alignment.Center
@@ -58,7 +58,8 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
         Icon(
           painter = painterResource(visit.visitType.iconResource()),
           contentDescription = visit.visitType.titleCase(),
-          tint = MaterialTheme.colorScheme.onTertiaryContainer
+          tint = MaterialTheme.colorScheme.onTertiaryContainer,
+          modifier = Modifier.size(18.dp)
         )
       }
     },
@@ -161,10 +162,12 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
     trailingContent = {
       Text(
         text = DateFormatter.format(visit.createdAt.toLocalDateTime(TimeZone.of(Constants.TIMEZONE)).time),
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )
-    })
+    },
+    tonalElevation = 0.dp
+  )
 }
 
 @JvmOverloads

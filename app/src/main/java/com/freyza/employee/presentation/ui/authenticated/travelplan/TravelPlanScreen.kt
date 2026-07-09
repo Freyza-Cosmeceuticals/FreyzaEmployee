@@ -248,7 +248,7 @@ private fun DebugTravelPlan(travelPlan: TravelPlan?, modifier: Modifier = Modifi
   }
 }
 
-@Preview(showSystemUi = true, showBackground = true)
+@Preview(showSystemUi = false, showBackground = true)
 @Composable
 private fun TravelPlanScreenPreview() {
   FreyzaEmployeeTheme {

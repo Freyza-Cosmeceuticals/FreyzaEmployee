@@ -21,6 +21,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.freyza.employee.presentation.nav.BottomNavItem
+import com.freyza.employee.presentation.nav.NavRoutes
 import com.freyza.employee.presentation.nav.navigateToTab
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
@@ -34,18 +35,26 @@ fun FreyzaBottomNavBar(navController: NavController, modifier: Modifier = Modifi
     BottomNavItem.Profile
   )
 
+  val bottomNavRoutes = setOf(
+    NavRoutes.Authenticated.Home::class,
+    NavRoutes.Authenticated.TravelPlan::class,
+    NavRoutes.Authenticated.DailyReports::class,
+    NavRoutes.Authenticated.Profile::class,
+    // FIXME: Until I figure out how to make selected work with this
+//    NavRoutes.Authenticated.ReportDetail::class,
+//    NavRoutes.Authenticated.VisitDetail::class,
+  )
+
   val navBackStackEntry by navController.currentBackStackEntryAsState()
   val currentDestination = navBackStackEntry?.destination
 
-  val bottomBarDestination = screens.any { screen ->
-    currentDestination?.hierarchy?.any {
-      it.hasRoute(screen.route::class)
-    } == true
+  val showBottomBar = bottomNavRoutes.any { route ->
+    currentDestination?.hasRoute(route) == true
   }
 
   // Show the Bottom Bar only if current destination is a bottom bar one (i.e. Authenticated)
   AnimatedVisibility(
-    bottomBarDestination,
+    showBottomBar,
     label = "BottomBar",
     enter = slideInVertically(initialOffsetY = { it / 2 }),
     exit = slideOutVertically(targetOffsetY = { it / 2 })
@@ -62,7 +71,6 @@ private fun ActualNavBar(
   modifier: Modifier = Modifier,
 ) {
   NavigationBar(windowInsets = NavigationBarDefaults.windowInsets, modifier = modifier) {
-
     screens.forEach { screen ->
       NavigationBarItem(
         label = { Text(screen.label) },
