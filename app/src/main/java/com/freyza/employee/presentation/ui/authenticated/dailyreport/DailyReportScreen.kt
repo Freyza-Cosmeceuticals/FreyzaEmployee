@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,8 +14,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -136,16 +134,13 @@ fun DailyReportScreen(
 
   Scaffold(
     topBar = { FreyzaDailyReportAppBar() },
-    // only show add visit fab if there is some today report of type WORK
     floatingActionButton = {
+      // only show add visit fab if there is some today report of type WORK
       if (todayReport != null && !todayReport.locked && todayReport.dayType == DayType.WORK) AddVisitFloatingActionButton(
         options = fabOptions
       )
-    },
-    contentWindowInsets = ScaffoldDefaults.contentWindowInsets.only(
-      WindowInsetsSides.Top + WindowInsetsSides.Horizontal
-    )
-  ) { paddingValues ->
+    }
+  ) {
     LaunchedEffect(visitCreated) {
       if (visitCreated != null) {
         onVisitCreatedConsumed()
@@ -155,24 +150,22 @@ fun DailyReportScreen(
     PullToRefreshBox(
       isRefreshing = uiState.dailyReports is UIState.Loading,
       onRefresh = onRefresh,
-      modifier = Modifier
-        .padding(paddingValues)
-        .imePadding(),
+      modifier = modifier.padding(it),
     ) {
       LazyColumn(
-        contentPadding = PaddingValues(vertical = dimensionResource(R.dimen.screen_padding)),
+        contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
         verticalArrangement = Arrangement.spacedBy(
           dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
         ),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
           .fillMaxSize()
-          .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+          .imePadding()
       ) {
         when (val result = uiState.dailyReports) {
           is UIState.Ready -> {
             if (todayReport != null) {
-              item(key = "today_report_${todayReport.id}") {
+              item("today_report_${todayReport.id}") {
                 DailyReportListCard(
                   report = todayReport,
                   route = routeMap[todayReport.routeId],
@@ -183,7 +176,7 @@ fun DailyReportScreen(
               }
 
               if (pastReports.isNotEmpty()) {
-                item(key = "separator") {
+                item("separator") {
                   Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(vertical = 12.dp)
@@ -212,15 +205,19 @@ fun DailyReportScreen(
 
             if (BuildConfig.DEBUG) {
               result.data?.forEach {
-                item(key = "debug_${it.id}") {
+                item("debug_${it.id}") {
                   DebugDailyReport(it)
                 }
+              }
+
+              item("debug_keyboard") {
+                OutlinedTextField("", {})
               }
             }
           }
 
           is UIState.Loading -> {
-            item {
+            item("loading") {
               LoadingIndicator(
                 Modifier
                   .fillMaxSize()

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -84,19 +85,17 @@ fun ProfileScreen(
 ) {
   Scaffold(
     topBar = { FreyzaProfileAppBar() }
-  ) {
+  ) { paddingValues ->
     LazyColumn(
-      contentPadding = PaddingValues(
-        vertical = dimensionResource(R.dimen.default_spacing).times(8),
-        horizontal = dimensionResource(R.dimen.default_spacing).times(4)
-      ),
+      contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
       verticalArrangement = Arrangement.spacedBy(
         dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
       ),
       horizontalAlignment = Alignment.CenterHorizontally,
       modifier = modifier
         .fillMaxSize()
-        .padding(it)
+        .padding(paddingValues)
+        .imePadding()
     ) {
       item("dp") {
         Skeleton(

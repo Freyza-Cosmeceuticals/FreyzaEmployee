@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.Constants
 import com.freyza.employee.core.UIState
@@ -90,14 +93,18 @@ fun VisitDetailScreen(
     }) { paddingValues ->
     Column(
       modifier = modifier
-        .padding(paddingValues)
         .fillMaxSize()
+        .padding(paddingValues)
+        .imePadding()
     ) {
       when (val result = uiState.visit) {
         is UIState.Ready -> {
           val visit = result.data
           if (visit == null) {
-            Text("Visit not found", modifier = Modifier.padding(16.dp))
+            Text(
+              "Visit not found",
+              modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding))
+            )
           } else {
             val report = uiState.report.data
             val isToday = report?.date?.let { it == today.date } ?: false
@@ -107,9 +114,7 @@ fun VisitDetailScreen(
               modifier = Modifier.weight(1f),
               contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
               verticalArrangement = Arrangement.spacedBy(
-                dimensionResource(R.dimen.default_spacing).times(
-                  2
-                )
+                dimensionResource(R.dimen.default_spacing).times(2)
               )
             ) {
               item("header") {
@@ -155,6 +160,10 @@ fun VisitDetailScreen(
                   }
                 }
               }
+            }
+
+            if (BuildConfig.DEBUG) {
+              OutlinedTextField("", {}, Modifier.fillMaxWidth())
             }
 
             // Bottom Actions

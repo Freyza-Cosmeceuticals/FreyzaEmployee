@@ -1,7 +1,6 @@
 package com.freyza.employee.presentation.ui.composables
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,19 +36,16 @@ import kotlinx.datetime.LocalDateTime
 @Composable
 fun FreyzaDefaultAppBar(modifier: Modifier = Modifier) {
   CenterAlignedTopAppBar(
-    windowInsets = WindowInsets(),
     title = {
       Text(
         stringResource(R.string.app_bar_title_default),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
       )
-    },
-    colors = TopAppBarDefaults.topAppBarColors(
+    }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       titleContentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer),
-    ),
-    modifier = modifier
+    ), modifier = modifier
   )
 }
 
@@ -61,7 +57,6 @@ fun FreyzaHomeAppBar(
   modifier: Modifier = Modifier,
 ) {
   TopAppBar(
-    windowInsets = WindowInsets(),
     title = {
       Column(
         modifier = Modifier.padding(
@@ -98,7 +93,6 @@ fun FreyzaHomeAppBar(
 @Composable
 fun FreyzaTravelPlanAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
-    windowInsets = WindowInsets(),
     title = {
       Text(
         stringResource(R.string.app_bar_title_travel_plan),
@@ -116,7 +110,6 @@ fun FreyzaTravelPlanAppBar(modifier: Modifier = Modifier) {
 @Composable
 fun FreyzaDailyReportAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
-    windowInsets = WindowInsets(),
     title = {
       Text(
         stringResource(R.string.app_bar_title_daily_reports),
@@ -139,13 +132,11 @@ fun FreyzaReportDetailAppBar(
   var enabled by remember { mutableStateOf(true) }
 
   TopAppBar(
-    windowInsets = WindowInsets(),
     navigationIcon = {
       IconButton(
         onClick = {
           navigateUp()
-        },
-        enabled = enabled
+        }, enabled = enabled
       ) {
         Icon(
           painterResource(R.drawable.chevron_left_24px),
@@ -154,9 +145,7 @@ fun FreyzaReportDetailAppBar(
       }
     }, title = {
       Text(
-        "Daily Report",
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
+        "Daily Report", maxLines = 1, overflow = TextOverflow.Ellipsis
       )
     }, colors = TopAppBarDefaults.topAppBarColors(
       containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -176,30 +165,28 @@ fun FreyzaVisitDetailAppBar(
   var enabled by remember { mutableStateOf(true) }
 
   TopAppBar(
-    windowInsets = WindowInsets(),
     navigationIcon = {
-      IconButton(
-        onClick = {
-          navigateUp()
-        },
-        enabled = enabled
-      ) {
-        Icon(
-          painterResource(R.drawable.chevron_left_24px),
-          contentDescription = stringResource(R.string.content_description_navigate_back)
-        )
-      }
-    }, title = {
-      Text(
-        if (visitType != null) "${visitType.titleCase()} Visit" else "Visit Details",
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
+    IconButton(
+      onClick = {
+        navigateUp()
+      }, enabled = enabled
+    ) {
+      Icon(
+        painterResource(R.drawable.chevron_left_24px),
+        contentDescription = stringResource(R.string.content_description_navigate_back)
       )
-    }, colors = TopAppBarDefaults.topAppBarColors(
-      containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-      titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
-      navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
-    ), modifier = modifier
+    }
+  }, title = {
+    Text(
+      if (visitType != null) "${visitType.titleCase()} Visit" else "Visit Details",
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis
+    )
+  }, colors = TopAppBarDefaults.topAppBarColors(
+    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+    titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
+    navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
+  ), modifier = modifier
   )
 }
 
@@ -213,13 +200,11 @@ fun FreyzaAddVisitAppBar(
   var enabled by remember { mutableStateOf(true) }
 
   TopAppBar(
-    windowInsets = WindowInsets(),
     navigationIcon = {
       IconButton(
         onClick = {
           navigateUp()
-        },
-        enabled = enabled
+        }, enabled = enabled
       ) {
         Icon(
           painterResource(R.drawable.chevron_left_24px),
@@ -252,7 +237,6 @@ fun FreyzaAddVisitAppBar(
 @Composable
 fun FreyzaProfileAppBar(modifier: Modifier = Modifier) {
   TopAppBar(
-    windowInsets = WindowInsets(),
     title = {
       Text(
         stringResource(R.string.app_bar_title_profile),
