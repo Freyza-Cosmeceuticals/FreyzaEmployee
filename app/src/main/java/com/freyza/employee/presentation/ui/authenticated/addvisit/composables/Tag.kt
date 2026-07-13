@@ -15,10 +15,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,6 +32,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -47,33 +50,44 @@ internal fun TagInputField(
   Column(modifier = modifier.fillMaxWidth()) {
     // added chips
     if (items.isNotEmpty()) {
-      FlowRow(
-        modifier = Modifier
-          .fillMaxWidth()
-          .padding(top = dimensionResource(R.dimen.default_spacing)),
-        horizontalArrangement = Arrangement.spacedBy(
-          dimensionResource(R.dimen.default_spacing).times(2)
-        ),
-        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))
-      ) {
-        items.forEach { item ->
-          InputChip(
-            selected = false,
-            onClick = { onItemRemoved(item) },
-            label = { Text(item) },
-            trailingIcon = {
-              Icon(
-                painter = painterResource(R.drawable.close_small_24px),
-                contentDescription = "Remove",
-                modifier = Modifier.size(16.dp)
-              )
-            })
+      CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        FlowRow(
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = dimensionResource(R.dimen.default_spacing)),
+          horizontalArrangement = Arrangement.spacedBy(
+            dimensionResource(R.dimen.default_spacing).times(
+              2
+            )
+          ),
+          verticalArrangement = Arrangement.spacedBy(
+            dimensionResource(R.dimen.default_spacing).times(
+              3
+            )
+          ),
+          itemVerticalAlignment = Alignment.CenterVertically
+        ) {
+          items.forEach { item ->
+            InputChip(
+              selected = false,
+              onClick = { onItemRemoved(item) },
+              label = { Text(item) },
+              trailingIcon = {
+                Icon(
+                  painter = painterResource(R.drawable.close_small_24px),
+                  contentDescription = "Remove",
+                  modifier = Modifier.size(16.dp)
+                )
+              })
+          }
         }
       }
     } else {
       Text(
         "No items added",
-        style = MaterialTheme.typography.bodyMedium, fontStyle = FontStyle.Italic,
+        style = MaterialTheme.typography.bodyMedium,
+        fontStyle = FontStyle.Italic,
+        color = MaterialTheme.colorScheme.secondary,
         modifier = Modifier
           .fillMaxWidth()
           .padding(top = dimensionResource(R.dimen.default_spacing))
@@ -90,7 +104,7 @@ internal fun TagInputField(
           newItems.dropLast(1).forEach {
             if (it.isNotBlank()) onItemAdded(
               it.trim()
-                .replaceFirstChar { char -> char.uppercase() })
+              .replaceFirstChar { char -> char.uppercase() })
           }
           // Keep whatever is left after the last comma
           currentText = newItems.last().trimStart()
@@ -131,28 +145,25 @@ internal fun ToggleableRow(
   }
 }
 
-@Preview(showBackground = true, showSystemUi = false)
+@Preview(showBackground = true)
 @Composable
 private fun TagInputFieldPreview() {
   FreyzaEmployeeTheme {
     TagInputField(
-      items = listOf("hello", "Hi", "Bye"),
+      items = listOf("hello", "Hi", "Bye", "Loooooooong", "text here"),
       onItemAdded = {},
       onItemRemoved = {},
-      label = "greetings"
+      label = "Greetings"
     )
   }
 }
 
-@Preview(showBackground = true, showSystemUi = false)
+@Preview(showBackground = true)
 @Composable
 private fun TagInputFieldEmptyPreview() {
   FreyzaEmployeeTheme {
     TagInputField(
-      items = emptyList(),
-      onItemAdded = {},
-      onItemRemoved = {},
-      label = "greetings"
+      items = emptyList(), onItemAdded = {}, onItemRemoved = {}, label = "Greetings"
     )
   }
 }

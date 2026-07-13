@@ -13,8 +13,8 @@
     <string name="app_bar_title_travel_plan">Travel Plan</string>
     <string name="app_bar_title_daily_reports">Daily Reports</string>
     <string name="app_bar_title_profile">Profile &amp; Settings</string>
-    <string name="app_bar_title_add_visit">Add Visit</string>
-    <string name="app_bar_title_add_specific_visit">Add %1$s Visit</string>
+    <string name="app_bar_title_add_visit">Add visit</string>
+    <string name="app_bar_title_add_specific_visit">Add %1$s visit</string>
 
     <!-- Home Screen Texts -->
     <string name="today_report_header">Today\'s Report</string>

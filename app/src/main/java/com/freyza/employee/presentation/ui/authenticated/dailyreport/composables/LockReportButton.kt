@@ -44,6 +44,7 @@ fun LockReportButton(
 
   if (showConfirmDialog) {
     ConfirmLockReportDialog(
+      title = "Lock Report",
       message = "Are you sure to lock the report?\nIt cannot be updated after it is locked.",
       onCancel = { showConfirmDialog = false },
       onConfirm = {
@@ -55,6 +56,7 @@ fun LockReportButton(
 
   if (showConfirmNoVisitsDialog) {
     ConfirmLockReportDialog(
+      title = "Really Lock Report?",
       message = "The report has no visits.\nAre you still sure?",
       onCancel = { showConfirmNoVisitsDialog = false },
       onConfirm = {
@@ -105,7 +107,8 @@ fun LockReportButton(
 }
 
 @Composable
-fun ConfirmLockReportDialog(
+private fun ConfirmLockReportDialog(
+  title: String,
   message: String,
   onConfirm: () -> Unit,
   onCancel: () -> Unit,
@@ -113,7 +116,7 @@ fun ConfirmLockReportDialog(
 ) {
   AlertDialog(
     onDismissRequest = onCancel,
-    title = { Text("Lock Report") },
+    title = { Text(title) },
     text = {
       Text(message)
     },
@@ -151,6 +154,7 @@ private fun LockReportButtonPreviewLoading() {
 private fun ConfirmLockReportDialogPreview() {
   FreyzaEmployeeTheme {
     ConfirmLockReportDialog(
+      title = "Testing Title",
       message = "Locking the report please allow me to",
       onConfirm = {},
       onCancel = {})

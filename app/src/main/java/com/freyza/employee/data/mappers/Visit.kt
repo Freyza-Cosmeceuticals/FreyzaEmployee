@@ -1,9 +1,14 @@
 package com.freyza.employee.data.mappers
 
 import com.freyza.employee.core.util.Money
+import com.freyza.employee.core.util.toMoney
+import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.data.network.dto.VisitDto
+import com.freyza.employee.domain.model.ProductDetail
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
+import com.freyza.employee.presentation.ui.state.AddVisitFormState
+import com.freyza.employee.presentation.ui.state.ProductEntry
 import kotlin.time.Instant
 
 fun VisitDto.toDomain(): Visit {
@@ -100,3 +105,45 @@ fun Visit.toDto(): VisitDto {
     updatedAt = updatedAt?.toString()
   )
 }
+
+fun ProductEntry.toProductDetail(): ProductDetail? {
+  if (name.isBlank() || rate.toMoney() == Money.ZERO || quantity.toIntOrNull() == null) {
+    return null
+  }
+
+  return ProductDetail(
+    name = name, rate = rate.toMoney().amount, quantity = quantity.toIntOrNull() ?: 0
+  )
+}
+
+fun AddVisitFormState.toDto(
+  reportId: String,
+  employeeId: String,
+  visitType: VisitType,
+  latitude: Double,
+  longitude: Double,
+): VisitCreateDto = VisitCreateDto(
+  reportId = reportId,
+  employeeId = employeeId,
+  visitType = visitType,
+  latitude = latitude,
+  longitude = longitude,
+  distanceMetersFromPOI = 0,
+
+  doctorName = doctorName.takeIf { visitType == VisitType.DOCTOR },
+  chemistName = chemistName.takeIf { visitType == VisitType.CHEMIST },
+  stockistName = stockistName.takeIf { visitType == VisitType.STOCKIST },
+  productDetails = productEntries.mapNotNull {
+    it.toProductDetail()
+  },
+  samplesGiven = samplesGiven,
+  orderTaken = orderTaken,
+  billNo = billNo,
+  paymentCollected = paymentCollected,
+  amountWithGST = amountWithGST.toMoney().amount,
+  amountWithoutGST = amountWithoutGST.toMoney().amount,
+  outstandingAmount = outstandingAmount.toMoney().amount,
+  orderAmount = if (visitType == VisitType.DOCTOR) orderAmount.amount else null,
+  stockChecked = stockChecked,
+  additionalNotes = notes,
+)

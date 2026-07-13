@@ -1,6 +1,7 @@
 package com.freyza.employee.presentation.ui.authenticated.dailyreport.composables
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,9 +44,11 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
+fun VisitListItem(visit: Visit, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
   ListItem(
-    modifier = modifier.clip(RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp)),
+    modifier = modifier
+      .clip(RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp))
+      .clickable(onClick = onClick),
     leadingContent = {
       Box(
         modifier = Modifier
@@ -82,12 +84,12 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
     supportingContent = {
       Column(verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))) {
         Text(
-          text = visit.additionalNotes ?: "No additional information",
+          text = visit.additionalNotes.takeUnless { it.isNullOrBlank() }
+            ?: "No additional information",
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
-          fontStyle = if (visit.additionalNotes == null) FontStyle.Italic else FontStyle.Normal
         )
 
         Row(
@@ -166,7 +168,7 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )
     },
-    tonalElevation = 0.dp
+    tonalElevation = 2.dp
   )
 }
 
