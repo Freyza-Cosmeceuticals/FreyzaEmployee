@@ -219,7 +219,7 @@ fun dummyVisitChemistAllTrue(): Visit = Visit.ChemistVisit(
   chemistName = "Ch. Y",
   orderTaken = true,
   outstandingAmount = "500.00".toMoney(),
-  additionalNotes = "Chemist was good",
+  additionalNotes = "",
   createdAt = Instant.parse("2026-02-11T21:33:28.453+05:30"),
   updatedAt = null
 )

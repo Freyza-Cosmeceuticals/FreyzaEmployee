@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.authenticated.reportdetail
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -452,9 +451,10 @@ fun ReportDetailScreen(
               items(filteredVisits, key = { it.id }) { visit ->
                 VisitListItem(
                   visit = visit,
+                  onClick = { onNavigateToVisitDetail(visit.id) },
                   modifier = Modifier
                     .padding(0.dp)
-                    .clickable { onNavigateToVisitDetail(visit.id) })
+                )
               }
 
               if (isToday && result.data.locked.not()) {

@@ -66,7 +66,7 @@ value class Money(val amount: BigDecimal) : Comparable<Money> {
       if (value.isNullOrBlank()) return ZERO
       return try {
         Money(BigDecimal(value).setScale(2, DEFAULT_ROUNDING))
-      } catch (_: Exception) {
+      } catch (_: NumberFormatException) {
         ZERO
       }
     }
@@ -91,6 +91,13 @@ object CurrencyFormatter {
     if (amount == null) return "-"
     return formatter.get()?.format(amount) ?: "N/A"
   }
+
+  val symbol: String
+    get() = formatter.get()?.currency?.symbol ?: "-"
+  val currencyName: String
+    get() = formatter.get()?.currency?.displayName ?: "-"
+  val currencyCode: String
+    get() = formatter.get()?.currency?.currencyCode ?: "-"
 }
 
 /**

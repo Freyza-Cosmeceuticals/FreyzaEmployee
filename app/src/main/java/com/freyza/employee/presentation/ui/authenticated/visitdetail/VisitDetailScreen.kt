@@ -108,7 +108,8 @@ fun VisitDetailScreen(
           } else {
             val report = uiState.report.data
             val isToday = report?.date?.let { it == today.date } ?: false
-            val canDelete = isToday && !report.locked
+            // FIXME: disable the button for now
+            val canDelete = isToday && !report.locked && false
 
             LazyColumn(
               modifier = Modifier.weight(1f),
