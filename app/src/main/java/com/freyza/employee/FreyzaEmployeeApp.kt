@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -113,6 +115,12 @@ fun FreyzaEmployeeApp(
 
         else -> {
           Scaffold(
+            // outer scaffold only pads system status and nav bars, not keyboards
+            // children scaffold or their children should apply their scaffold's paddingValues
+            // and are responsible any ime paddings
+            //
+            // they don't need to handle any system bar padding
+            contentWindowInsets = WindowInsets.systemBars,
             bottomBar = {
               if (state is AuthState.Authenticated) {
                 FreyzaBottomNavBar(navController)
@@ -120,8 +128,12 @@ fun FreyzaEmployeeApp(
             }) { paddingValues ->
             Surface(
               modifier = Modifier
-                .padding(paddingValues)
-                .consumeWindowInsets(paddingValues)
+                // outer scaffold only handles bottom padding (bar + inner fabs)
+                // don't apply padding for top bars
+                .padding(bottom = paddingValues.calculateBottomPadding())
+                // consume exactly the bottom bar needs, to prevent double apply
+                // top handled by TopAppBars, to fill in the status bar
+                .consumeWindowInsets(WindowInsets(bottom = paddingValues.calculateBottomPadding()))
             ) {
               val startDestination = if (state is AuthState.Authenticated) {
                 NavRoutes.Authenticated.NavigationRoute
@@ -154,6 +166,7 @@ fun FreyzaEmployeeApp(
         }
       }
 
+      // TODO: Move this up to the navbarHost property of Scaffolds instead, for better placement
       Box(
         modifier = Modifier
           .fillMaxSize()

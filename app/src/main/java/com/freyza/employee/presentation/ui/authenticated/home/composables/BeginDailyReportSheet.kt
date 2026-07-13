@@ -1,7 +1,6 @@
 package com.freyza.employee.presentation.ui.authenticated.home.composables
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -68,7 +67,7 @@ fun BeginDailyReportSheet(
 ) {
   if (todayTravelPlanEntry == null) {
     Column(
-      Modifier
+      modifier
         .fillMaxWidth()
         .padding(dimensionResource(R.dimen.screen_padding).times(2)),
       horizontalAlignment = Alignment.CenterHorizontally
@@ -130,8 +129,8 @@ fun BeginDailyReportSheet(
     modifier = modifier
       .fillMaxWidth()
       .padding(dimensionResource(R.dimen.screen_padding))
-      .imePadding()
-      .animateContentSize(),
+      // essential for keyboard
+      .imePadding(),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(
       dimensionResource(R.dimen.default_spacing), alignment = Alignment.CenterVertically

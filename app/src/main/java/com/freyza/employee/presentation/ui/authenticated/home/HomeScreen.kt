@@ -9,15 +9,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
@@ -182,6 +185,7 @@ private fun HomeScreen(
       ModalBottomSheet(
         onDismissRequest = {},
         sheetState = reportCreationSheetState,
+        scrimColor = BottomSheetDefaults.ScrimColor.copy(alpha = 0.85f),
         sheetGesturesEnabled = false,
         properties = ModalBottomSheetProperties(
           shouldDismissOnBackPress = false, shouldDismissOnClickOutside = false
@@ -191,7 +195,7 @@ private fun HomeScreen(
           Modifier
             .fillMaxWidth()
             .padding(dimensionResource(R.dimen.screen_padding).times(2)),
-          "Working on it..."
+          "Preparing the daily report.."
         )
       }
     }
@@ -208,14 +212,16 @@ private fun HomeScreen(
       modifier = Modifier.padding(it)
     ) {
       LazyColumn(
-        contentPadding = PaddingValues(bottom = dimensionResource(R.dimen.screen_padding)),
+        // inner screen padding to content
+        contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
         verticalArrangement = Arrangement.spacedBy(
           dimensionResource(R.dimen.default_spacing), Alignment.Top
         ),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
           .fillMaxSize()
-          .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+          // shrink the whole lazy column
+          .imePadding()
       ) {
         item("greeting") {
           Text(
@@ -302,6 +308,10 @@ private fun HomeScreen(
             Spacer(Modifier.height(30.dp))
             DebugUiState(uiState)
           }
+
+          item("debug_keyboard") {
+            OutlinedTextField("", {})
+          }
         }
       }
     }
@@ -320,12 +330,12 @@ private fun ErrorDialog(
       dismissOnBackPress = false, dismissOnClickOutside = false
     ),
     onDismissRequest = {},
-    title = { Text("An error has occurred") },
+    title = { Text("Please try again") },
     text = {
-      Text(message ?: "Press Retry to try again")
+      Text(message ?: "Error occurred while loading the data")
     },
     confirmButton = {
-      TextButton(onClick = onRetry) { Text("Retry") }
+      Button(onClick = onRetry) { Text("Retry") }
     },
     dismissButton = {
       TextButton(onClick = onExit) { Text("Exit") }

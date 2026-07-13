@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -173,10 +175,7 @@ fun TravelPlanScreen(
     }
 
     LazyColumn(
-      contentPadding = PaddingValues(
-        vertical = dimensionResource(R.dimen.default_spacing).times(8),
-        horizontal = dimensionResource(R.dimen.default_spacing).times(4)
-      ),
+      contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
       verticalArrangement = Arrangement.spacedBy(
         dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
       ),
@@ -184,6 +183,7 @@ fun TravelPlanScreen(
       modifier = modifier
         .fillMaxSize()
         .padding(paddingValues)
+        .imePadding()
     ) {
 
       item {
@@ -210,6 +210,8 @@ fun TravelPlanScreen(
 
             if (BuildConfig.DEBUG) {
               DebugTravelPlan(travelPlan.data)
+
+              OutlinedTextField("", { })
             }
           }
 

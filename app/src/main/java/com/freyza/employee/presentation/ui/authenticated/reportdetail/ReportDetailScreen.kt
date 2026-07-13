@@ -3,6 +3,7 @@ package com.freyza.employee.presentation.ui.authenticated.reportdetail
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -260,18 +261,17 @@ fun ReportDetailScreen(
     PullToRefreshBox(
       isRefreshing = uiState.report is UIState.Loading,
       onRefresh = onRefresh,
-      modifier = Modifier
-        .padding(paddingValues)
-        .imePadding(),
+      modifier = Modifier.padding(paddingValues)
     ) {
       LazyColumn(
+        contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
         verticalArrangement = Arrangement.spacedBy(
           dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
         ),
         horizontalAlignment = Alignment.Start,
         modifier = modifier
           .fillMaxSize()
-          .padding(horizontal = dimensionResource(R.dimen.screen_padding))
+          .imePadding()
       ) {
         when (val result = uiState.report) {
           is UIState.Ready -> {
@@ -468,8 +468,12 @@ fun ReportDetailScreen(
               }
 
               if (BuildConfig.DEBUG) {
-                item(key = "report_debug") {
+                item("report_debug") {
                   DebugDailyReport(result.data)
+                }
+
+                item("debug_keyboard") {
+                  OutlinedTextField("", {})
                 }
               }
             }
@@ -489,7 +493,9 @@ fun ReportDetailScreen(
           is UIState.Error -> {
             item("error_text") {
               Column(
-                modifier = Modifier.fillMaxSize().padding(dimensionResource(R.dimen.screen_padding).times(2)),
+                modifier = Modifier
+                  .fillMaxSize()
+                  .padding(dimensionResource(R.dimen.screen_padding).times(2)),
                 verticalArrangement = Arrangement.spacedBy(
                   dimensionResource(R.dimen.default_spacing).times(2)
                 ),
