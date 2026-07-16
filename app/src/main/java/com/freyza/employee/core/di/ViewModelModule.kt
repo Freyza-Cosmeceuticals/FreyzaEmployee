@@ -48,7 +48,8 @@ val viewModelModule = module {
       sessionManager = get(),
       createVisitUseCase = get(),
       snackbarManager = get(),
-      serverTime = get()
+      serverTime = get(),
+      locationTracker = get()
     )
   }
   viewModelOf(::ProfileViewModel)

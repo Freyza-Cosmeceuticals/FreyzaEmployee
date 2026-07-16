@@ -42,7 +42,7 @@ class SessionManager {
 
   fun clearSession() {
     _currentEmployee.value = null
-    Logger.i(TAG, "Session was cleared")
+    Logger.d(TAG, "Session was cleared")
 
     if (!BuildConfig.DEBUG) {
       sentryClearUser()

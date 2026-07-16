@@ -3,6 +3,7 @@ package com.freyza.employee.presentation.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Constants
+import com.freyza.employee.core.LocationTracker
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
@@ -31,8 +32,8 @@ class AddVisitViewModel(
   private val createVisitUseCase: CreateVisitUseCase,
   private val snackbarManager: SnackbarManager,
   private val serverTime: ServerTime,
-) :
-  ViewModel() {
+  private val locationTracker: LocationTracker,
+) : ViewModel() {
   companion object {
     const val TAG = "AddVisitViewModel"
   }
@@ -54,8 +55,10 @@ class AddVisitViewModel(
   }
 
   fun refresh() {
-//    Logger.d(TAG, "Refreshing data")
-//    val employeeId = sessionManager.currentEmployee.value?.id
+    Logger.d(TAG, "Refreshing location")
+    viewModelScope.launch {
+      locationTracker.getCurrentLocation()
+    }
   }
 
   // TODO: Better form validation and feedback
@@ -121,12 +124,15 @@ class AddVisitViewModel(
     Logger.d(TAG, "Submitting visit with data $form")
 
     viewModelScope.launch {
+      val coords = locationTracker.getCurrentLocation()
+      Logger.d(TAG, "Got location from tracker, $coords")
+
       val dto = form.toDto(
         reportId = reportId,
         employeeId = employeeId,
         visitType = visitType,
-        latitude = 0.0,
-        longitude = 0.0
+        latitude = coords?.latitude ?: 0.0,
+        longitude = coords?.longitude ?: 0.0
       )
 
       val result = createVisitUseCase(

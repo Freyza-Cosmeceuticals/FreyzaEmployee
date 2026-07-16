@@ -235,6 +235,9 @@ dependencies {
   implementation(platform(libs.sentry.bom))
   implementation(libs.sentry.android)
   implementation(libs.sentry.timber)
+
+  // location
+  implementation(libs.play.services.location)
 }
 
 sentry {
