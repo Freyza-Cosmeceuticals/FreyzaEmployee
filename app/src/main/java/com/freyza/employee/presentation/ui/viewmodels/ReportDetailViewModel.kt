@@ -63,7 +63,7 @@ class ReportDetailViewModel(
   }
 
   fun loadDailyReport(reportId: String) {
-    Logger.i(TAG, "Fetching daily report:$reportId")
+    Logger.d(TAG, "Fetching daily report:$reportId")
 
     _uiState.update {
       it.copy(report = UIState.Loading(it.report.data, "Loading report"))
@@ -128,7 +128,7 @@ class ReportDetailViewModel(
   }
 
   private fun loadAllRoutes() {
-    Logger.i(TAG, "Fetching all routes")
+    Logger.d(TAG, "Fetching all routes")
 
     viewModelScope.launch {
       when (val result = routeRepository.getAllRoutesWithLocation()) {

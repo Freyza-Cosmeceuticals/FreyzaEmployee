@@ -20,6 +20,7 @@ composeCalendar = "2.10.1"
 timber = "5.0.1"
 sentry-bom = "8.44.1"
 sentry = "6.12.0"
+playServicesLocation = "21.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -64,6 +65,8 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 sentry-bom = { group = "io.sentry", name = "sentry-bom", version.ref = "sentry-bom" }
 sentry-android = { group = "io.sentry", name = "sentry-android" }
 sentry-timber = { group = "io.sentry", name = "sentry-android-timber"}
+
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

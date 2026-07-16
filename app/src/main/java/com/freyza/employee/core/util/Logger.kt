@@ -37,7 +37,8 @@ class HyperlinkedDebugTree : Timber.DebugTree() {
               !className.contains("Logger") &&
               !className.contains("HyperlinkedDebugTree") &&
               className != "dalvik.system.VMStack" &&
-              className != "java.lang.Thread"
+              className != "java.lang.Thread" &&
+              className != "Method"
     }
 
     val clickableLink = caller?.let { "(${it.fileName}:${it.lineNumber})" } ?: ""

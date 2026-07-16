@@ -33,6 +33,6 @@ class ProfileViewModel(
   val currentUser = sessionManager.currentEmployee
 
   init {
-    Logger.i(TAG, "Init")
+    Logger.d(TAG, "Init")
   }
 }

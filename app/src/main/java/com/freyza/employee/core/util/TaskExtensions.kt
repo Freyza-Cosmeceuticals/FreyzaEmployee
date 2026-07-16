@@ -1,0 +1,21 @@
+package com.freyza.employee.core.util
+
+import com.google.android.gms.tasks.Task
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.CancellationException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
+  addOnSuccessListener { result ->
+    continuation.resume(result)
+  }
+
+  addOnFailureListener { exception ->
+    continuation.resumeWithException(exception)
+  }
+
+  addOnCanceledListener {
+    continuation.cancel(CancellationException("Task was cancelled"))
+  }
+}

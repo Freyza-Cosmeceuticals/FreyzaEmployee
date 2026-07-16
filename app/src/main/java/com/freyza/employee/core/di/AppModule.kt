@@ -2,6 +2,8 @@ package com.freyza.employee.core.di
 
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.core.AppConfig
+import com.freyza.employee.core.GPSMonitor
+import com.freyza.employee.core.LocationTracker
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
@@ -42,4 +44,6 @@ val appModule = module {
   singleOf(::ServerTime)
   singleOf(::SessionManager)
   singleOf(::SnackbarManager)
+  singleOf(::GPSMonitor)
+  singleOf(::LocationTracker)
 }

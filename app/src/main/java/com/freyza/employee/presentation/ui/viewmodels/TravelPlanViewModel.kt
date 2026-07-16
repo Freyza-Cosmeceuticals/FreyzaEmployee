@@ -51,7 +51,7 @@ class TravelPlanViewModel(
   }
 
   fun loadCurrentTravelPlan(employeeId: String) {
-    Logger.i(TAG, "Fetching current travel plan for $employeeId")
+    Logger.d(TAG, "Fetching current travel plan for $employeeId")
 
     _uiState.update {
       it.copy(
@@ -64,7 +64,7 @@ class TravelPlanViewModel(
           _uiState.update {
             it.copy(currentTravelPlan = UIState.Ready(result.data))
           }
-          snackbarManager.showSuccess("Travel Plan Fetched Successfully")
+//          snackbarManager.showSuccess("Travel Plan Fetched Successfully")
           Logger.d(
             TAG, "${result.data?.id} Current Travel Plan Fetched Successfully"
           )
@@ -88,7 +88,7 @@ class TravelPlanViewModel(
   }
 
   private fun loadAllRoutes() {
-    Logger.i(TAG, "Fetching all routes")
+    Logger.d(TAG, "Fetching all routes")
 
     viewModelScope.launch {
       when (val result = routeRepository.getAllRoutesWithLocation()) {
@@ -116,7 +116,7 @@ class TravelPlanViewModel(
   }
 
   private fun loadTravelPlanEntries(tpId: String) {
-    Logger.i(TAG, "Fetching plan Entries plan for tpId:$tpId")
+    Logger.d(TAG, "Fetching plan Entries plan for tpId:$tpId")
 
     _uiState.update {
       it.copy(

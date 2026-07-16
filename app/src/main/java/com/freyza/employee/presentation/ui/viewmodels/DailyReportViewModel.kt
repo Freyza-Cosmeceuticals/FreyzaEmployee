@@ -42,7 +42,7 @@ class DailyReportViewModel(
   val currentUser = sessionManager.currentEmployee
 
   init {
-    Logger.d(TAG, "Init")
+    Logger.i(TAG, "Init")
   }
 
   fun refresh() {
@@ -56,7 +56,7 @@ class DailyReportViewModel(
   }
 
   fun loadAllDailyReports(employeeId: String? = sessionManager.currentEmployee.value?.id) {
-    Logger.i(TAG, "Fetching all daily reports for emp:$employeeId with visits")
+    Logger.d(TAG, "Fetching all daily reports for emp:$employeeId with visits")
 
     if (employeeId == null) {
       Logger.e(TAG, "Current employee not set. cannot load daily reports, aborting")
@@ -85,7 +85,7 @@ class DailyReportViewModel(
           _uiState.update {
             it.copy(dailyReports = UIState.Ready(result.data))
           }
-          Logger.d(
+          Logger.i(
             TAG, "${result.data.size} Daily Reports Fetched Successfully"
           )
         }
@@ -105,7 +105,7 @@ class DailyReportViewModel(
   }
 
   private fun loadAllRoutes() {
-    Logger.i(TAG, "Fetching all routes")
+    Logger.d(TAG, "Fetching all routes")
 
     _uiState.update {
       it.copy(routes = UIState.Loading(it.routes.data))
