@@ -139,7 +139,7 @@ fun FreyzaReportDetailAppBar(
         }, enabled = enabled
       ) {
         Icon(
-          painterResource(R.drawable.chevron_left_24px),
+          painterResource(R.drawable.arrow_back_24px),
           contentDescription = stringResource(R.string.content_description_navigate_back)
         )
       }
@@ -172,7 +172,7 @@ fun FreyzaVisitDetailAppBar(
       }, enabled = enabled
     ) {
       Icon(
-        painterResource(R.drawable.chevron_left_24px),
+        painterResource(R.drawable.arrow_back_24px),
         contentDescription = stringResource(R.string.content_description_navigate_back)
       )
     }
@@ -207,7 +207,7 @@ fun FreyzaAddVisitAppBar(
         }, enabled = enabled
       ) {
         Icon(
-          painterResource(R.drawable.chevron_left_24px),
+          painterResource(R.drawable.arrow_back_24px),
           contentDescription = stringResource(R.string.content_description_navigate_back)
         )
       }

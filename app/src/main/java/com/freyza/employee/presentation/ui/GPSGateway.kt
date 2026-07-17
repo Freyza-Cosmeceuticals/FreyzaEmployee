@@ -167,7 +167,7 @@ private fun GpsBlockerScreen(
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
     Icon(
-      painter = painterResource(R.drawable.add_location_alt_24px),
+      painter = painterResource(R.drawable.location_disabled_24px),
       contentDescription = null,
       modifier = Modifier.size(64.dp),
       tint = MaterialTheme.colorScheme.error

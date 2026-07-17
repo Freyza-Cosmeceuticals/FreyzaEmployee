@@ -32,16 +32,14 @@ fun ReportLockedBadge(isLocked: Boolean, modifier: Modifier = Modifier) {
     )
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-      if (isLocked) {
-        Icon(
-          painter = painterResource(R.drawable.lock_24px),
-          contentDescription = null,
-          modifier = Modifier
-            .padding(vertical = 2.dp)
-            .padding(start = 2.dp)
-            .size(12.dp)
-        )
-      }
+      Icon(
+        painter = painterResource(if (isLocked) R.drawable.lock_24px else R.drawable.lock_open_right_24px),
+        contentDescription = null,
+        modifier = Modifier
+          .padding(vertical = 2.dp)
+          .padding(start = 2.dp)
+          .size(12.dp)
+      )
       Text(
         (if (isLocked) stringResource(R.string.locked) else stringResource(R.string.not_locked)).uppercase(),
         style = MaterialTheme.typography.labelSmall,
