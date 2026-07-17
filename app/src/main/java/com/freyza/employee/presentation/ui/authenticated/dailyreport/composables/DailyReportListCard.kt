@@ -88,7 +88,7 @@ fun DailyReportListCard(
           ) {
             if (isToday) {
               Icon(
-                painter = painterResource(R.drawable.calendar_month_24px),
+                painter = painterResource(R.drawable.today_24px),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(16.dp)

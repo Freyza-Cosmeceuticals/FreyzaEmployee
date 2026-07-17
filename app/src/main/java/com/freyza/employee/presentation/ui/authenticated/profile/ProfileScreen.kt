@@ -152,11 +152,10 @@ fun ProfileScreen(
             )
         )
         ListItem(
-          headlineContent = { Text(user.email) }, trailingContent = {
-            Icon(
-              painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-            )
-          }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+          headlineContent = { Text(user.email) },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier
             .clip(
               RoundedCornerShape(
                 topStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -167,20 +166,19 @@ fun ProfileScreen(
 
         HorizontalDivider()
 
-        ListItem(headlineContent = { Text(user.phone) }, trailingContent = {
-          Icon(
-            painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-          )
-        }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier.clickable {})
+        ListItem(
+          headlineContent = { Text(user.phone) },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier.clickable {})
 
         HorizontalDivider()
 
         ListItem(
-          headlineContent = { Text("Change Password") }, trailingContent = {
-            Icon(
-              painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-            )
-          }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+          headlineContent = { Text("Change Password") },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier
             .clip(
               RoundedCornerShape(
                 bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -205,11 +203,10 @@ fun ProfileScreen(
         )
 
         ListItem(
-          headlineContent = { Text("Language") }, trailingContent = {
-            Icon(
-              painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-            )
-          }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+          headlineContent = { Text("Language") },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier
             .clip(
               RoundedCornerShape(
                 topStart = dimensionResource(R.dimen.default_spacing).times(4),
@@ -220,20 +217,19 @@ fun ProfileScreen(
 
         HorizontalDivider()
 
-        ListItem(headlineContent = { Text("Dark Mode") }, trailingContent = {
-          Icon(
-            painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-          )
-        }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier.clickable {})
+        ListItem(
+          headlineContent = { Text("Dark Mode") },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier.clickable {})
 
         HorizontalDivider()
 
         ListItem(
-          headlineContent = { Text("Permissions") }, trailingContent = {
-            Icon(
-              painterResource(R.drawable.line_end_arrow_notch_24px), contentDescription = null
-            )
-          }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier
+          headlineContent = { Text("Permissions") },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier
             .clip(
               RoundedCornerShape(
                 bottomStart = dimensionResource(R.dimen.default_spacing).times(4),

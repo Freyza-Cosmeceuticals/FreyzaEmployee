@@ -195,7 +195,7 @@ private fun ProductEntryRow(
 
         IconButton(onClick = onRemove, enabled = canRemove) {
           Icon(
-            painter = painterResource(R.drawable.backspace_24px),
+            painter = painterResource(R.drawable.close_24px),
             contentDescription = "Remove",
             tint = if (canRemove) MaterialTheme.colorScheme.error else LocalContentColor.current
           )
@@ -312,7 +312,7 @@ fun BillingDetailsCard(
         },
         prefix = { Text(CurrencyFormatter.symbol) },
         label = { Text("Current Outstanding Amount") },
-        leadingIcon = { Icon(painterResource(R.drawable.calendar_month_24px), null) },
+        leadingIcon = { Icon(painterResource(R.drawable.account_balance_wallet_24px), null) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         keyboardOptions = KeyboardOptions(
@@ -326,7 +326,7 @@ fun BillingDetailsCard(
           value = form.billNo,
           onValueChange = { onFormUpdate(form.copy(billNo = it)) },
           label = { Text("Bill Number") },
-          leadingIcon = { Icon(painterResource(R.drawable.description_24px), null) },
+          leadingIcon = { Icon(painterResource(R.drawable.receipt_24px), null) },
           modifier = Modifier.fillMaxWidth(),
           singleLine = true,
           keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
