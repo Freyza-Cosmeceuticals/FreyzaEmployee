@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,7 +55,8 @@ import org.koin.androidx.compose.koinViewModel
 fun VisitDetailScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: VisitDetailViewModel = koinViewModel(),
-  onNavigateUp: () -> Unit,
+  onNavigateUp: (deleted: Boolean?) -> Unit,
+  onEditVisit: (Visit) -> Unit,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
@@ -70,7 +72,10 @@ fun VisitDetailScreenRoute(
       today = viewModel.getToday(),
       onRefresh = viewModel::refresh,
       onNavigateUp = onNavigateUp,
-      onDeleteVisit = { viewModel.deleteVisit(onNavigateUp) },
+      onDeleteVisit = viewModel::deleteVisit,
+      onEditVisit = {
+        uiState.visit.data?.let { onEditVisit(it) }
+      },
       modifier = modifier
     )
   }
@@ -81,16 +86,29 @@ fun VisitDetailScreen(
   uiState: VisitDetailUiState,
   today: LocalDateTime,
   onRefresh: () -> Unit,
-  onNavigateUp: () -> Unit,
+  onNavigateUp: (Boolean?) -> Unit,
   onDeleteVisit: () -> Unit,
+  onEditVisit: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
     topBar = {
       FreyzaVisitDetailAppBar(
-        visitType = uiState.visit.data?.visitType, navigateUp = onNavigateUp
+        visitType = uiState.visit.data?.visitType,
+        navigateUp = { onNavigateUp(if (uiState.deletingState is UIState.Error) false else null) },
+        onEditClick = if (uiState.visit is UIState.Ready && uiState.report is UIState.Ready) {
+          val report = uiState.report.data
+          if (report != null && !report.locked) onEditVisit else null
+        } else null
       )
     }) { paddingValues ->
+    // handle screen transitions and error states
+    LaunchedEffect(uiState.deletingState) {
+      if (uiState.deletingState is UIState.Ready) {
+        onNavigateUp(true)
+      }
+    }
+
     Column(
       modifier = modifier
         .fillMaxSize()
@@ -108,8 +126,7 @@ fun VisitDetailScreen(
           } else {
             val report = uiState.report.data
             val isToday = report?.date?.let { it == today.date } ?: false
-            // FIXME: disable the button for now
-            val canDelete = isToday && !report.locked && false
+            val canDelete = isToday && !report.locked
 
             LazyColumn(
               modifier = Modifier.weight(1f),
@@ -320,7 +337,8 @@ private fun VisitDetailScreenPreview() {
       today = ServerTime().nowLocalDateTime(),
       onRefresh = {},
       onNavigateUp = {},
-      onDeleteVisit = {})
+      onDeleteVisit = {},
+      onEditVisit = {})
   }
 }
 
@@ -334,6 +352,7 @@ private fun VisitDetailScreenErrorPreview() {
       today = ServerTime().nowLocalDateTime(),
       onRefresh = {},
       onNavigateUp = {},
-      onDeleteVisit = {})
+      onDeleteVisit = {},
+      onEditVisit = {})
   }
 }

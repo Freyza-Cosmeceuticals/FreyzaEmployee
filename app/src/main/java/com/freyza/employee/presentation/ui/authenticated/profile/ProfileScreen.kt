@@ -21,7 +21,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -32,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -132,7 +130,7 @@ fun ProfileScreen(
           )
           Text("•")
           Text(
-            user.hqId?.substring(0, 5) ?: "No HQ",
+            uiState.hqName ?: user.hqId?.substring(0, 5) ?: "No HQ",
             style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.primary)
           )
         }
@@ -175,7 +173,7 @@ fun ProfileScreen(
         HorizontalDivider()
 
         ListItem(
-          headlineContent = { Text("Change Password") },
+          headlineContent = { Text("Change Password (Not Implemented)") },
           tonalElevation = 8.dp,
           shadowElevation = 0.dp,
           modifier = Modifier
@@ -192,7 +190,7 @@ fun ProfileScreen(
 
       item("app_preferences") {
         Text(
-          "App Preferences".uppercase(), style = MaterialTheme.typography.labelMedium.copy(
+          "App Preferences (Not Implemented)".uppercase(), style = MaterialTheme.typography.labelMedium.copy(
             color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Start
           ), modifier = Modifier
             .fillMaxWidth()

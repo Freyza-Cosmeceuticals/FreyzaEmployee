@@ -10,9 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -23,7 +21,6 @@ import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
-import com.freyza.employee.data.mappers.toProductDetail
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyUserEmployee
@@ -35,8 +32,8 @@ import com.freyza.employee.presentation.ui.authenticated.addvisit.composables.Or
 import com.freyza.employee.presentation.ui.composables.FreyzaAddVisitAppBar
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.Skeleton
-import com.freyza.employee.presentation.ui.state.AddVisitFormState
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
+import com.freyza.employee.presentation.ui.state.ProductEntry
 import com.freyza.employee.presentation.ui.state.dummyAddVisitFormChemist
 import com.freyza.employee.presentation.ui.state.dummyAddVisitFormDoctor
 import com.freyza.employee.presentation.ui.state.dummyAddVisitFormStockist
@@ -63,9 +60,22 @@ fun AddVisitScreenRoute(
     AddVisitScreen(
       uiState = uiState,
       user = currentUser!!,
+      isEdit = viewModel.isEditMode,
       onNavigateUp = onNavigateUp,
       onRetry = viewModel::refresh,
-      onFormUpdate = viewModel::updateForm,
+      onNameChange = viewModel::updateName,
+      onNotesChange = viewModel::updateNotes,
+      onSamplesChange = viewModel::updateSamplesGiven,
+      onOrderTakenChange = viewModel::updateOrderTaken,
+      onProductUpdate = viewModel::updateProductEntry,
+      onAddProduct = viewModel::addProductEntry,
+      onRemoveProduct = viewModel::removeProductEntry,
+      onOutstandingAmountChange = viewModel::updateOutstandingAmount,
+      onBillNoChange = viewModel::updateBillNo,
+      onPaymentCollectedChange = viewModel::updatePaymentCollected,
+      onAmountWithGSTChange = viewModel::updateAmountWithGST,
+      onAmountWithoutGSTChange = viewModel::updateAmountWithoutGST,
+      onStockCheckedChange = viewModel::updateStockChecked,
       onSubmitVisit = viewModel::submitVisit,
       modifier = modifier
     )
@@ -78,46 +88,45 @@ fun AddVisitScreen(
   user: User,
   onNavigateUp: (created: Boolean?) -> Unit,
   onRetry: () -> Unit,
-  onFormUpdate: (AddVisitFormState) -> Unit,
+  onNameChange: (String) -> Unit,
+  onNotesChange: (String) -> Unit,
+  onSamplesChange: (List<String>) -> Unit,
+  onOrderTakenChange: (Boolean) -> Unit,
+  onProductUpdate: (Int, ProductEntry) -> Unit,
+  onAddProduct: () -> Unit,
+  onRemoveProduct: (Int) -> Unit,
+  onOutstandingAmountChange: (String) -> Unit,
+  onBillNoChange: (String) -> Unit,
+  onPaymentCollectedChange: (Boolean) -> Unit,
+  onAmountWithGSTChange: (String) -> Unit,
+  onAmountWithoutGSTChange: (String) -> Unit,
+  onStockCheckedChange: (Boolean) -> Unit,
   onSubmitVisit: () -> Unit,
   modifier: Modifier = Modifier,
+  isEdit: Boolean = false,
 ) {
   val form = uiState.form
   val focusManager = LocalFocusManager.current
 
-  val orderStats by remember(form.productEntries) {
-    derivedStateOf {
-      var count = 0
-      var quantity = 0
-
-      form.productEntries.forEach { entry ->
-        entry.toProductDetail()?.let { detail ->
-          count++
-          quantity += detail.quantity
-        }
-      }
-
-      Pair(count, quantity)
-    }
-  }
-
   Scaffold(
     topBar = {
-    FreyzaAddVisitAppBar(
-      uiState.visitType,
-      navigateUp = { onNavigateUp(if (uiState.creationState is UIState.Error) false else null) })
-  }, bottomBar = {
-    if (uiState.visitType != null) BottomStatusBar(
-      visitType = uiState.visitType,
-      orderTaken = form.orderTaken,
-      orderAmount = form.orderAmount,
-      numProducts = orderStats.first,
-      totalQuantity = orderStats.second,
-      creationState = uiState.creationState,
-      onSubmitVisit = onSubmitVisit,
-      modifier = Modifier.fillMaxWidth()
-    )
-  },
+      FreyzaAddVisitAppBar(
+        uiState.visitType,
+        navigateUp = { onNavigateUp(if (uiState.creationState is UIState.Error) false else null) },
+        isEdit = isEdit
+      )
+    }, bottomBar = {
+      if (uiState.visitType != null) BottomStatusBar(
+        visitType = uiState.visitType,
+        orderTaken = form.orderTaken,
+        orderAmount = form.orderAmount,
+        numProducts = form.numProducts,
+        totalQuantity = form.totalQuantity,
+        creationState = uiState.creationState,
+        onSubmitVisit = onSubmitVisit,
+        modifier = Modifier.fillMaxWidth()
+      )
+    },
     // handle IME here for bottom bar
     modifier = modifier.imePadding()
   ) { paddingValues ->
@@ -149,35 +158,55 @@ fun AddVisitScreen(
       item("client_info") {
         ClientInfoCard(
           visitType = uiState.visitType,
-          form = form,
-          onFormUpdate = onFormUpdate,
-          focusManager = focusManager
+          name = form.name,
+          onNameChange = onNameChange,
+          samplesGiven = form.samplesGiven,
+          onSamplesChange = onSamplesChange,
+          focusManager = focusManager,
+          enabled = uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error
         )
       }
 
       item("order_details") {
         OrderDetailsCard(
           visitType = uiState.visitType,
-          form = form,
-          onFormUpdate = onFormUpdate,
-          focusManager = focusManager
+          orderTaken = form.orderTaken,
+          onOrderTakenChange = onOrderTakenChange,
+          productEntries = form.productEntries,
+          onProductUpdate = onProductUpdate,
+          onAddProduct = onAddProduct,
+          onRemoveProduct = onRemoveProduct,
+          focusManager = focusManager,
+          enabled = uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error
         )
       }
 
       item("billing_details") {
         BillingDetailsCard(
           visitType = uiState.visitType,
-          form = form,
-          onFormUpdate = onFormUpdate,
-          focusManager = focusManager
+          outstandingAmount = form.outstandingAmount,
+          onOutstandingAmountChange = onOutstandingAmountChange,
+          billNo = form.billNo,
+          onBillNoChange = onBillNoChange,
+          stockChecked = form.stockChecked,
+          onStockCheckedChange = onStockCheckedChange,
+          paymentCollected = form.paymentCollected,
+          onPaymentCollectedChange = onPaymentCollectedChange,
+          amountWithGST = form.amountWithGST,
+          onAmountWithGSTChange = onAmountWithGSTChange,
+          amountWithoutGST = form.amountWithoutGST,
+          onAmountWithoutGSTChange = onAmountWithoutGSTChange,
+          focusManager = focusManager,
+          enabled = uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error
         )
       }
 
       item("notes") {
         NotesCard(
           notes = form.notes,
-          onNotesChange = { onFormUpdate(form.copy(notes = it)) },
-          focusManager = focusManager
+          onNotesChange = onNotesChange,
+          focusManager = focusManager,
+          enabled = uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error
         )
       }
     }
@@ -190,14 +219,26 @@ private fun AddVisitScreenPreviewDoctor() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
       uiState = AddVisitUiState(
-      today = ServerTime().nowLocalDateTime(),
-      visitType = VisitType.DOCTOR,
-      form = dummyAddVisitFormDoctor()
-    ),
+        today = ServerTime().nowLocalDateTime(),
+        visitType = VisitType.DOCTOR,
+        form = dummyAddVisitFormDoctor()
+      ),
       user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
-      onFormUpdate = {},
+      onNameChange = {},
+      onNotesChange = {},
+      onSamplesChange = {},
+      onOrderTakenChange = {},
+      onProductUpdate = { _, _ -> },
+      onAddProduct = {},
+      onRemoveProduct = {},
+      onOutstandingAmountChange = {},
+      onBillNoChange = {},
+      onPaymentCollectedChange = {},
+      onAmountWithGSTChange = {},
+      onAmountWithoutGSTChange = {},
+      onStockCheckedChange = {},
       onSubmitVisit = {})
   }
 }
@@ -208,14 +249,26 @@ private fun AddVisitScreenPreviewStockist() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
       uiState = AddVisitUiState(
-      today = ServerTime().nowLocalDateTime(),
-      visitType = VisitType.STOCKIST,
-      form = dummyAddVisitFormStockist()
-    ),
+        today = ServerTime().nowLocalDateTime(),
+        visitType = VisitType.STOCKIST,
+        form = dummyAddVisitFormStockist()
+      ),
       user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
-      onFormUpdate = {},
+      onNameChange = {},
+      onNotesChange = {},
+      onSamplesChange = {},
+      onOrderTakenChange = {},
+      onProductUpdate = { _, _ -> },
+      onAddProduct = {},
+      onRemoveProduct = {},
+      onOutstandingAmountChange = {},
+      onBillNoChange = {},
+      onPaymentCollectedChange = {},
+      onAmountWithGSTChange = {},
+      onAmountWithoutGSTChange = {},
+      onStockCheckedChange = {},
       onSubmitVisit = {})
   }
 }
@@ -226,14 +279,26 @@ private fun AddVisitScreenPreviewChemist() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
       uiState = AddVisitUiState(
-      today = ServerTime().nowLocalDateTime(),
-      visitType = VisitType.CHEMIST,
-      form = dummyAddVisitFormChemist()
-    ),
+        today = ServerTime().nowLocalDateTime(),
+        visitType = VisitType.CHEMIST,
+        form = dummyAddVisitFormChemist()
+      ),
       user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
-      onFormUpdate = {},
+      onNameChange = {},
+      onNotesChange = {},
+      onSamplesChange = {},
+      onOrderTakenChange = {},
+      onProductUpdate = { _, _ -> },
+      onAddProduct = {},
+      onRemoveProduct = {},
+      onOutstandingAmountChange = {},
+      onBillNoChange = {},
+      onPaymentCollectedChange = {},
+      onAmountWithGSTChange = {},
+      onAmountWithoutGSTChange = {},
+      onStockCheckedChange = {},
       onSubmitVisit = {})
   }
 }
@@ -244,12 +309,24 @@ private fun AddVisitScreenPreviewNull() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
       uiState = AddVisitUiState(
-      today = ServerTime().nowLocalDateTime(), visitType = null
-    ),
+        today = ServerTime().nowLocalDateTime(), visitType = null
+      ),
       user = dummyUserEmployee(),
       onNavigateUp = {},
       onRetry = {},
-      onFormUpdate = {},
+      onNameChange = {},
+      onNotesChange = {},
+      onSamplesChange = {},
+      onOrderTakenChange = {},
+      onProductUpdate = { _, _ -> },
+      onAddProduct = {},
+      onRemoveProduct = {},
+      onOutstandingAmountChange = {},
+      onBillNoChange = {},
+      onPaymentCollectedChange = {},
+      onAmountWithGSTChange = {},
+      onAmountWithoutGSTChange = {},
+      onStockCheckedChange = {},
       onSubmitVisit = {})
   }
 }

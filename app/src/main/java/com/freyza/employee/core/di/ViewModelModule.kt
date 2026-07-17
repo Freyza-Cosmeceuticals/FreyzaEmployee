@@ -40,13 +40,15 @@ val viewModelModule = module {
       serverTime = get()
     )
   }
-  viewModel { (visitType: VisitType, reportId: String, employeeId: String) ->
+  viewModel { (visitType: VisitType, reportId: String, employeeId: String, visitId: String?) ->
     AddVisitViewModel(
       visitType = visitType,
       reportId = reportId,
       employeeId = employeeId,
+      visitId = visitId,
       sessionManager = get(),
       createVisitUseCase = get(),
+      dailyReportRepository = get(),
       snackbarManager = get(),
       serverTime = get(),
       locationTracker = get()

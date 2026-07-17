@@ -33,9 +33,7 @@ class VisitDetailViewModel(
   val uiState = _uiState.onStart {
     refresh()
   }.stateIn(
-    viewModelScope,
-    SharingStarted.WhileSubscribed(5_000),
-    VisitDetailUiState(visitId = visitId)
+    viewModelScope, SharingStarted.WhileSubscribed(5_000), VisitDetailUiState(visitId = visitId)
   )
 
   val currentUser = sessionManager.currentEmployee
@@ -47,7 +45,7 @@ class VisitDetailViewModel(
   }
 
   private fun loadVisit() {
-    Logger.i(TAG, "Fetching visit: $visitId")
+    Logger.d(TAG, "Fetching visit: $visitId")
     _uiState.update { it.copy(visit = UIState.Loading(it.visit.data)) }
 
     viewModelScope.launch {
@@ -56,10 +54,12 @@ class VisitDetailViewModel(
           _uiState.update { it.copy(visit = UIState.Ready(result.data)) }
           result.data?.reportId?.let { loadReport(it) }
         }
+
         is Result.Error -> {
           _uiState.update { it.copy(visit = UIState.Error(result.message)) }
           Logger.e(TAG, "Error fetching visit: ${result.message}")
         }
+
         else -> {}
       }
     }
@@ -72,15 +72,17 @@ class VisitDetailViewModel(
         is Result.Success -> {
           _uiState.update { it.copy(report = UIState.Ready(result.data)) }
         }
+
         is Result.Error -> {
           _uiState.update { it.copy(report = UIState.Error(result.message)) }
         }
+
         else -> {}
       }
     }
   }
 
-  fun deleteVisit(onSuccess: () -> Unit) {
+  fun deleteVisit() {
     Logger.i(TAG, "Deleting visit: $visitId")
     _uiState.update { it.copy(deletingState = UIState.Loading()) }
 
@@ -89,13 +91,14 @@ class VisitDetailViewModel(
         is Result.Success -> {
           _uiState.update { it.copy(deletingState = UIState.Ready(Unit)) }
           snackbarManager.showSuccess("Visit deleted successfully")
-          onSuccess()
         }
+
         is Result.Error -> {
           _uiState.update { it.copy(deletingState = UIState.Error(result.message)) }
           snackbarManager.showError("Failed to delete visit")
           Logger.e(TAG, "Error deleting visit: ${result.message}")
         }
+
         else -> {}
       }
     }
