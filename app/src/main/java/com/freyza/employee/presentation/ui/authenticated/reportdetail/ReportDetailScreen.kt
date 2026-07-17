@@ -86,6 +86,8 @@ fun ReportDetailScreenRoute(
   viewModel: ReportDetailViewModel = koinViewModel(),
   visitCreated: Boolean? = null,
   onVisitCreatedConsumed: () -> Unit,
+  visitDeleted: Boolean? = null,
+  onVisitDeletedConsumed: () -> Unit,
   onNavigateUp: () -> Unit,
   onNavigateToVisitDetail: (visitId: String) -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
@@ -110,6 +112,8 @@ fun ReportDetailScreenRoute(
       modifier = modifier,
       visitCreated = visitCreated,
       onVisitCreatedConsumed = onVisitCreatedConsumed,
+      visitDeleted = visitDeleted,
+      onVisitDeletedConsumed = onVisitDeletedConsumed,
     )
   }
 }
@@ -127,6 +131,8 @@ fun ReportDetailScreen(
   modifier: Modifier = Modifier,
   visitCreated: Boolean? = null,
   onVisitCreatedConsumed: () -> Unit = {},
+  visitDeleted: Boolean? = null,
+  onVisitDeletedConsumed: () -> Unit = {},
 ) {
 
   val routeMap = remember(uiState.routes) {
@@ -251,9 +257,16 @@ fun ReportDetailScreen(
         options = fabOptions
       )
     }) { paddingValues ->
-    LaunchedEffect(visitCreated) {
+
+    LaunchedEffect(visitCreated, visitDeleted) {
       if (visitCreated != null) {
         onVisitCreatedConsumed()
+        onRefresh()
+      }
+
+      if (visitDeleted != null) {
+        onVisitDeletedConsumed()
+        onRefresh()
       }
     }
 

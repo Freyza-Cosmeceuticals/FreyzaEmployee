@@ -120,3 +120,45 @@ data class VisitCreateDto(
   @SerialName("additionalNotes")
   val additionalNotes: String?,
 )
+
+@Serializable
+data class VisitUpdateDto(
+  @SerialName("doctorName")
+  val doctorName: String?,
+  @SerialName("chemistName")
+  val chemistName: String?,
+  @SerialName("stockistName")
+  val stockistName: String?,
+
+  @SerialName("productDetails")
+  val productDetails: List<ProductDetail>,
+  @SerialName("samplesGiven")
+  val samplesGiven: List<String>,
+  @SerialName("orderTaken")
+  val orderTaken: Boolean,
+
+  @SerialName("billNo")
+  val billNo: String?,
+  @SerialName("paymentCollected")
+  val paymentCollected: Boolean,
+  @SerialName("amountWithGST")
+  @Serializable(with = BigDecimalSerializer::class)
+  val amountWithGST: BigDecimal?,
+  @SerialName("amountWithoutGST")
+  @Serializable(with = BigDecimalSerializer::class)
+  val amountWithoutGST: BigDecimal?,
+  @SerialName("outstandingAmount")
+  @Serializable(with = BigDecimalSerializer::class)
+  val outstandingAmount: BigDecimal?,
+  @SerialName("orderAmount")
+  @Serializable(with = BigDecimalSerializer::class)
+  val orderAmount: BigDecimal?,
+  @SerialName("stockChecked")
+  val stockChecked: Boolean,
+
+  @SerialName("additionalNotes")
+  val additionalNotes: String?,
+
+  @SerialName("updatedAt")
+  val updatedAt: String?,
+)

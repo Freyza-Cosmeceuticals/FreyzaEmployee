@@ -5,6 +5,7 @@ import kotlinx.datetime.LocalDateTime
 
 data class ProfileScreenUiState(
   val today: LocalDateTime,
+  val hqName: String? = null,
 )
 
 fun dummyProfileScreenUiState(serverTime: ServerTime = ServerTime()): ProfileScreenUiState =

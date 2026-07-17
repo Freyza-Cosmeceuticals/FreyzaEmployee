@@ -79,13 +79,15 @@ fun FreyzaHomeAppBar(
           overflow = TextOverflow.Ellipsis
         )
       }
-    }, actions = {
-      IconButton(onClick = { /* do something */ }) {
-        Icon(
-          painter = painterResource(R.drawable.calendar_month_24px), contentDescription = null
-        )
-      }
-    }, scrollBehavior = scrollBehavior, modifier = modifier
+    },
+//    actions = {
+//    IconButton(onClick = { /* do something */ }) {
+//      Icon(
+//        painter = painterResource(R.drawable.calendar_month_24px), contentDescription = null
+//      )
+//    }
+//  },
+    scrollBehavior = scrollBehavior, modifier = modifier
   )
 }
 
@@ -133,25 +135,25 @@ fun FreyzaReportDetailAppBar(
 
   TopAppBar(
     navigationIcon = {
-      IconButton(
-        onClick = {
-          navigateUp()
-        }, enabled = enabled
-      ) {
-        Icon(
-          painterResource(R.drawable.arrow_back_24px),
-          contentDescription = stringResource(R.string.content_description_navigate_back)
-        )
-      }
-    }, title = {
-      Text(
-        "Daily Report", maxLines = 1, overflow = TextOverflow.Ellipsis
+    IconButton(
+      onClick = {
+        navigateUp()
+      }, enabled = enabled
+    ) {
+      Icon(
+        painterResource(R.drawable.arrow_back_24px),
+        contentDescription = stringResource(R.string.content_description_navigate_back)
       )
-    }, colors = TopAppBarDefaults.topAppBarColors(
-      containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-      titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
-      navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
-    ), modifier = modifier
+    }
+  }, title = {
+    Text(
+      "Daily Report", maxLines = 1, overflow = TextOverflow.Ellipsis
+    )
+  }, colors = TopAppBarDefaults.topAppBarColors(
+    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+    titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
+    navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
+  ), modifier = modifier
   )
 }
 
@@ -161,6 +163,7 @@ fun FreyzaVisitDetailAppBar(
   visitType: VisitType?,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  onEditClick: (() -> Unit)? = null,
 ) {
   var enabled by remember { mutableStateOf(true) }
 
@@ -182,6 +185,15 @@ fun FreyzaVisitDetailAppBar(
       maxLines = 1,
       overflow = TextOverflow.Ellipsis
     )
+  }, actions = {
+    if (onEditClick != null) {
+      IconButton(onClick = onEditClick) {
+        Icon(
+          painter = painterResource(R.drawable.edit_24px),
+          contentDescription = stringResource(R.string.content_description_edit_visit)
+        )
+      }
+    }
   }, colors = TopAppBarDefaults.topAppBarColors(
     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
     titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
@@ -196,40 +208,42 @@ fun FreyzaAddVisitAppBar(
   visitType: VisitType?,
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
+  isEdit: Boolean = false,
 ) {
   var enabled by remember { mutableStateOf(true) }
 
   TopAppBar(
     navigationIcon = {
-      IconButton(
-        onClick = {
-          navigateUp()
-        }, enabled = enabled
-      ) {
-        Icon(
-          painterResource(R.drawable.arrow_back_24px),
-          contentDescription = stringResource(R.string.content_description_navigate_back)
-        )
-      }
-    }, title = {
-      if (visitType != null) {
-        Text(
-          stringResource(R.string.app_bar_title_add_specific_visit, visitType.titleCase()),
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
-        )
-      } else {
-        Text(
-          stringResource(R.string.app_bar_title_add_visit),
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
-        )
-      }
-    }, colors = TopAppBarDefaults.topAppBarColors(
-      containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-      titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
-      navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
-    ), modifier = modifier
+    IconButton(
+      onClick = {
+        navigateUp()
+      }, enabled = enabled
+    ) {
+      Icon(
+        painterResource(R.drawable.arrow_back_24px),
+        contentDescription = stringResource(R.string.content_description_navigate_back)
+      )
+    }
+  }, title = {
+    if (visitType != null) {
+      Text(
+        stringResource(
+          if (isEdit) R.string.app_bar_title_edit_specific_visit else R.string.app_bar_title_add_specific_visit,
+          visitType.titleCase()
+        ), maxLines = 1, overflow = TextOverflow.Ellipsis
+      )
+    } else {
+      Text(
+        stringResource(if (isEdit) R.string.app_bar_title_edit_visit else R.string.app_bar_title_add_visit),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+      )
+    }
+  }, colors = TopAppBarDefaults.topAppBarColors(
+    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+    titleContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer),
+    navigationIconContentColor = contentColorFor(MaterialTheme.colorScheme.tertiaryContainer)
+  ), modifier = modifier
   )
 }
 

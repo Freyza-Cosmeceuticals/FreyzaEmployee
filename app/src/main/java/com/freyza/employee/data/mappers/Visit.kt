@@ -4,10 +4,12 @@ import com.freyza.employee.core.util.Money
 import com.freyza.employee.core.util.toMoney
 import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.data.network.dto.VisitDto
+import com.freyza.employee.data.network.dto.VisitUpdateDto
 import com.freyza.employee.domain.model.ProductDetail
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.presentation.ui.state.AddVisitFormState
+import com.freyza.employee.presentation.ui.state.FormField
 import com.freyza.employee.presentation.ui.state.ProductEntry
 import kotlin.time.Instant
 
@@ -107,12 +109,12 @@ fun Visit.toDto(): VisitDto {
 }
 
 fun ProductEntry.toProductDetail(): ProductDetail? {
-  if (name.isBlank() || rate.toMoney() == Money.ZERO || quantity.toIntOrNull() == null) {
-    return null
-  }
+  if (!isValid) return null
 
   return ProductDetail(
-    name = name, rate = rate.toMoney().amount, quantity = quantity.toIntOrNull() ?: 0
+    name = name.value,
+    rate = rate.value.toMoney().amount,
+    quantity = quantity.value.toIntOrNull() ?: 0
   )
 }
 
@@ -130,20 +132,82 @@ fun AddVisitFormState.toDto(
   longitude = longitude,
   distanceMetersFromPOI = 0,
 
-  doctorName = doctorName.takeIf { visitType == VisitType.DOCTOR },
-  chemistName = chemistName.takeIf { visitType == VisitType.CHEMIST },
-  stockistName = stockistName.takeIf { visitType == VisitType.STOCKIST },
+  doctorName = name.value.takeIf { visitType == VisitType.DOCTOR },
+  chemistName = name.value.takeIf { visitType == VisitType.CHEMIST },
+  stockistName = name.value.takeIf { visitType == VisitType.STOCKIST },
   productDetails = productEntries.mapNotNull {
     it.toProductDetail()
   },
   samplesGiven = samplesGiven,
   orderTaken = orderTaken,
-  billNo = billNo,
+  billNo = billNo.value,
   paymentCollected = paymentCollected,
-  amountWithGST = amountWithGST.toMoney().amount,
-  amountWithoutGST = amountWithoutGST.toMoney().amount,
-  outstandingAmount = outstandingAmount.toMoney().amount,
+  amountWithGST = amountWithGST.value.toMoney().amount,
+  amountWithoutGST = amountWithoutGST.value.toMoney().amount,
+  outstandingAmount = outstandingAmount.value.toMoney().amount,
   orderAmount = if (visitType == VisitType.DOCTOR) orderAmount.amount else null,
   stockChecked = stockChecked,
-  additionalNotes = notes,
+  additionalNotes = notes.value,
 )
+
+fun AddVisitFormState.toUpdateDto(visitType: VisitType, updatedAt: String? = null): VisitUpdateDto = VisitUpdateDto(
+  doctorName = name.value.takeIf { visitType == VisitType.DOCTOR },
+  chemistName = name.value.takeIf { visitType == VisitType.CHEMIST },
+  stockistName = name.value.takeIf { visitType == VisitType.STOCKIST },
+  productDetails = productEntries.mapNotNull { it.toProductDetail() },
+  samplesGiven = samplesGiven,
+  orderTaken = orderTaken,
+  billNo = billNo.value.takeIf { visitType == VisitType.STOCKIST },
+  paymentCollected = paymentCollected,
+  amountWithGST = if (visitType == VisitType.STOCKIST) amountWithGST.value.toMoney().amount else null,
+  amountWithoutGST = if (visitType == VisitType.STOCKIST) amountWithoutGST.value.toMoney().amount else null,
+  outstandingAmount = outstandingAmount.value.toMoney().amount,
+  orderAmount = if (visitType == VisitType.DOCTOR) orderAmount.amount else null,
+  stockChecked = stockChecked,
+  additionalNotes = notes.value,
+  updatedAt = updatedAt
+)
+
+fun Visit.toFormState(): AddVisitFormState {
+  val commonName = when (this) {
+    is Visit.DoctorVisit -> doctorName
+    is Visit.StockistVisit -> stockistName
+    is Visit.ChemistVisit -> chemistName
+  }
+
+  return AddVisitFormState(
+    name = FormField(commonName),
+    notes = FormField(additionalNotes ?: ""),
+    productEntries = if (this is Visit.DoctorVisit) {
+      productDetails.map { detail ->
+        ProductEntry(
+          name = FormField(detail.name),
+          rate = FormField(detail.rate.toString()),
+          quantity = FormField(detail.quantity.toString())
+        )
+      }
+    } else emptyList(),
+    samplesGiven = when (this) {
+      is Visit.DoctorVisit -> samplesGiven
+      is Visit.StockistVisit -> samplesGiven
+      else -> emptyList()
+    },
+    orderTaken = when (this) {
+      is Visit.DoctorVisit -> orderTaken
+      is Visit.StockistVisit -> orderTaken
+      is Visit.ChemistVisit -> orderTaken
+    },
+    billNo = FormField((this as? Visit.StockistVisit)?.billNo ?: ""),
+    paymentCollected = (this as? Visit.StockistVisit)?.paymentCollected ?: false,
+    amountWithGST = FormField((this as? Visit.StockistVisit)?.amountWithGST?.amount?.toString() ?: ""),
+    amountWithoutGST = FormField(
+      (this as? Visit.StockistVisit)?.amountWithoutGST?.amount?.toString() ?: ""
+    ),
+    stockChecked = (this as? Visit.StockistVisit)?.stockChecked ?: false,
+    outstandingAmount = when (this) {
+      is Visit.DoctorVisit -> FormField(outstandingAmount.amount.toString())
+      is Visit.StockistVisit -> FormField(outstandingAmount.amount.toString())
+      is Visit.ChemistVisit -> FormField(outstandingAmount.amount.toString())
+    }
+  )
+}

@@ -36,16 +36,19 @@ import com.freyza.employee.R
 import com.freyza.employee.core.Constants
 import com.freyza.employee.core.util.CurrencyFormatter
 import com.freyza.employee.domain.model.VisitType
-import com.freyza.employee.presentation.ui.state.AddVisitFormState
+import com.freyza.employee.presentation.ui.state.FormField
 import com.freyza.employee.presentation.ui.state.ProductEntry
 
 @Composable
 fun ClientInfoCard(
   visitType: VisitType,
-  form: AddVisitFormState,
-  onFormUpdate: (AddVisitFormState) -> Unit,
+  name: FormField,
+  onNameChange: (String) -> Unit,
+  samplesGiven: List<String>,
+  onSamplesChange: (List<String>) -> Unit,
   focusManager: FocusManager,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
   ElevatedCard(modifier = modifier) {
     Column(
@@ -54,33 +57,26 @@ fun ClientInfoCard(
       Text(
         "Client Details",
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(
+          alpha = 0.38f
+        )
       )
 
-      val (nameValue, onNameChange, label) = when (visitType) {
-        VisitType.DOCTOR -> Triple(
-          form.doctorName, { it: String -> onFormUpdate(form.copy(doctorName = it)) }, "Doctor Name"
-        )
-
-        VisitType.STOCKIST -> Triple(
-          form.stockistName,
-          { it: String -> onFormUpdate(form.copy(stockistName = it)) },
-          "Stockist Name"
-        )
-
-        VisitType.CHEMIST -> Triple(
-          form.chemistName,
-          { it: String -> onFormUpdate(form.copy(chemistName = it)) },
-          "Chemist Name"
-        )
+      val label = when (visitType) {
+        VisitType.DOCTOR -> "Doctor Name"
+        VisitType.STOCKIST -> "Stockist Name"
+        VisitType.CHEMIST -> "Chemist Name"
       }
 
       OutlinedTextField(
-        value = nameValue,
+        value = name.value,
         onValueChange = onNameChange,
         label = { Text(label) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
+        enabled = enabled,
+        isError = name.error != null,
+        supportingText = name.error?.let { { Text(it) } },
         leadingIcon = { Icon(painterResource(R.drawable.account_circle_24px), null) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) })
@@ -88,10 +84,11 @@ fun ClientInfoCard(
 
       if (visitType == VisitType.DOCTOR || visitType == VisitType.STOCKIST) {
         TagInputField(
-          items = form.samplesGiven,
-          onItemAdded = { if (!form.samplesGiven.contains(it)) onFormUpdate(form.copy(samplesGiven = form.samplesGiven + it)) },
-          onItemRemoved = { onFormUpdate(form.copy(samplesGiven = form.samplesGiven - it)) },
-          label = "Samples Given"
+          items = samplesGiven,
+          onItemAdded = { if (!samplesGiven.contains(it)) onSamplesChange(samplesGiven + it) },
+          onItemRemoved = { onSamplesChange(samplesGiven - it) },
+          label = "Samples Given",
+          enabled = enabled
         )
       }
     }
@@ -101,10 +98,15 @@ fun ClientInfoCard(
 @Composable
 fun OrderDetailsCard(
   visitType: VisitType,
-  form: AddVisitFormState,
-  onFormUpdate: (AddVisitFormState) -> Unit,
+  orderTaken: Boolean,
+  onOrderTakenChange: (Boolean) -> Unit,
+  productEntries: List<ProductEntry>,
+  onProductUpdate: (Int, ProductEntry) -> Unit,
+  onAddProduct: () -> Unit,
+  onRemoveProduct: (Int) -> Unit,
   focusManager: FocusManager,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
   ElevatedCard(modifier = modifier.fillMaxWidth()) {
     Column(
@@ -113,29 +115,30 @@ fun OrderDetailsCard(
       Text(
         "Order Details",
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(
+          alpha = 0.38f
+        )
       )
 
       ToggleableRow(
-        checked = form.orderTaken,
-        onCheckedChange = { onFormUpdate(form.copy(orderTaken = it)) },
-        text = "Order Taken?"
+        checked = orderTaken,
+        onCheckedChange = onOrderTakenChange,
+        text = "Order Taken?",
+        enabled = enabled
       )
 
-      if (form.orderTaken && visitType == VisitType.DOCTOR) {
-        // We use a Column with keys instead of LazyColumn items since it's nested
+      if (orderTaken && visitType == VisitType.DOCTOR) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-          form.productEntries.forEachIndexed { index, product ->
-            key(product.id) {
+          productEntries.forEachIndexed { index, product ->
+            key(product._id) {
               ProductEntryRow(
-                product = product, onProductUpdate = { updatedProduct ->
-                val newList =
-                  form.productEntries.toMutableList().apply { set(index, updatedProduct) }
-                onFormUpdate(form.copy(productEntries = newList))
-              }, canRemove = form.productEntries.size > 1, onRemove = {
-                val newList = form.productEntries.toMutableList().apply { removeAt(index) }
-                onFormUpdate(form.copy(productEntries = newList))
-              }, focusManager = focusManager, modifier = Modifier.fillMaxWidth()
+                product = product,
+                onProductUpdate = { onProductUpdate(index, it) },
+                canRemove = productEntries.size > 1,
+                onRemove = { onRemoveProduct(index) },
+                focusManager = focusManager,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth()
               )
             }
           }
@@ -144,11 +147,10 @@ fun OrderDetailsCard(
         Row(
           modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End
         ) {
-          TextButton(onClick = {
-            if (form.productEntries.size < Constants.MAX_PRODUCT_ENTRIES) onFormUpdate(
-              form.copy(productEntries = form.productEntries + ProductEntry())
-            )
-          }, enabled = form.productEntries.size < Constants.MAX_PRODUCT_ENTRIES) {
+          TextButton(
+            onClick = onAddProduct,
+            enabled = enabled && productEntries.size < Constants.MAX_PRODUCT_ENTRIES
+          ) {
             Text("+ Add product")
           }
         }
@@ -165,6 +167,7 @@ private fun ProductEntryRow(
   onRemove: () -> Unit,
   focusManager: FocusManager,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
   Surface(
     shape = RoundedCornerShape(8.dp),
@@ -184,20 +187,34 @@ private fun ProductEntryRow(
         verticalAlignment = Alignment.CenterVertically
       ) {
         OutlinedTextField(
-          value = product.name,
-          onValueChange = { onProductUpdate(product.copy(name = it)) },
+          value = product.name.value,
+          onValueChange = {
+            onProductUpdate(
+              product.copy(
+                name = product.name.copy(
+                  value = it,
+                  error = null
+                )
+              )
+            )
+          },
           label = { Text("Product") },
           modifier = Modifier.weight(1.5f),
           singleLine = true,
+          enabled = enabled,
+          isError = product.name.error != null,
+          supportingText = product.name.error?.let { { Text(it) } },
           keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
           keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) })
         )
 
-        IconButton(onClick = onRemove, enabled = canRemove) {
+        IconButton(onClick = onRemove, enabled = enabled && canRemove) {
           Icon(
             painter = painterResource(R.drawable.close_24px),
             contentDescription = "Remove",
-            tint = if (canRemove) MaterialTheme.colorScheme.error else LocalContentColor.current
+            tint = if (enabled && canRemove) MaterialTheme.colorScheme.error else LocalContentColor.current.copy(
+              alpha = if (enabled) 1f else 0.38f
+            )
           )
         }
       }
@@ -205,20 +222,23 @@ private fun ProductEntryRow(
       // ROW 2: Rate and Qty
       Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.SpaceBetween
       ) {
         OutlinedTextField(
-          value = product.rate,
+          value = product.rate.value,
           onValueChange = {
             if (it.isEmpty() || (it.count { c -> c == '.' } <= 1 && it.all { c -> c.isDigit() || c == '.' })) {
-              onProductUpdate(product.copy(rate = it))
+              onProductUpdate(product.copy(rate = product.rate.copy(value = it, error = null)))
             }
           },
           prefix = { Text(CurrencyFormatter.symbol) },
           label = { Text("Rate") },
           modifier = Modifier.weight(1f),
           singleLine = true,
+          enabled = enabled,
+          isError = product.rate.error != null,
+          supportingText = product.rate.error?.let { { Text(it) } },
           keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next
           ),
@@ -230,6 +250,7 @@ private fun ProductEntryRow(
         QuantityStepper(
           quantity = product.quantity,
           onQuantityChange = { onProductUpdate(product.copy(quantity = it)) },
+          enabled = enabled,
           modifier = Modifier.weight(1f)
         )
       }
@@ -239,21 +260,30 @@ private fun ProductEntryRow(
 
 @Composable
 private fun QuantityStepper(
-  quantity: String,
-  onQuantityChange: (String) -> Unit,
+  quantity: FormField,
+  onQuantityChange: (FormField) -> Unit,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
-  val qty = quantity.toIntOrNull() ?: 1
+  val qty = quantity.value.toIntOrNull() ?: 1
 
   OutlinedTextField(
-    value = qty.toString(),
-    onValueChange = { onQuantityChange(it) },
+    value = quantity.value,
+    onValueChange = { onQuantityChange(quantity.copy(value = it, error = null)) },
+    enabled = enabled,
     leadingIcon = {
       // Minus Button
       IconButton(
-        onClick = { if (qty > 1) onQuantityChange((qty - 1).toString()) },
+        onClick = {
+          if (qty > 1) onQuantityChange(
+            quantity.copy(
+              value = (qty - 1).toString(),
+              error = null
+            )
+          )
+        },
         modifier = Modifier.size(36.dp),
-        enabled = qty > 1
+        enabled = enabled && qty > 1
       ) {
         Icon(
           painter = painterResource(R.drawable.chevron_left_24px), contentDescription = "Decrease"
@@ -263,9 +293,16 @@ private fun QuantityStepper(
     trailingIcon = {
       // Plus Button
       IconButton(
-        onClick = { if (qty < Constants.MAX_VISIT_PRODUCT_QUANTITY) onQuantityChange((qty + 1).toString()) },
+        onClick = {
+          if (qty < Constants.MAX_VISIT_PRODUCT_QUANTITY) onQuantityChange(
+            quantity.copy(
+              value = (qty + 1).toString(),
+              error = null
+            )
+          )
+        },
         modifier = Modifier.size(36.dp),
-        enabled = qty < Constants.MAX_VISIT_PRODUCT_QUANTITY
+        enabled = enabled && qty < Constants.MAX_VISIT_PRODUCT_QUANTITY
       ) {
         Icon(
           painter = painterResource(R.drawable.chevron_right_24px), contentDescription = "Increase"
@@ -273,8 +310,13 @@ private fun QuantityStepper(
       }
     },
     singleLine = true,
+    isError = quantity.error != null,
+    supportingText = quantity.error?.let { { Text(it) } },
     textStyle = MaterialTheme.typography.titleMedium.copy(
-      fontWeight = FontWeight.Medium, textAlign = TextAlign.Center
+      fontWeight = FontWeight.Medium, textAlign = TextAlign.Center,
+      color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(
+        alpha = 0.38f
+      )
     ),
     label = { Text("Quantity") },
     keyboardOptions = KeyboardOptions(
@@ -287,10 +329,21 @@ private fun QuantityStepper(
 @Composable
 fun BillingDetailsCard(
   visitType: VisitType,
-  form: AddVisitFormState,
-  onFormUpdate: (AddVisitFormState) -> Unit,
+  outstandingAmount: FormField,
+  onOutstandingAmountChange: (String) -> Unit,
+  billNo: FormField,
+  onBillNoChange: (String) -> Unit,
+  stockChecked: Boolean,
+  onStockCheckedChange: (Boolean) -> Unit,
+  paymentCollected: Boolean,
+  onPaymentCollectedChange: (Boolean) -> Unit,
+  amountWithGST: FormField,
+  onAmountWithGSTChange: (String) -> Unit,
+  amountWithoutGST: FormField,
+  onAmountWithoutGSTChange: (String) -> Unit,
   focusManager: FocusManager,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
   ElevatedCard(modifier = modifier.fillMaxWidth()) {
     Column(
@@ -299,19 +352,23 @@ fun BillingDetailsCard(
       Text(
         "Financials & Billing",
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(
+          alpha = 0.38f
+        )
       )
 
       OutlinedTextField(
-        value = form.outstandingAmount,
+        value = outstandingAmount.value,
         onValueChange = {
-          // UX Rule: Only allow digits, and only allow ONE decimal point max
-          if (it.isEmpty() || (it.count { c -> c == '.' } <= 1 && it.all { c -> c.isDigit() || c == '.' })) onFormUpdate(
-            form.copy(outstandingAmount = it)
-          )
+          if (it.isEmpty() || (it.count { c -> c == '.' } <= 1 && it.all { c -> c.isDigit() || c == '.' })) {
+            onOutstandingAmountChange(it)
+          }
         },
         prefix = { Text(CurrencyFormatter.symbol) },
         label = { Text("Current Outstanding Amount") },
+        isError = outstandingAmount.error != null,
+        enabled = enabled,
+        supportingText = outstandingAmount.error?.let { { Text(it) } },
         leadingIcon = { Icon(painterResource(R.drawable.account_balance_wallet_24px), null) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
@@ -323,9 +380,12 @@ fun BillingDetailsCard(
 
       if (visitType == VisitType.STOCKIST) {
         OutlinedTextField(
-          value = form.billNo,
-          onValueChange = { onFormUpdate(form.copy(billNo = it)) },
+          value = billNo.value,
+          onValueChange = onBillNoChange,
           label = { Text("Bill Number") },
+          isError = billNo.error != null,
+          enabled = enabled,
+          supportingText = billNo.error?.let { { Text(it) } },
           leadingIcon = { Icon(painterResource(R.drawable.receipt_24px), null) },
           modifier = Modifier.fillMaxWidth(),
           singleLine = true,
@@ -334,31 +394,35 @@ fun BillingDetailsCard(
         )
 
         ToggleableRow(
-          checked = form.stockChecked,
-          onCheckedChange = { onFormUpdate(form.copy(stockChecked = it)) },
-          text = "Stock Checked?"
+          checked = stockChecked,
+          onCheckedChange = onStockCheckedChange,
+          text = "Stock Checked?",
+          enabled = enabled
         )
       }
 
       if (visitType == VisitType.STOCKIST || visitType == VisitType.CHEMIST) {
         ToggleableRow(
-          checked = form.paymentCollected,
-          onCheckedChange = { onFormUpdate(form.copy(paymentCollected = it)) },
-          text = "Payment Collected?"
+          checked = paymentCollected,
+          onCheckedChange = onPaymentCollectedChange,
+          text = "Payment Collected?",
+          enabled = enabled
         )
 
-        if (form.paymentCollected) {
+        if (paymentCollected) {
           Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             OutlinedTextField(
-              value = form.amountWithoutGST,
+              value = amountWithoutGST.value,
               onValueChange = {
-                // only allow digits, and only allow ONE decimal point max
-                if (it.isEmpty() || (it.count { c -> c == '.' } <= 1 && it.all { c -> c.isDigit() || c == '.' })) onFormUpdate(
-                  form.copy(amountWithoutGST = it)
-                )
+                if (it.isEmpty() || (it.count { c -> c == '.' } <= 1 && it.all { c -> c.isDigit() || c == '.' })) {
+                  onAmountWithoutGSTChange(it)
+                }
               },
               prefix = { Text(CurrencyFormatter.symbol) },
               label = { Text("W/O GST") },
+              isError = amountWithoutGST.error != null,
+              enabled = enabled,
+              supportingText = amountWithoutGST.error?.let { { Text(it) } },
               modifier = Modifier.weight(1f),
               singleLine = true,
               keyboardOptions = KeyboardOptions(
@@ -367,14 +431,17 @@ fun BillingDetailsCard(
               keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) })
             )
             OutlinedTextField(
-              value = form.amountWithGST,
+              value = amountWithGST.value,
               onValueChange = {
-                if (it.isEmpty() || (it.count { c -> c == '.' } <= 1 && it.all { c -> c.isDigit() || c == '.' })) onFormUpdate(
-                  form.copy(amountWithGST = it)
-                )
+                if (it.isEmpty() || (it.count { c -> c == '.' } <= 1 && it.all { c -> c.isDigit() || c == '.' })) {
+                  onAmountWithGSTChange(it)
+                }
               },
               prefix = { Text(CurrencyFormatter.symbol) },
               label = { Text("With GST") },
+              isError = amountWithGST.error != null,
+              enabled = enabled,
+              supportingText = amountWithGST.error?.let { { Text(it) } },
               modifier = Modifier.weight(1f),
               singleLine = true,
               keyboardOptions = KeyboardOptions(
@@ -391,24 +458,30 @@ fun BillingDetailsCard(
 
 @Composable
 fun NotesCard(
-  notes: String,
+  notes: FormField,
   onNotesChange: (String) -> Unit,
   focusManager: FocusManager,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
   ElevatedCard(modifier = modifier) {
     Column(modifier = Modifier.padding(16.dp)) {
       Text(
         "Additional Info",
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary,
+        color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(
+          alpha = 0.38f
+        ),
         modifier = Modifier.padding(bottom = 16.dp)
       )
 
       OutlinedTextField(
-        value = notes,
+        value = notes.value,
         onValueChange = onNotesChange,
         label = { Text("Notes") },
+        isError = notes.error != null,
+        enabled = enabled,
+        supportingText = notes.error?.let { { Text(it) } },
         leadingIcon = { Icon(painterResource(R.drawable.description_24px), null) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 3,

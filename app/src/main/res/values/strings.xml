@@ -14,7 +14,9 @@
     <string name="app_bar_title_daily_reports">Daily Reports</string>
     <string name="app_bar_title_profile">Profile &amp; Settings</string>
     <string name="app_bar_title_add_visit">Add visit</string>
+    <string name="app_bar_title_edit_visit">Edit visit</string>
     <string name="app_bar_title_add_specific_visit">Add %1$s visit</string>
+    <string name="app_bar_title_edit_specific_visit">Edit %1$s visit</string>
 
     <!-- Home Screen Texts -->
     <string name="today_report_header">Today\'s Report</string>
@@ -37,4 +39,5 @@
 
     <!-- Accessibility -->
     <string name="content_description_navigate_back">Navigate Back</string>
+    <string name="content_description_edit_visit">Edit Visit</string>
 </resources>

@@ -8,6 +8,7 @@ import com.freyza.employee.data.network.dto.DailyReportCreateDto
 import com.freyza.employee.data.network.dto.DailyReportDto
 import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.data.network.dto.VisitDto
+import com.freyza.employee.data.network.dto.VisitUpdateDto
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Visit
@@ -250,6 +251,29 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
         }
 
         Result.Success(true)
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun updateVisit(
+    visitId: String,
+    visitUpdateDto: VisitUpdateDto,
+  ): Result<Visit> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Updating visit:$visitId")
+
+        val visitDto = postgrest.from(TABLE_VISIT).update(visitUpdateDto) {
+          filter {
+            VisitDto::id eq visitId
+          }
+          select()
+        }.decodeSingle<VisitDto>()
+
+        Result.Success(visitDto.toDomain())
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())

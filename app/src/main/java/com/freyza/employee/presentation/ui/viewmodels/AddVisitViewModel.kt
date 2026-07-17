@@ -11,10 +11,12 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.data.mappers.toDto
+import com.freyza.employee.data.mappers.toFormState
+import com.freyza.employee.data.mappers.toUpdateDto
 import com.freyza.employee.domain.model.VisitType
+import com.freyza.employee.domain.repository.DailyReportRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitUseCase
-import com.freyza.employee.presentation.ui.state.AddVisitFormState
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
 import com.freyza.employee.presentation.ui.state.ProductEntry
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,8 +30,10 @@ class AddVisitViewModel(
   val visitType: VisitType,
   val reportId: String,
   val employeeId: String,
+  val visitId: String? = null,
   private val sessionManager: SessionManager,
   private val createVisitUseCase: CreateVisitUseCase,
+  private val dailyReportRepository: DailyReportRepository,
   private val snackbarManager: SnackbarManager,
   private val serverTime: ServerTime,
   private val locationTracker: LocationTracker,
@@ -38,8 +42,16 @@ class AddVisitViewModel(
     const val TAG = "AddVisitViewModel"
   }
 
+  val isEditMode = visitId != null
+
   private val _uiState =
-    MutableStateFlow(AddVisitUiState(today = serverTime.nowLocalDateTime(), visitType = visitType))
+    MutableStateFlow(
+      AddVisitUiState(
+        today = serverTime.nowLocalDateTime(),
+        visitType = visitType,
+        creationState = UIState.Idle(true)
+      )
+    )
   val uiState = _uiState.onStart {
     refresh()
   }.stateIn(
@@ -55,47 +67,218 @@ class AddVisitViewModel(
   }
 
   fun refresh() {
+    if (isEditMode) {
+      loadVisit()
+    } else {
+      refreshLocation()
+    }
+  }
+
+  private fun loadVisit() {
+    if (visitId == null) return
+
+    _uiState.update {
+      it.copy(creationState = UIState.Loading(null, message = "Loading visit details"))
+    }
+
+    viewModelScope.launch {
+      when (val result = dailyReportRepository.getVisit(visitId)) {
+        is Result.Success -> {
+          val visit = result.data
+          if (visit != null) {
+            _uiState.update {
+              it.copy(
+                form = visit.toFormState(),
+                creationState = UIState.Idle(true)
+              )
+            }
+          } else {
+            _uiState.update {
+              it.copy(creationState = UIState.Error("Visit not found", true))
+            }
+          }
+        }
+
+        is Result.Error -> {
+          _uiState.update {
+            it.copy(creationState = UIState.Error(result.message, true))
+          }
+        }
+
+        else -> {}
+      }
+    }
+  }
+
+  fun refreshLocation() {
     Logger.d(TAG, "Refreshing location")
     viewModelScope.launch {
       locationTracker.getCurrentLocation()
     }
   }
 
-  // TODO: Better form validation and feedback
-  fun updateForm(updatedData: AddVisitFormState) {
-    var newData = updatedData
-    val oldData = _uiState.value.form
+  fun updateName(name: String) {
+    _uiState.update {
+      it.copy(form = it.form.copy(name = it.form.name.copy(value = name, error = null)))
+    }
+  }
 
-    if (newData.orderTaken) {
-      if (!oldData.orderTaken) {
-        // if just toggled orderTaken, add atleast one product entry
-        newData = newData.copy(productEntries = listOf(ProductEntry()))
+  fun updateNotes(notes: String) {
+    _uiState.update {
+      it.copy(form = it.form.copy(notes = it.form.notes.copy(value = notes, error = null)))
+    }
+  }
+
+  fun updateSamplesGiven(samples: List<String>) {
+    _uiState.update {
+      it.copy(form = it.form.copy(samplesGiven = samples))
+    }
+  }
+
+  fun updateOrderTaken(orderTaken: Boolean) {
+    _uiState.update { state ->
+      var newForm = state.form.copy(orderTaken = orderTaken)
+      if (orderTaken && newForm.productEntries.isEmpty()) {
+        newForm = newForm.copy(productEntries = listOf(ProductEntry()))
+      } else if (!orderTaken) {
+        newForm = newForm.copy(productEntries = emptyList())
+      }
+      state.copy(form = newForm)
+    }
+  }
+
+  fun addProductEntry() {
+    _uiState.update { state ->
+      if (state.form.productEntries.size < Constants.MAX_PRODUCT_ENTRIES) {
+        state.copy(form = state.form.copy(productEntries = state.form.productEntries + ProductEntry()))
+      } else state
+    }
+  }
+
+  fun removeProductEntry(index: Int) {
+    _uiState.update { state ->
+      val newList = state.form.productEntries.toMutableList().apply { removeAt(index) }
+      state.copy(form = state.form.copy(productEntries = newList))
+    }
+  }
+
+  fun updateProductEntry(index: Int, entry: ProductEntry) {
+    _uiState.update { state ->
+      val newList = state.form.productEntries.toMutableList().apply { set(index, entry) }
+      state.copy(form = state.form.copy(productEntries = newList))
+    }
+  }
+
+  fun updateOutstandingAmount(amount: String) {
+    _uiState.update {
+      it.copy(
+        form = it.form.copy(
+          outstandingAmount = it.form.outstandingAmount.copy(
+            value = amount,
+            error = null
+          )
+        )
+      )
+    }
+  }
+
+  fun updateBillNo(billNo: String) {
+    _uiState.update {
+      it.copy(form = it.form.copy(billNo = it.form.billNo.copy(value = billNo, error = null)))
+    }
+  }
+
+  fun updatePaymentCollected(collected: Boolean) {
+    _uiState.update {
+      it.copy(form = it.form.copy(paymentCollected = collected))
+    }
+  }
+
+  fun updateAmountWithGST(amount: String) {
+    _uiState.update {
+      it.copy(
+        form = it.form.copy(
+          amountWithGST = it.form.amountWithGST.copy(
+            value = amount,
+            error = null
+          )
+        )
+      )
+    }
+  }
+
+  fun updateAmountWithoutGST(amount: String) {
+    _uiState.update {
+      it.copy(
+        form = it.form.copy(
+          amountWithoutGST = it.form.amountWithoutGST.copy(
+            value = amount,
+            error = null
+          )
+        )
+      )
+    }
+  }
+
+  fun updateStockChecked(checked: Boolean) {
+    _uiState.update {
+      it.copy(form = it.form.copy(stockChecked = checked))
+    }
+  }
+
+  private fun validateForm(): Boolean {
+    val form = _uiState.value.form
+    var isValid = true
+
+    val newName = if (form.name.value.isBlank()) {
+      isValid = false
+      form.name.copy(error = "Name cannot be empty")
+    } else form.name
+
+    val newProductEntries = if (form.orderTaken) {
+      form.productEntries.map { entry ->
+        val validatedEntry = entry.validate()
+        if (!validatedEntry.isValid) isValid = false
+        validatedEntry
+      }
+    } else form.productEntries
+
+    val (newAmountWithGST, newAmountWithoutGST) = if (form.paymentCollected) {
+      var retVal =
+        Pair(form.amountWithGST.copy(error = null), form.amountWithoutGST.copy(error = null))
+
+      if (!form.amountWithGST.isValidNumber) {
+        isValid = false
+        retVal = retVal.copy(first = form.amountWithGST.copy(error = "Invalid"))
       }
 
-      // if emptied, ensure atleast one is present while order taken is true
-      if (newData.productEntries.isEmpty()) {
-        newData = newData.copy(productEntries = listOf(ProductEntry()))
+      if (!form.amountWithoutGST.isValidNumber) {
+        isValid = false
+        retVal = retVal.copy(second = form.amountWithoutGST.copy(error = "Invalid"))
       }
+      retVal
 
-      if (newData.productEntries.size > Constants.MAX_PRODUCT_ENTRIES) {
-        newData =
-          newData.copy(productEntries = newData.productEntries.take(Constants.MAX_PRODUCT_ENTRIES))
-      }
-    } else {
-      // if off, product entries must be empty
-      if (newData.productEntries.isNotEmpty()) {
-        newData = newData.copy(productEntries = listOf())
-      }
+    } else Pair(form.amountWithGST.copy(error = null), form.amountWithoutGST.copy(error = null))
+
+    _uiState.update {
+      it.copy(
+        form = form.copy(
+          name = newName,
+          productEntries = newProductEntries,
+          amountWithGST = newAmountWithGST,
+          amountWithoutGST = newAmountWithoutGST
+        )
+      )
     }
 
-    val nameValid =
-      newData.doctorName.isNotBlank() || newData.chemistName.isNotBlank() || newData.stockistName.isNotBlank()
-
-    _uiState.update { it.copy(form = newData, creationState = UIState.Idle(nameValid)) }
-
+    return isValid
   }
 
   fun submitVisit() {
+    if (!validateForm()) {
+      snackbarManager.showError("Please fix errors in the form")
+      return
+    }
     val currentState = _uiState.value
     val form = currentState.form
     val visitType = currentState.visitType
@@ -112,7 +295,7 @@ class AddVisitViewModel(
 
     // guard employeeId
     val employeeId = sessionManager.currentEmployee.value?.id
-    Logger.i(TAG, "Creating visit for emp:$employeeId")
+    Logger.d(TAG, "${if (isEditMode) "Updating" else "Creating"} visit for emp:$employeeId")
     if (employeeId == null) {
       Logger.e(TAG, "Current employee not set, cannot create visit, aborting")
       return
@@ -124,47 +307,75 @@ class AddVisitViewModel(
     Logger.d(TAG, "Submitting visit with data $form")
 
     viewModelScope.launch {
-      val coords = locationTracker.getCurrentLocation()
-      Logger.d(TAG, "Got location from tracker, $coords")
+      if (isEditMode && visitId != null) {
+        val updateDto = form.toUpdateDto(visitType, updatedAt = serverTime.now().toString())
+        when (val result = dailyReportRepository.updateVisit(visitId, updateDto)) {
+          is Result.Success -> {
+            _uiState.update {
+              it.copy(creationState = UIState.Ready(false))
+            }
+            snackbarManager.showSuccess("Visit updated successfully")
+            Logger.i(TAG, "visit:${result.data.id} Visit updated successfully.")
+          }
 
-      val dto = form.toDto(
-        reportId = reportId,
-        employeeId = employeeId,
-        visitType = visitType,
-        latitude = coords?.latitude ?: 0.0,
-        longitude = coords?.longitude ?: 0.0
-      )
+          is Result.Error -> {
+            _uiState.update {
+              it.copy(
+                creationState = UIState.Error(
+                  "Unable to update visit, please try again",
+                  true
+                )
+              )
+            }
+            snackbarManager.showError("Unable to update visit, please try again")
+            Logger.e(TAG, "Cannot update visit: ${result.message}")
+          }
 
-      val result = createVisitUseCase(
-        CreateVisitParams(
-          today = serverTime.todayIn(),
+          else -> {}
+        }
+      } else {
+        val coords = locationTracker.getCurrentLocation()
+        Logger.d(TAG, "Got location from tracker, $coords")
+
+        val dto = form.toDto(
+          reportId = reportId,
           employeeId = employeeId,
-          dailyReportId = reportId,
-          visitCreateDto = dto
+          visitType = visitType,
+          latitude = coords?.latitude ?: 0.0,
+          longitude = coords?.longitude ?: 0.0
         )
-      )
 
-      when (result) {
-        is Result.Success -> {
-          _uiState.update {
-            // canSubmit = false
-            it.copy(creationState = UIState.Ready(false))
-          }
-          snackbarManager.showSuccess("Visit created successfully")
-          Logger.i(
-            TAG, "visit:${result.data.id} New visit marked successfully."
+        val result = createVisitUseCase(
+          CreateVisitParams(
+            today = serverTime.todayIn(),
+            employeeId = employeeId,
+            dailyReportId = reportId,
+            visitCreateDto = dto
           )
-        }
+        )
 
-        is Result.Error -> {
-          _uiState.update {
-            it.copy(creationState = UIState.Error("Unable to mark visit, please try again", true))
+        when (result) {
+          is Result.Success -> {
+            _uiState.update {
+              // canSubmit = false
+              it.copy(creationState = UIState.Ready(false))
+            }
+            snackbarManager.showSuccess("Visit created successfully")
+            Logger.i(
+              TAG, "visit:${result.data.id} New visit marked successfully."
+            )
           }
-          snackbarManager.showError("Unable to mark visit, please try again")
-          Logger.e(TAG, "Cannot mark visit: ${result.message}")
-        }
 
-        else -> {}
+          is Result.Error -> {
+            _uiState.update {
+              it.copy(creationState = UIState.Error("Unable to mark visit, please try again", true))
+            }
+            snackbarManager.showError("Unable to mark visit, please try again")
+            Logger.e(TAG, "Cannot mark visit: ${result.message}")
+          }
+
+          else -> {}
+        }
       }
     }
   }

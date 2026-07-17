@@ -44,6 +44,7 @@ internal fun TagInputField(
   onItemRemoved: (String) -> Unit,
   label: String,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
   var currentText by rememberSaveable { mutableStateOf("") }
 
@@ -72,6 +73,7 @@ internal fun TagInputField(
               selected = false,
               onClick = { onItemRemoved(item) },
               label = { Text(item) },
+              enabled = enabled,
               trailingIcon = {
                 Icon(
                   painter = painterResource(R.drawable.close_small_24px),
@@ -115,6 +117,7 @@ internal fun TagInputField(
       label = { Text(label) },
       placeholder = { Text("Type and press comma (,)") },
       modifier = Modifier.fillMaxWidth(),
+      enabled = enabled,
       keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
       keyboardActions = KeyboardActions(onDone = {
         if (currentText.isNotBlank()) {
@@ -132,16 +135,23 @@ internal fun ToggleableRow(
   checked: Boolean,
   onCheckedChange: (Boolean) -> Unit,
   text: String,
+  enabled: Boolean = true,
 ) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier
       .fillMaxWidth()
-      .clickable { onCheckedChange(!checked) }
+      .clickable(enabled = enabled) { onCheckedChange(!checked) }
       .padding(vertical = 4.dp)) {
-    Checkbox(checked = checked, onCheckedChange = null)
+    Checkbox(checked = checked, onCheckedChange = null, enabled = enabled)
     Spacer(modifier = Modifier.width(8.dp))
-    Text(text, style = MaterialTheme.typography.bodyLarge)
+    Text(
+      text,
+      style = MaterialTheme.typography.bodyLarge,
+      color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(
+        alpha = 0.38f
+      )
+    )
   }
 }
 

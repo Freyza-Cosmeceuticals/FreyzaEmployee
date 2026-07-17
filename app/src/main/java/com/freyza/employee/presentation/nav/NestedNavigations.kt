@@ -141,10 +141,18 @@ fun NavGraphBuilder.authenticatedGraph(
       val visitCreated by navBackStackEntry.savedStateHandle.getStateFlow<Boolean?>("created", null)
         .collectAsStateWithLifecycle()
 
-      LaunchedEffect(visitCreated) {
-        if (visitCreated != null) {
+      val visitDeleted by navBackStackEntry.savedStateHandle.getStateFlow<Boolean?>("deleted", null)
+        .collectAsStateWithLifecycle()
+
+      LaunchedEffect(visitCreated, visitDeleted) {
+        visitCreated?.let {
           Logger.d(
-            TAG, "Got `created` from AddVisit's backstack entry: ${visitCreated.toString()}"
+            TAG, "Got `created` from AddVisit's backstack entry: $it"
+          )
+        }
+        visitDeleted?.let {
+          Logger.d(
+            TAG, "Got `deleted` from VisitDetail's backstack entry: $it"
           )
         }
       }
@@ -158,6 +166,10 @@ fun NavGraphBuilder.authenticatedGraph(
         onVisitCreatedConsumed = {
           // The child screen calls this AFTER it has shown the UI change
           navBackStackEntry.savedStateHandle["created"] = null
+        },
+        visitDeleted = visitDeleted,
+        onVisitDeletedConsumed = {
+          navBackStackEntry.savedStateHandle["deleted"] = null
         },
         onNavigateUp = {
           navController.popBackStack()
@@ -182,8 +194,24 @@ fun NavGraphBuilder.authenticatedGraph(
 
       VisitDetailScreenRoute(
         viewModel = vm,
-        onNavigateUp = {
+        onNavigateUp = { deleted ->
+          Logger.d(
+            TAG,
+            "Navigating back from VisitDetail, deleted: ${deleted}, saving to savestate"
+          )
+
+          navController.previousBackStackEntry?.savedStateHandle?.set("deleted", deleted)
           navController.popBackStack()
+        },
+        onEditVisit = { visit ->
+          navController.navigate(
+            NavRoutes.Authenticated.AddVisit(
+              type = visit.visitType,
+              reportId = visit.reportId,
+              employeeId = visit.employeeId,
+              visitId = visit.id
+            )
+          )
         }
       )
     }
@@ -192,9 +220,10 @@ fun NavGraphBuilder.authenticatedGraph(
       val visitType = navBackStackEntry.toRoute<NavRoutes.Authenticated.AddVisit>().type
       val reportId = navBackStackEntry.toRoute<NavRoutes.Authenticated.AddVisit>().reportId
       val employeeId = navBackStackEntry.toRoute<NavRoutes.Authenticated.AddVisit>().employeeId
+      val visitId = navBackStackEntry.toRoute<NavRoutes.Authenticated.AddVisit>().visitId
 
       val vm = koinViewModel<AddVisitViewModel>(
-        parameters = { parametersOf(visitType, reportId, employeeId) })
+        parameters = { parametersOf(visitType, reportId, employeeId, visitId) })
 
       AddVisitScreenRoute(viewModel = vm, onNavigateUp = { created ->
         Logger.d(

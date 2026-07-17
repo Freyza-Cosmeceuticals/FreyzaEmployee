@@ -44,8 +44,12 @@ sealed class NavRoutes {
     data class VisitDetail(val visitId: String) : Authenticated()
 
     @Serializable
-    data class AddVisit(val type: VisitType, val reportId: String, val employeeId: String) :
-      Authenticated()
+    data class AddVisit(
+      val type: VisitType,
+      val reportId: String,
+      val employeeId: String,
+      val visitId: String? = null,
+    ) : Authenticated()
   }
 }
 

@@ -1,0 +1,19 @@
+x 2026-07-08 2026-07-08 koin modules syntax cleanup @architecture
+x 2026-07-10 2026-07-10 usecases cleanup @architecture
+(A) in-app updates @feature
+(B) Offline sync using Room. Make layered data source with UI -> InMemory -> Room -> Remote @ux @feature
+(C) Sentry logging and tracing for all actions @monitoring
+x 2026-07-09 2026-06-24 Own Screen for Reports +dailyreport @ux
+x 2026-07-23 2026-07-23 Edit visits +dailyreport @feature
+x 2026-07-16 2026-07-16 Capture location with visits +dailyreport @admin
+2026-06-24 Profile and Settings +profile
+2026-06-24 FCM messaging and notifications @feature @admin
+2026-06-24 Better Travel plan Calendar +travelplan @ux @feature
+2026-06-24 Apply for leaves
+2026-06-24 Separate Doctors, Chemists, and Stockists data +dailyreport
+x 2026-07-08 2026-07-08 money calculation abstraction @architecture
+x 2026-07-16 2026-07-16 Improve Add visit screen and UX and FIX SCROLLING @ux +dailyreport
+add mock coords fill in DEBUG
+x 2026-07-17 2026-07-17 Better gps and perms blocking screen
+x 2026-07-17 2026-07-17 App Icon
+x 2026-07-17 2026-07-17 delete visits

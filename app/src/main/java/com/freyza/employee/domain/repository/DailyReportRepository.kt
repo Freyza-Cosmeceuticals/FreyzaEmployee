@@ -2,6 +2,7 @@ package com.freyza.employee.domain.repository
 
 import com.freyza.employee.core.Result
 import com.freyza.employee.data.network.dto.VisitCreateDto
+import com.freyza.employee.data.network.dto.VisitUpdateDto
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Visit
@@ -46,4 +47,9 @@ interface DailyReportRepository {
   suspend fun deleteVisit(
     visitId: String,
   ): Result<Boolean>
+
+  suspend fun updateVisit(
+    visitId: String,
+    visitUpdateDto: VisitUpdateDto,
+  ): Result<Visit>
 }
