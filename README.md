@@ -7,9 +7,23 @@ Simple Details entry app using Clean Architecture in Jetpack Compose
 Depending on the type(s) of build to be done, create and populate `secret.dev.properties`, `secret.preview.properties`, and `secert.production.properties` with the example content from `secret.example`.
 Also, populate `key.properties` from `key.example` with the release signing key, if doing a release build.
 
-Bump the versionCode/versionName in `app/build.gradle.kts` (will automate this from git tag)
+## Versioning
 
-Finally build using android studio (will add commands later, probably `./gradlew prodReleaseBuild` or something).
+The project follows a specific versioning scheme in `app/build.gradle.kts`:
+
+- **`versionName`**: Follows **0-based Semantic Versioning** (e.g., `0.1.0`). The major version remains `0` during the initial development phase.
+- **`versionCode`**: A monotonic incrementing integer. It **never resets**, even when the `versionName` changes significantly. It is used by the Android system to identify newer builds.
+
+## Release Process
+
+1.  **Feature Completion**: Ensure all features for the release are merged into the `preview` branch.
+2.  **Version Bump**: Increment `versionCode` and update `versionName` in `app/build.gradle.kts`.
+3.  **Changelog**: Document the changes in `CHANGELOG.md` under the new version header with the current date.
+4.  **Merge**: Perform a fast-forward merge from `preview` to `main` as described in the [Development](#development) section.
+5.  **Build**: Generate the release build using:
+    ```bash
+    ./gradlew prodReleaseBuild
+    ```
 
 ## Development
 
