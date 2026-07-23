@@ -12,6 +12,7 @@
 /captures
 .externalNativeBuild
 .cxx
+.artifacts
 
 /secret.*.properties
 

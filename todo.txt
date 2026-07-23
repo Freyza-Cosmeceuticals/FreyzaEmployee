@@ -17,3 +17,4 @@ add mock coords fill in DEBUG
 x 2026-07-17 2026-07-17 Better gps and perms blocking screen
 x 2026-07-17 2026-07-17 App Icon
 x 2026-07-17 2026-07-17 delete visits
+(A) 2026-07-23 add proper error messages on login screen

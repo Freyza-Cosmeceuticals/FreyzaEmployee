@@ -100,11 +100,21 @@ class AuthenticationRepositoryImpl(
   override suspend fun checkSession() {
     try {
       auth.awaitInitialization()
-      auth.refreshCurrentSession()
+      if (auth.currentUserOrNull() != null) {
+        auth.refreshCurrentSession()
+      } else {
+        Logger.d(TAG, "checkSession: No current user found, setting to Unauthenticated")
+        _authState.value = AuthState.Unauthenticated
+      }
     } catch (e: Exception) {
-      Logger.e(TAG, "checkSession error: ${e.message}")
-      sessionManager.clearSession()
-      _authState.value = AuthState.Error("Failed to initialize session: ${e.message}")
+      if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
+        Logger.w(TAG, "checkSession: No refresh token found, setting to Unauthenticated")
+        _authState.value = AuthState.Unauthenticated
+      } else {
+        Logger.e(TAG, "checkSession error: ${e.message}")
+        sessionManager.clearSession()
+        _authState.value = AuthState.Error("Failed to initialize session: ${e.message}")
+      }
     }
   }
 

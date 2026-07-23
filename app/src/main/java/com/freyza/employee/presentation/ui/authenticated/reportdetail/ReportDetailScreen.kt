@@ -475,6 +475,7 @@ fun ReportDetailScreen(
                   LockReportButton(
                     lockingState = uiState.lockingState,
                     onLockPressed = { onLockReport(result.data.id) },
+                    hasVisits = result.data.visits.isNotEmpty(),
                     modifier = Modifier.padding(vertical = dimensionResource(R.dimen.screen_padding))
                   )
                 }
