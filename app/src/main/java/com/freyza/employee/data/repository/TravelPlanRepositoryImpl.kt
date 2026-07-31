@@ -13,9 +13,7 @@ import com.freyza.employee.domain.repository.TravelPlanRepository
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 
 class TravelPlanRepositoryImpl(
   private val postgrest: Postgrest,
@@ -58,9 +56,7 @@ class TravelPlanRepositoryImpl(
 
   override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry?> {
     return try {
-      // TODO: Reset to 0 after testing
       val today = serverTime.todayIn()
-        .plus(1, DateTimeUnit.DayBased(1))
       val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
       withContext(Dispatchers.IO) {
