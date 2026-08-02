@@ -4,6 +4,9 @@ import com.freyza.employee.BuildConfig
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.GPSMonitor
 import com.freyza.employee.core.LocationTracker
+import com.freyza.employee.core.network.ConnectivityManagerNetworkMonitor
+import com.freyza.employee.core.network.ConnectivityPlugin
+import com.freyza.employee.core.network.NetworkMonitor
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
@@ -27,7 +30,11 @@ val appModule = module {
   }
 
   single<HttpClient> {
+    val networkMonitor = get<NetworkMonitor>()
     HttpClient(Android) {
+      install(ConnectivityPlugin) {
+        this.networkMonitor = networkMonitor
+      }
       install(ContentNegotiation) {
         json(Json {
           ignoreUnknownKeys = true
@@ -39,6 +46,10 @@ val appModule = module {
         level = LogLevel.INFO
       }
     }
+  }
+
+  single<NetworkMonitor> {
+    ConnectivityManagerNetworkMonitor(get())
   }
 
   singleOf(::ServerTime)
