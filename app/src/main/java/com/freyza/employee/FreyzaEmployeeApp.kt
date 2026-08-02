@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -41,6 +42,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.freyza.employee.core.network.NetworkMonitor
 import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
@@ -54,6 +56,7 @@ import com.freyza.employee.presentation.ui.composables.FreyzaBottomNavBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
+import com.freyza.employee.presentation.ui.composables.OfflineBanner
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.SessionViewModel
@@ -68,8 +71,10 @@ fun FreyzaEmployeeApp(
   navController: NavHostController = rememberNavController(),
   sessionViewModel: SessionViewModel = koinActivityViewModel(),
   snackbarManager: SnackbarManager = koinInject(),
+  networkMonitor: NetworkMonitor = koinInject(),
 ) {
   val authState by sessionViewModel.authState.collectAsStateWithLifecycle()
+  val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle(initialValue = true)
   val snackbarHostState = remember { SnackbarHostState() }
   val context = LocalContext.current
 
@@ -92,83 +97,96 @@ fun FreyzaEmployeeApp(
 
   CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
     Box(modifier = Modifier.fillMaxSize()) {
-      when (val state = authState) {
-        is AuthState.Loading -> {
-          Scaffold {
-            LoadingIndicator(
-              message = "Loading, please wait...",
-              modifier = Modifier
-                .fillMaxSize()
-                .padding(it),
-            )
-          }
-        }
+      Column(modifier = Modifier.fillMaxSize()) {
+        OfflineBanner(isOnline = isOnline, onRefresh = { sessionViewModel.checkAuth() })
 
-        is AuthState.Error -> {
-          Scaffold {
-            FreyzaEmployeeAppError(
-              message = state.message,
-              date = sessionViewModel.getTodayDateFormatted(),
-              onRetry = sessionViewModel::checkAuth,
-              onLogout = sessionViewModel::logout,
-              modifier = Modifier.padding(it)
-            )
-          }
-        }
+        Box(
+          modifier = Modifier.weight(1f)
+            // If the device is offline (banner visible), consume the top insets
+            // so the Scaffold inside this Box doesn't double-pad the TopAppBar.
+            .let {
+              if (!isOnline) it.consumeWindowInsets(WindowInsets.statusBars) else it
+            }) {
+          when (val state = authState) {
+            is AuthState.Loading -> {
+              Scaffold {
+                LoadingIndicator(
+                  message = "Loading, please wait...",
+                  modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it),
+                )
+              }
+            }
 
-        else -> {
-          GPSGateway {
-            Scaffold(
-              // outer scaffold only pads system status and nav bars, not keyboards
-              // children scaffold or their children should apply their scaffold's paddingValues
-              // and are responsible any ime paddings
-              //
-              // they don't need to handle any system bar padding
-              contentWindowInsets = WindowInsets.systemBars, bottomBar = {
-                if (state is AuthState.Authenticated) {
-                  FreyzaBottomNavBar(navController)
-                }
-              }) { paddingValues ->
-              Surface(
-                modifier = Modifier
-                  // outer scaffold only handles bottom padding (bar + inner fabs)
-                  // don't apply padding for top bars
-                  .padding(bottom = paddingValues.calculateBottomPadding())
-                  // consume exactly the bottom bar needs, to prevent double apply
-                  // top handled by TopAppBars, to fill in the status bar
-                  .consumeWindowInsets(WindowInsets(bottom = paddingValues.calculateBottomPadding()))
-              ) {
-                val startDestination = if (state is AuthState.Authenticated) {
-                  NavRoutes.Authenticated.NavigationRoute
-                } else {
-                  NavRoutes.Unauthenticated.NavigationRoute
-                }
+            is AuthState.Error -> {
+              Scaffold {
+                FreyzaEmployeeAppError(
+                  message = state.message,
+                  date = sessionViewModel.getTodayDateFormatted(),
+                  onRetry = sessionViewModel::checkAuth,
+                  onLogout = sessionViewModel::logout,
+                  modifier = Modifier.padding(it)
+                )
+              }
+            }
 
-                DisposableEffect(navController) {
-                  val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-                    Logger.d("AppNavController", "Destination changed: ${destination.route}")
+            else -> {
+              GPSGateway {
+                Scaffold(
+                  // outer scaffold only pads system status and nav bars, not keyboards
+                  // children scaffold or their children should apply their scaffold's paddingValues
+                  // and are responsible any ime paddings
+                  //
+                  // they don't need to handle any system bar padding
+                  contentWindowInsets = WindowInsets.systemBars, bottomBar = {
+                    if (state is AuthState.Authenticated) {
+                      FreyzaBottomNavBar(navController)
+                    }
+                  }) { paddingValues ->
+                  Surface(
+                    modifier = Modifier
+                      // outer scaffold only handles bottom padding (bar + inner fabs)
+                      // don't apply padding for top bars
+                      .padding(bottom = paddingValues.calculateBottomPadding())
+                      // consume exactly the bottom bar needs, to prevent double apply
+                      // top handled by TopAppBars, to fill in the status bar
+                      .consumeWindowInsets(WindowInsets(bottom = paddingValues.calculateBottomPadding()))
+                  ) {
+                    val startDestination = if (state is AuthState.Authenticated) {
+                      NavRoutes.Authenticated.NavigationRoute
+                    } else {
+                      NavRoutes.Unauthenticated.NavigationRoute
+                    }
 
-                    if (!BuildConfig.DEBUG) {
-                      Sentry.setTag("current_screen", destination.route)
+                    DisposableEffect(navController) {
+                      val listener =
+                        NavController.OnDestinationChangedListener { _, destination, _ ->
+                          Logger.d("AppNavController", "Destination changed: ${destination.route}")
+
+                          if (!BuildConfig.DEBUG) {
+                            Sentry.setTag("current_screen", destination.route)
+                          }
+                        }
+
+                      navController.addOnDestinationChangedListener(listener)
+
+                      onDispose {
+                        navController.removeOnDestinationChangedListener(listener)
+                      }
+                    }
+
+                    NavHost(
+                      navController = navController, startDestination = startDestination
+                    ) {
+                      unauthenticatedGraph(navController = navController)
+                      authenticatedGraph(
+                        navController = navController,
+                        onExit = { sessionViewModel.exit(context) },
+                        onLogout = sessionViewModel::logout
+                      )
                     }
                   }
-
-                  navController.addOnDestinationChangedListener(listener)
-
-                  onDispose {
-                    navController.removeOnDestinationChangedListener(listener)
-                  }
-                }
-
-                NavHost(
-                  navController = navController, startDestination = startDestination
-                ) {
-                  unauthenticatedGraph(navController = navController)
-                  authenticatedGraph(
-                    navController = navController,
-                    onExit = { sessionViewModel.exit(context) },
-                    onLogout = sessionViewModel::logout
-                  )
                 }
               }
             }

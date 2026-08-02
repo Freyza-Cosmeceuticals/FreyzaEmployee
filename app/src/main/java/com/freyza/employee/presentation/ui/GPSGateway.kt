@@ -93,9 +93,6 @@ fun GPSGateway(
   }
 
   Box(modifier = Modifier.fillMaxSize()) {
-    // content is always in the background
-    content()
-
     when {
       !hasPermissions -> {
         Logger.d("GPSGateway", "Don't have permissions, requesting")
@@ -115,6 +112,8 @@ fun GPSGateway(
           )
         }
       }
+
+      else -> content()
     }
   }
 }

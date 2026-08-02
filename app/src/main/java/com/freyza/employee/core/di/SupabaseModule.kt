@@ -1,7 +1,10 @@
 package com.freyza.employee.core.di
 
 import com.freyza.employee.core.AppConfig
+import com.freyza.employee.core.network.ConnectivityPlugin
+import com.freyza.employee.core.network.NetworkMonitor
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.annotations.SupabaseInternal
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.FlowType
 import io.github.jan.supabase.auth.auth
@@ -13,6 +16,8 @@ import org.koin.dsl.module
 
 val supabaseModule = module {
   single<SupabaseClient> {
+    val networkMonitor = get<NetworkMonitor>()
+
     createSupabaseClient(
       supabaseUrl = get<AppConfig>().supabaseUrl,
       supabaseKey = get<AppConfig>().supabasePublishableKey
@@ -24,6 +29,12 @@ val supabaseModule = module {
       }
       install(Postgrest) {
         propertyConversionMethod = PropertyConversionMethod.NONE
+      }
+
+      @OptIn(SupabaseInternal::class) httpConfig {
+        install(ConnectivityPlugin) {
+          this.networkMonitor = networkMonitor
+        }
       }
     }
   }

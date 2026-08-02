@@ -1,6 +1,7 @@
 package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.NetworkMonitor
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.AuthState
@@ -20,6 +21,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -28,6 +31,7 @@ class AuthenticationRepositoryImpl(
   private val auth: Auth,
   private val userRepository: UserRepository,
   private val sessionManager: SessionManager,
+  private val networkMonitor: NetworkMonitor,
 ) : AuthenticationRepository {
 
   companion object {
@@ -42,6 +46,18 @@ class AuthenticationRepositoryImpl(
   init {
     listenToAuthStatus()
     logAuthState()
+    observeNetworkForAutoRefresh()
+  }
+
+  private fun observeNetworkForAutoRefresh() {
+    networkMonitor.isOnline
+      .drop(1)
+      .filter { it }
+      .onEach {
+        Logger.d(TAG, "Network back online, triggering auto-refresh")
+        checkSession()
+      }
+      .launchIn(repositoryScope)
   }
 
   private fun listenToAuthStatus() {
@@ -101,12 +117,22 @@ class AuthenticationRepositoryImpl(
     try {
       auth.awaitInitialization()
       if (auth.currentUserOrNull() != null) {
-        auth.refreshCurrentSession()
+        if (networkMonitor.isCurrentlyConnected) {
+          auth.refreshCurrentSession()
+        } else {
+          Logger.d(TAG, "checkSession: Device is offline, skipping refresh")
+        }
       } else {
         Logger.d(TAG, "checkSession: No current user found, setting to Unauthenticated")
         _authState.value = AuthState.Unauthenticated
       }
     } catch (e: Exception) {
+      if (!networkMonitor.isCurrentlyConnected || isNetworkException(e.message ?: "")) {
+        Logger.w(TAG, "checkSession: Connectivity issue occurred, showing friendly error")
+        _authState.value = AuthState.Error("Please check your internet connection.")
+        return
+      }
+
       if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
         Logger.w(TAG, "checkSession: No refresh token found, setting to Unauthenticated")
         _authState.value = AuthState.Unauthenticated
@@ -143,8 +169,13 @@ class AuthenticationRepositoryImpl(
       }
 
       is Result.Error -> {
-        Logger.e(TAG, "Error fetching user profile: ${result.message}")
-        _authState.value = AuthState.Error("Unable to fetch your profile: ${result.message}")
+        if (!networkMonitor.isCurrentlyConnected || isNetworkException(result.message)
+        ) {
+          _authState.value = AuthState.Error("Please check your internet connection.")
+        } else {
+          Logger.e(TAG, "Error fetching user profile: ${result.message}")
+          _authState.value = AuthState.Error("Unable to fetch your profile: ${result.message}")
+        }
       }
 
       is Result.Loading -> {
@@ -208,4 +239,10 @@ class AuthenticationRepositoryImpl(
     }
   }
 
+  private fun isNetworkException(message: String): Boolean {
+    return message.contains("unable to resolve host", ignoreCase = true) ||
+            message.contains("failed to connect", ignoreCase = true) ||
+            message.contains("connecttimeout", ignoreCase = true) ||
+            message.contains("unknownhost", ignoreCase = true)
+  }
 }

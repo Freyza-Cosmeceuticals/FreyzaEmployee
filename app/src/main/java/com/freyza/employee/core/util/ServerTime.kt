@@ -3,6 +3,7 @@ package com.freyza.employee.core.util
 import android.os.SystemClock
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Constants
+import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.data.network.dto.ServerStatusDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -21,7 +22,7 @@ import kotlin.time.Instant
  */
 class ServerTime(
   private val httpClient: HttpClient? = null,
-  private val appConfig: AppConfig? = null
+  private val appConfig: AppConfig? = null,
 ) {
   @Volatile
   private var serverOffset: Long = 0L
@@ -38,7 +39,8 @@ class ServerTime(
    */
   suspend fun syncTime() {
     if (httpClient == null || appConfig == null) return
-    try {
+
+    safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         val startTime = SystemClock.elapsedRealtime()
         val response: ServerStatusDto = httpClient.get("${appConfig.apiUrl}/api/version").body()
@@ -50,10 +52,11 @@ class ServerTime(
         // Account for network latency by assuming server time was measured at the midpoint of RTT
         val deviceMidpointMillis = startTime + (rtt / 2)
         setServerOffset(serverInstant.toEpochMilliseconds() - deviceMidpointMillis)
-        Logger.d(TAG, "Time synced with server. RTT: $rtt ms, Offset: $serverOffset ms. Now is: ${now()}")
+        Logger.d(
+          TAG,
+          "Time synced with server. RTT: $rtt ms, Offset: $serverOffset ms. Now is: ${now()}"
+        )
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, "Failed to sync time via custom API: ${e.message}")
     }
   }
 
