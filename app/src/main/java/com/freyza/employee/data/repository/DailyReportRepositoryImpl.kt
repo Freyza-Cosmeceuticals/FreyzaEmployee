@@ -1,10 +1,12 @@
 package com.freyza.employee.data.repository
 
+import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
-import com.freyza.employee.data.network.dto.DailyReportCreateDto
+import com.freyza.employee.data.network.dto.BeginReportRequest
+import com.freyza.employee.data.network.dto.BeginReportResponse
 import com.freyza.employee.data.network.dto.DailyReportDto
 import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.data.network.dto.VisitDto
@@ -13,14 +15,29 @@ import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.repository.DailyReportRepository
+import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 
-class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportRepository {
+class DailyReportRepositoryImpl(
+  private val postgrest: Postgrest,
+  private val httpClient: HttpClient,
+  private val appConfig: AppConfig,
+  private val auth: Auth,
+) : DailyReportRepository {
   companion object {
     const val TAG: String = "DailyReportRepo"
     private const val TABLE_DAILY_REPORT = "dailyReport"
@@ -163,25 +180,44 @@ class DailyReportRepositoryImpl(private val postgrest: Postgrest) : DailyReportR
     employeeId: String,
     dayType: DayType,
     routeId: String?,
+    travellingWithId: String?,
   ): Result<DailyReport> {
     return try {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Creating dailyReport for current employee and date: $thisDate")
+        Logger.d(TAG, "Creating dailyReport via api for date: $thisDate")
 
-        val initialDailyReportDto = DailyReportCreateDto(
-          employeeId = employeeId,
+        val request = BeginReportRequest(
           date = thisDate,
           dayType = dayType,
           routeId = routeId,
+          travellingWithId = travellingWithId
         )
 
-        val dailyReportDto = postgrest.from(TABLE_DAILY_REPORT).insert(initialDailyReportDto) {
-          select()
-        }.decodeSingle<DailyReportDto>()
+        val token = auth.currentAccessTokenOrNull()
+          ?: throw IllegalStateException("No authentication token found")
 
-        Result.Success(dailyReportDto.toDomain())
+        val response = httpClient.post("${appConfig.apiUrl}/api/reports/begin") {
+          contentType(ContentType.Application.Json)
+          header(HttpHeaders.Authorization, "Bearer $token")
+          setBody(request)
+        }
+
+        if (response.status.isSuccess()) {
+          val beginResponse = response.body<BeginReportResponse>()
+          if (beginResponse.success) {
+            Logger.d(TAG, "Daily report created successfully")
+            Result.Success(beginResponse.data.toDomain())
+          } else {
+            Logger.e(TAG, "Unable to create daily report. ${response.status.description}")
+            Result.Error("Unable to create daily report")
+          }
+        } else {
+          val errorBody = response.body<String>()
+          Logger.e(TAG, "API Error: ${response.status} - $errorBody")
+          Result.Error("Error: ${response.status.description}")
+        }
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())

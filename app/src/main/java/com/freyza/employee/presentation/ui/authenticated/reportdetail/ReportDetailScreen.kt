@@ -1,5 +1,6 @@
 package com.freyza.employee.presentation.ui.authenticated.reportdetail
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -61,6 +62,7 @@ import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyUserEmployee
+import com.freyza.employee.domain.model.dummyUserEmployeeAlt
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.AddVisitFloatingActionButton
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.FabActionItem
 import com.freyza.employee.presentation.ui.authenticated.dailyreport.composables.LockReportButton
@@ -139,6 +141,10 @@ fun ReportDetailScreen(
     uiState.routes.associateBy { it.id }
   }
 
+  val employeeMap = remember(uiState.employees) {
+    uiState.employees.associateBy { it.id }
+  }
+
   val isToday = remember(uiState.report) {
     uiState.report.data?.date?.let { uiState.today.date == it } ?: false
   }
@@ -214,14 +220,12 @@ fun ReportDetailScreen(
 
   val visitTypeCounts = remember(uiState.report.data?.visits) {
     derivedStateOf {
-      mapOf(
-        VisitType.DOCTOR to (uiState.report.data?.visits?.count { it.visitType == VisitType.DOCTOR }
-          ?: 0),
+      mapOf(VisitType.DOCTOR to (uiState.report.data?.visits?.count { it.visitType == VisitType.DOCTOR }
+        ?: 0),
         VisitType.STOCKIST to (uiState.report.data?.visits?.count { it.visitType == VisitType.STOCKIST }
           ?: 0),
         VisitType.CHEMIST to (uiState.report.data?.visits?.count { it.visitType == VisitType.CHEMIST }
-          ?: 0)
-      )
+          ?: 0))
     }
   }
 
@@ -299,7 +303,10 @@ fun ReportDetailScreen(
                   )
                 ) {
                   ReportDetailHeader(
-                    report = result.data, isToday = isToday, route = routeMap[result.data.routeId]
+                    report = result.data,
+                    isToday = isToday,
+                    route = routeMap[result.data.routeId],
+                    travellingWith = employeeMap[result.data.travellingWithId],
                   )
 
                   HorizontalDivider(
@@ -465,8 +472,7 @@ fun ReportDetailScreen(
                 VisitListItem(
                   visit = visit,
                   onClick = { onNavigateToVisitDetail(visit.id) },
-                  modifier = Modifier
-                    .padding(0.dp)
+                  modifier = Modifier.padding(0.dp)
                 )
               }
 
@@ -536,6 +542,7 @@ fun ReportDetailHeader(
   report: DailyReport,
   isToday: Boolean,
   route: RouteWithLocation?,
+  travellingWith: User?,
   modifier: Modifier = Modifier,
 ) {
   Column(
@@ -581,7 +588,9 @@ fun ReportDetailHeader(
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically
     ) {
-      Column {
+      Column(modifier = Modifier
+        .weight(1f)
+        .padding(end = 16.dp)) {
         Text(
           text = report.dayType.name,
           style = MaterialTheme.typography.titleLarge,
@@ -590,10 +599,34 @@ fun ReportDetailHeader(
         )
         if (report.dayType == DayType.WORK) {
           RouteItem(route)
+
+          if (travellingWith != null) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing)),
+              modifier = Modifier.padding(top = 4.dp)
+            ) {
+              Icon(
+                painter = painterResource(R.drawable.account_circle_24px),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+              )
+              Text(
+                text = "Travelling with ${travellingWith.name}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.basicMarquee(
+                  iterations = Int.MAX_VALUE,
+                  repeatDelayMillis = 1000
+                )
+              )
+            }
+          }
         }
       }
 
-      Column(horizontalAlignment = Alignment.End) {
+      Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
         Text(
           text = report.totalExpense.toCurrencyString(),
           style = MaterialTheme.typography.headlineSmall,
@@ -636,6 +669,7 @@ private fun DebugDailyReport(dailyReport: DailyReport?, modifier: Modifier = Mod
         Text(DateFormatter.format(dailyReport.date))
         Text(dailyReport.dayType.toString())
         Text(dailyReport.routeId.toString())
+        Text(dailyReport.travellingWithId.toString())
 
         Text(dailyReport.da.toString())
         Text(dailyReport.ta.toString())
@@ -659,7 +693,12 @@ private fun DebugDailyReport(dailyReport: DailyReport?, modifier: Modifier = Mod
 @Composable
 private fun ReportDetailHeaderTodayPreview() {
   FreyzaEmployeeTheme {
-    ReportDetailHeader(dummyDailyReportWork(), isToday = true, dummyRouteWithLocation())
+    ReportDetailHeader(
+      dummyDailyReportWork(),
+      isToday = true,
+      dummyRouteWithLocation(),
+      dummyUserEmployeeAlt()
+    )
   }
 }
 
@@ -667,7 +706,12 @@ private fun ReportDetailHeaderTodayPreview() {
 @Composable
 private fun ReportDetailHeaderPreview() {
   FreyzaEmployeeTheme {
-    ReportDetailHeader(dummyDailyReportWork(), isToday = false, dummyRouteWithLocation())
+    ReportDetailHeader(
+      dummyDailyReportWork(),
+      isToday = false,
+      dummyRouteWithLocation(),
+      null
+    )
   }
 }
 
@@ -676,7 +720,10 @@ private fun ReportDetailHeaderPreview() {
 private fun ReportDetailHeaderLockedPreview() {
   FreyzaEmployeeTheme {
     ReportDetailHeader(
-      dummyDailyReportWork(locked = true), isToday = false, dummyRouteWithLocation()
+      dummyDailyReportWork(locked = true),
+      isToday = false,
+      dummyRouteWithLocation(),
+      null
     )
   }
 }

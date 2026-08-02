@@ -36,12 +36,15 @@ import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyDailyReportHoliday
 import com.freyza.employee.domain.model.dummyDailyReportLeave
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
+import com.freyza.employee.domain.model.dummyUserEmployee
+import com.freyza.employee.domain.model.dummyUserEmployeeAlt
 import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.Skeleton
@@ -52,6 +55,7 @@ import kotlin.math.max
 @Composable
 fun DailyReportCard(
   dailyReport: DailyReport?,
+  travellingWith: User?,
   route: RouteWithLocation?,
   modifier: Modifier = Modifier,
   onClick: () -> Unit = {},
@@ -128,6 +132,25 @@ fun DailyReportCard(
       // Route Information
       if (dailyReport.dayType == DayType.WORK) {
         RouteItem(route)
+
+        if (travellingWith != null) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))
+          ) {
+            Icon(
+              painter = painterResource(R.drawable.account_circle_24px),
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(16.dp)
+            )
+            Text(
+              text = "Travelling with ${travellingWith.name}",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+        }
       }
 
       when (dailyReport.dayType) {
@@ -296,9 +319,11 @@ fun DailyReportCardSkeleton(modifier: Modifier = Modifier) {
 private fun DailyReportCardWorkPreview() {
   FreyzaEmployeeTheme {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      DailyReportCard(dummyDailyReportWork(), dummyRouteWithLocation())
-      DailyReportCard(dummyDailyReportWork(true), dummyRouteWithLocation())
-      DailyReportCard(dummyDailyReportWork(false, noVisits = true), dummyRouteWithLocation())
+      DailyReportCard(dummyDailyReportWork(), dummyUserEmployeeAlt(), dummyRouteWithLocation())
+      DailyReportCard(dummyDailyReportWork(true), dummyUserEmployee(), dummyRouteWithLocation())
+      DailyReportCard(
+        dummyDailyReportWork(false, noVisits = true), dummyUserEmployee(), dummyRouteWithLocation()
+      )
     }
   }
 }
@@ -307,7 +332,7 @@ private fun DailyReportCardWorkPreview() {
 @Composable
 private fun DailyReportCardHolidayPreview() {
   FreyzaEmployeeTheme {
-    DailyReportCard(dummyDailyReportHoliday(), null)
+    DailyReportCard(dummyDailyReportHoliday(), null, null)
   }
 }
 
@@ -315,7 +340,7 @@ private fun DailyReportCardHolidayPreview() {
 @Composable
 private fun DailyReportCardLeavePreview() {
   FreyzaEmployeeTheme {
-    DailyReportCard(dummyDailyReportLeave(), null)
+    DailyReportCard(dummyDailyReportLeave(), null, null)
   }
 }
 
@@ -324,7 +349,7 @@ private fun DailyReportCardLeavePreview() {
 @Composable
 private fun DailyReportCardNullPreview() {
   FreyzaEmployeeTheme {
-    DailyReportCard(null, null)
+    DailyReportCard(null, null, null)
   }
 }
 

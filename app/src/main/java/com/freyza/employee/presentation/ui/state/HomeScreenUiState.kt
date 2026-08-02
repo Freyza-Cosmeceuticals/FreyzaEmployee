@@ -7,6 +7,7 @@ import com.freyza.employee.domain.model.Location
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlan
@@ -33,6 +34,7 @@ data class HomeScreenUiState(
   val todayReportRoute: RouteWithLocation? = null,
 
   val showCreateReportSheet: Boolean = false,
+  val employees: List<User> = emptyList(),
 )
 
 fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(

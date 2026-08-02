@@ -26,6 +26,7 @@ val viewModelModule = module {
       sessionManager = get(),
       dailyReportRepository = get(),
       routeRepository = get(),
+      userRepository = get(),
       lockReportUseCase = get(),
       snackbarManager = get(),
       serverTime = get()

@@ -31,6 +31,7 @@ interface DailyReportRepository {
     employeeId: String,
     dayType: DayType,
     routeId: String?,
+    travellingWithId: String?,
   ): Result<DailyReport>
 
   suspend fun createVisit(

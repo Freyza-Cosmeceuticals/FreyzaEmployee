@@ -20,7 +20,7 @@ fun dummyLocation(): Location = Location(
 
 fun dummyLocationAlt(): Location = Location(
   id = "ec81b4e5-c887-4968-81b4-e5c88759689d",
-  name = "Bhagalpur",
+  name = "Bhagalpur / Long Name Here",
   operational = true,
   createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),
   updatedAt = null

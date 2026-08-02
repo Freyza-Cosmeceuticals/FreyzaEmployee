@@ -34,11 +34,14 @@ import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.RouteWithLocation
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyDailyReportHoliday
 import com.freyza.employee.domain.model.dummyDailyReportLeave
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
+import com.freyza.employee.domain.model.dummyUserEmployee
+import com.freyza.employee.domain.model.dummyUserEmployeeAlt
 import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.Skeleton
@@ -49,6 +52,7 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 fun DailyReportListCard(
   report: DailyReport?,
   route: RouteWithLocation?,
+  travellingWith: User?,
   modifier: Modifier = Modifier,
   onClick: () -> Unit = {},
   isToday: Boolean = false,
@@ -136,6 +140,25 @@ fun DailyReportListCard(
       // Route Information
       if (report.dayType == DayType.WORK) {
         RouteItem(route)
+
+        if (travellingWith != null) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))
+          ) {
+            Icon(
+              painter = painterResource(R.drawable.account_circle_24px),
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(16.dp)
+            )
+            Text(
+              text = "Travelling with ${travellingWith.name}",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+        }
 
         Row(
           modifier = Modifier.fillMaxWidth(),
@@ -269,8 +292,17 @@ fun DailyReportListCardSkeleton(modifier: Modifier = Modifier, isToday: Boolean 
 private fun DailyReportListCardWorkPreview() {
   FreyzaEmployeeTheme {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      DailyReportListCard(dummyDailyReportWork(), route = dummyRouteWithLocation(), isToday = true)
-      DailyReportListCard(dummyDailyReportWork(true), route = null)
+      DailyReportListCard(
+        dummyDailyReportWork(),
+        route = dummyRouteWithLocation(),
+        travellingWith = dummyUserEmployee(),
+        isToday = true
+      )
+      DailyReportListCard(
+        dummyDailyReportWork(true),
+        travellingWith = dummyUserEmployeeAlt(),
+        route = null
+      )
     }
   }
 }
@@ -280,8 +312,8 @@ private fun DailyReportListCardWorkPreview() {
 private fun DailyReportListCardHolidayPreview() {
   FreyzaEmployeeTheme {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      DailyReportListCard(dummyDailyReportHoliday(), route = null, isToday = true)
-      DailyReportListCard(dummyDailyReportHoliday(), route = null)
+      DailyReportListCard(dummyDailyReportHoliday(), travellingWith = dummyUserEmployee(), route = null, isToday = true)
+      DailyReportListCard(dummyDailyReportHoliday(), travellingWith = null, route = null)
     }
   }
 }
@@ -291,8 +323,8 @@ private fun DailyReportListCardHolidayPreview() {
 private fun DailyReportListCardLeavePreview() {
   FreyzaEmployeeTheme {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      DailyReportListCard(dummyDailyReportLeave(), route = null, isToday = true)
-      DailyReportListCard(dummyDailyReportLeave(), route = null)
+      DailyReportListCard(dummyDailyReportLeave(), travellingWith = null, route = null, isToday = true)
+      DailyReportListCard(dummyDailyReportLeave(), travellingWith = null, route = null)
     }
   }
 }
@@ -302,8 +334,8 @@ private fun DailyReportListCardLeavePreview() {
 private fun DailyReportListCardNullPreview() {
   FreyzaEmployeeTheme {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      DailyReportListCard(null, route = null, isToday = true)
-      DailyReportListCard(null, route = null)
+      DailyReportListCard(null, travellingWith = null, route = null, isToday = true)
+      DailyReportListCard(null, travellingWith = null, route = null)
     }
   }
 }

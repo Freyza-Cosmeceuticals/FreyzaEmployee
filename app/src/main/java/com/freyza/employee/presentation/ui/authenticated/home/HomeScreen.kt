@@ -31,6 +31,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -112,7 +113,7 @@ private fun HomeScreen(
   onRefresh: () -> Unit,
   onLogout: () -> Unit,
   onExit: () -> Unit,
-  onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?) -> Unit,
+  onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?, travellingWithId: String?) -> Unit,
   onNavigateToReport: (reportId: String) -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
   onDismissSheet: () -> Unit,
@@ -168,6 +169,7 @@ private fun HomeScreen(
             dayTypes = dayTypes,
             routes = uiState.routes,
             locations = uiState.locations,
+            employees = uiState.employees,
             todayTravelPlanEntry = uiState.todayTravelPlanEntry,
             onDailyReportBegin = onDailyReportBegin,
             onRetry = onRefresh,
@@ -274,8 +276,14 @@ private fun HomeScreen(
 
         item("daily_report") {
           if (uiState.currentDailyReport != null) {
+
+            val travellingWith =
+              remember(uiState.currentDailyReport.travellingWithId, uiState.employees) {
+                uiState.employees.find { it.id == uiState.currentDailyReport.travellingWithId }
+              }
             DailyReportCard(
               dailyReport = uiState.currentDailyReport,
+              travellingWith = travellingWith,
               route = uiState.todayReportRoute,
               modifier = Modifier.fillMaxSize(),
               onClick = { onNavigateToReport(uiState.currentDailyReport.id) }
@@ -376,7 +384,7 @@ private fun HomeScreenPreview() {
       onRefresh = {},
       onLogout = {},
       onExit = {},
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
@@ -393,7 +401,7 @@ private fun HomeScreenNoPlanPreview() {
       onRefresh = {},
       onLogout = {},
       onExit = {},
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
@@ -410,7 +418,7 @@ private fun HomeScreenNoReportPreview() {
       onRefresh = {},
       onLogout = {},
       onExit = {},
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
@@ -427,7 +435,7 @@ private fun HomeScreenReportErrorPreview() {
       onRefresh = {},
       onLogout = {},
       onExit = {},
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
       onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})

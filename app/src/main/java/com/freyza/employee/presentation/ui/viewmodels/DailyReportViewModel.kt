@@ -9,6 +9,7 @@ import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.repository.RouteRepository
+import com.freyza.employee.domain.repository.UserRepository
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsParams
 import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCase
 import com.freyza.employee.presentation.ui.state.DailyReportUiState
@@ -23,6 +24,7 @@ class DailyReportViewModel(
   private val sessionManager: SessionManager,
   private val getAllDailyReportUseCase: GetRecentDailyReportsUseCase,
   private val routeRepository: RouteRepository,
+  private val userRepository: UserRepository,
   serverTime: ServerTime,
 ) : ViewModel() {
 
@@ -52,6 +54,7 @@ class DailyReportViewModel(
     if (employeeId != null) {
       loadAllDailyReports(employeeId)
       loadAllRoutes()
+      loadHqEmployees()
     }
   }
 
@@ -107,15 +110,11 @@ class DailyReportViewModel(
   private fun loadAllRoutes() {
     Logger.d(TAG, "Fetching all routes")
 
-    _uiState.update {
-      it.copy(routes = UIState.Loading(it.routes.data))
-    }
-
     viewModelScope.launch {
       when (val result = routeRepository.getAllRoutesWithLocation()) {
         is Result.Success -> {
           _uiState.update {
-            it.copy(routes = UIState.Ready(result.data))
+            it.copy(routes = result.data)
           }
           Logger.d(
             TAG, "All routes fetched successfully: ${result.data.size} routes"
@@ -123,14 +122,27 @@ class DailyReportViewModel(
         }
 
         is Result.Error -> {
-          _uiState.update {
-            it.copy(
-              routes = UIState.Error(message = "Unable to routes")
-            )
-          }
           Logger.e(TAG, "Cannot fetch all routes with location: ${result.message}")
         }
 
+        else -> {}
+      }
+    }
+  }
+
+  private fun loadHqEmployees() {
+    val user = sessionManager.currentEmployee.value
+    val hqId = user?.hqId ?: return
+
+    viewModelScope.launch {
+      when (val result = userRepository.getEmployeesByHq(hqId)) {
+        is Result.Success -> {
+          _uiState.update {
+            it.copy(employees = result.data)
+          }
+        }
+
+        is Result.Error -> Logger.e(TAG, "Fetch employees failed: ${result.message}")
         else -> {}
       }
     }

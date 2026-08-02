@@ -46,4 +46,25 @@ class UserRepositoryImpl(
       Result.Error(e.message.toString())
     }
   }
+
+  override suspend fun getEmployeesByHq(hqId: String): Result<List<User>> {
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying employees by hq:${hqId}")
+
+        val usersDto = postgres.from("user").select {
+          filter {
+            UserDto::hqId eq hqId
+            UserDto::status eq "ACTIVE"
+            UserDto::role eq "EMPLOYEE"
+          }
+        }.decodeList<UserDto>()
+
+        Result.Success(usersDto.map { it.toDomain() })
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
 }
