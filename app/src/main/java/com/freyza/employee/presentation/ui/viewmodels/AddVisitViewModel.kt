@@ -138,7 +138,7 @@ class AddVisitViewModel(
   fun updateOrderTaken(orderTaken: Boolean) {
     _uiState.update { state ->
       var newForm = state.form.copy(orderTaken = orderTaken)
-      if (orderTaken && newForm.productEntries.isEmpty()) {
+      if (visitType == VisitType.DOCTOR && orderTaken && newForm.productEntries.isEmpty()) {
         newForm = newForm.copy(productEntries = listOf(ProductEntry()))
       } else if (!orderTaken) {
         newForm = newForm.copy(productEntries = emptyList())
