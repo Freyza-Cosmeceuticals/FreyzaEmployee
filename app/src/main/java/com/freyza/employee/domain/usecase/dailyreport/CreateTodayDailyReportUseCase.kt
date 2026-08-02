@@ -11,6 +11,7 @@ data class CreateTodayDailyReportParams(
   val employeeId: String,
   val dayType: DayType,
   val routeId: String?,
+  val travellingWithId: String?,
 )
 
 class CreateTodayDailyReportUseCase(private val dailyReportRepository: DailyReportRepository) {
@@ -19,7 +20,8 @@ class CreateTodayDailyReportUseCase(private val dailyReportRepository: DailyRepo
       params.today,
       params.employeeId,
       params.dayType,
-      params.routeId
+      params.routeId,
+      params.travellingWithId
     )
   }
 }

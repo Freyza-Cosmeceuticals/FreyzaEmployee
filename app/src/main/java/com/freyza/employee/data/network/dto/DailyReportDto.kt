@@ -23,6 +23,9 @@ data class DailyReportDto(
   @SerialName("routeId")
   val routeId: String?,
 
+  @SerialName("travellingWithId")
+  val travellingWithId: String?,
+
   @SerialName("ta")
   @Serializable(with = BigDecimalSerializer::class)
   val ta: BigDecimal?,

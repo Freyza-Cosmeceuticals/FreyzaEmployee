@@ -10,6 +10,7 @@ import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.repository.DailyReportRepository
 import com.freyza.employee.domain.repository.RouteRepository
+import com.freyza.employee.domain.repository.UserRepository
 import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
 import com.freyza.employee.presentation.ui.state.ReportDetailUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ class ReportDetailViewModel(
   private val sessionManager: SessionManager,
   private val dailyReportRepository: DailyReportRepository,
   private val routeRepository: RouteRepository,
+  private val userRepository: UserRepository,
   private val lockReportUseCase: LockReportUseCase,
   private val snackbarManager: SnackbarManager,
   serverTime: ServerTime,
@@ -59,6 +61,7 @@ class ReportDetailViewModel(
     if (employeeId != null) {
       loadDailyReport(reportId = uiState.value.reportId)
       loadAllRoutes()
+      loadHqEmployees()
     }
   }
 
@@ -145,6 +148,24 @@ class ReportDetailViewModel(
           Logger.e(TAG, "Cannot fetch all routes with location: ${result.message}")
         }
 
+        else -> {}
+      }
+    }
+  }
+
+  private fun loadHqEmployees() {
+    val user = sessionManager.currentEmployee.value
+    val hqId = user?.hqId ?: return
+
+    viewModelScope.launch {
+      when (val result = userRepository.getEmployeesByHq(hqId)) {
+        is Result.Success -> {
+          _uiState.update {
+            it.copy(employees = result.data)
+          }
+        }
+
+        is Result.Error -> Logger.e(TAG, "Fetch employees failed: ${result.message}")
         else -> {}
       }
     }

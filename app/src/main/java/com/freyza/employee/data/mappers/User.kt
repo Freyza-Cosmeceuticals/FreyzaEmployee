@@ -22,3 +22,20 @@ fun UserDto.toDomain(): User {
     userInfo = null
   )
 }
+
+fun User.toDto(): UserDto {
+  return UserDto(
+    id = id,
+    name = name,
+    email = email,
+    phone = phone,
+    role = role,
+    status = status,
+    tier = tier,
+    hqId = hqId,
+    joiningDate = joiningDate.toString(),
+    resignDate = resignDate?.toString(),
+    createdAt = createdAt.toString(),
+    updatedAt = updatedAt?.toString()
+  )
+}

@@ -42,6 +42,7 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.Location
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlanEntry
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dayTypes
 import com.freyza.employee.domain.model.dummyLocation
 import com.freyza.employee.domain.model.dummyLocationAlt
@@ -49,6 +50,8 @@ import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlanEntryHoliday
 import com.freyza.employee.domain.model.dummyTravelPlanEntryLeave
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
+import com.freyza.employee.domain.model.dummyUserEmployee
+import com.freyza.employee.domain.model.dummyUserEmployeeAlt
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.SearchableDropdown
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -59,8 +62,9 @@ fun BeginDailyReportSheet(
   dayTypes: List<DayType>,
   routes: List<RouteWithLocation>,
   locations: List<Location>,
+  employees: List<User>,
   todayTravelPlanEntry: TravelPlanEntry?,
-  onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?) -> Unit,
+  onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?, travellingWithId: String?) -> Unit,
   onRetry: () -> Unit,
   onExit: () -> Unit,
   modifier: Modifier = Modifier,
@@ -102,6 +106,8 @@ fun BeginDailyReportSheet(
   var selectedDestination by remember(todayTravelPlanEntry, routes) {
     mutableStateOf(routes.find { it.id == todayTravelPlanEntry.routeId }?.destLoc)
   }
+
+  var selectedTravellingWith by remember { mutableStateOf<User?>(null) }
 
   val matchingRoute by remember(selectedSource, selectedDestination, routes) {
     derivedStateOf {
@@ -159,6 +165,7 @@ fun BeginDailyReportSheet(
               val route = routes.find { it.id == todayTravelPlanEntry.routeId }
               selectedSource = route?.srcLoc
               selectedDestination = route?.destLoc
+              selectedTravellingWith = null
             }
           }, selected = selectedDayType == type
         ) {
@@ -182,6 +189,12 @@ fun BeginDailyReportSheet(
           )
         )
       ) {
+        TravellingWithSelector(
+          employees = employees,
+          selectedEmployee = selectedTravellingWith,
+          onEmployeeSelect = { selectedTravellingWith = it }
+        )
+
         SearchableDropdown(
           label = "Source Location",
           items = locations,
@@ -250,7 +263,10 @@ fun BeginDailyReportSheet(
       enabled = startButtonEnabled,
       onClick = {
         onDailyReportBegin(
-          selectedDayType, selectedSource?.id, selectedDestination?.id
+          selectedDayType,
+          selectedSource?.id,
+          selectedDestination?.id,
+          selectedTravellingWith?.id
         )
       },
     ) {
@@ -272,8 +288,9 @@ private fun SheetPreviewWork() {
       dayTypes = dayTypes,
       routes = listOf(dummyRouteWithLocation()),
       locations = listOf(dummyLocation(), dummyLocationAlt()),
+      employees = listOf(dummyUserEmployee(), dummyUserEmployeeAlt()),
       todayTravelPlanEntry = dummyTravelPlanEntryWork(),
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
       onExit = {}
     )
@@ -288,8 +305,9 @@ private fun SheetPreviewHoliday() {
       dayTypes = dayTypes,
       routes = listOf(dummyRouteWithLocation()),
       locations = listOf(dummyLocation(), dummyLocationAlt()),
+      employees = listOf(dummyUserEmployeeAlt()),
       todayTravelPlanEntry = dummyTravelPlanEntryHoliday(),
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
       onExit = {}
     )
@@ -305,8 +323,9 @@ private fun SheetPreviewLeave() {
       dayTypes = dayTypes,
       routes = listOf(dummyRouteWithLocation()),
       locations = listOf(dummyLocation(), dummyLocationAlt()),
+      employees = listOf(dummyUserEmployeeAlt()),
       todayTravelPlanEntry = dummyTravelPlanEntryLeave(),
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
       onExit = {}
     )
@@ -321,8 +340,9 @@ private fun SheetPreviewNoPlan() {
       dayTypes = dayTypes,
       routes = listOf(dummyRouteWithLocation()),
       locations = listOf(dummyLocation(), dummyLocationAlt()),
+      employees = listOf(dummyUserEmployeeAlt()),
       todayTravelPlanEntry = null,
-      onDailyReportBegin = { _, _, _ -> },
+      onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
       onExit = {}
     )

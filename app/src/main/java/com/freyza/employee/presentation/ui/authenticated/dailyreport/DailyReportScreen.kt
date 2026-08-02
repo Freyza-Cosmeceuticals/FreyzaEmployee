@@ -104,8 +104,12 @@ fun DailyReportScreen(
       ?: emptyList() else uiState.dailyReports.data ?: emptyList()
   }
 
-  val routeMap = remember(uiState.routes.data) {
-    uiState.routes.data?.associateBy { it.id } ?: emptyMap()
+  val routeMap = remember(uiState.routes) {
+    uiState.routes.associateBy { it.id }
+  }
+
+  val employeeMap = remember(uiState.employees) {
+    uiState.employees.associateBy { it.id }
   }
 
   val fabOptions = listOf(
@@ -169,6 +173,7 @@ fun DailyReportScreen(
                 DailyReportListCard(
                   report = todayReport,
                   route = routeMap[todayReport.routeId],
+                  travellingWith =employeeMap[todayReport.travellingWithId] ,
                   isToday = true,
                   onClick = {
                     onNavigateToReportDetail(todayReport.id)
@@ -196,9 +201,11 @@ fun DailyReportScreen(
 
             items(
               items = pastReports, key = { "report_${it.id}" }) { report ->
+
               DailyReportListCard(
                 report = report,
                 route = routeMap[report.routeId],
+                travellingWith = employeeMap[report.travellingWithId],
                 isToday = false,
                 onClick = { onNavigateToReportDetail(report.id) })
             }
@@ -305,7 +312,7 @@ private fun DailyReportScreenPreviewLoading() {
       uiState = DailyReportUiState(
         today = ServerTime().nowLocalDateTime(),
         dailyReports = UIState.Loading(null, "Cooking reports"),
-        routes = UIState.Ready(listOf(dummyRouteWithLocation()))
+        routes = listOf(dummyRouteWithLocation())
       ),
       user = dummyUserEmployee(),
       onRefresh = {},
@@ -323,7 +330,7 @@ private fun DailyReportScreenPreviewError() {
       uiState = DailyReportUiState(
         today = ServerTime().nowLocalDateTime(),
         dailyReports = UIState.Error("Cannot to load reports"),
-        routes = UIState.Ready(listOf(dummyRouteWithLocation()))
+        routes = listOf(dummyRouteWithLocation())
       ),
       user = dummyUserEmployee(),
       onRefresh = {},

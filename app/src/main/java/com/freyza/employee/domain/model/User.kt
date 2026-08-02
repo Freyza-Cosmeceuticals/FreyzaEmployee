@@ -61,6 +61,22 @@ fun dummyUserEmployee(): User = User(
   userInfo = null,
 )
 
+fun dummyUserEmployeeAlt(): User = User(
+  id = "db9d69f7-09f4-466b-9d69-f709f4366bcf",
+  name = "Luigi Luigi",
+  email = "employee.sample2@freyza.com",
+  phone = "2828828288",
+  role = UserRole.EMPLOYEE,
+  status = UserStatus.ACTIVE,
+  tier = EmployeeTier.ASM,
+  hqId = "fca17731-c0af-4f2e-a177-31c0af0f2ea3",
+  joiningDate = LocalDate.parse("2024-10-10"),
+  resignDate = null,
+  createdAt = Instant.parse("2024-10-10T18:15:03.410287+00"),
+  updatedAt = null,
+  userInfo = null,
+)
+
 fun dummyUserAdmin(): User = User(
   id = "a97dea77-a611-403f-bdea-77a611203f43",
   name = "Mario Admin",

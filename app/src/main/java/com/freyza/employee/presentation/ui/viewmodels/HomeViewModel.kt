@@ -11,6 +11,7 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.repository.LocationRepository
 import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.repository.TravelPlanRepository
+import com.freyza.employee.domain.repository.UserRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportParams
@@ -25,6 +26,7 @@ import kotlinx.coroutines.launch
 
 class HomeViewModel(
   private val sessionManager: SessionManager,
+  private val userRepository: UserRepository,
   private val locationRepository: LocationRepository,
   private val routeRepository: RouteRepository,
   private val travelPlanRepository: TravelPlanRepository,
@@ -69,9 +71,11 @@ class HomeViewModel(
       // fetch routes and locations first
       val routesJob = launch { loadAllRoutes() }
       val locationsJob = launch { loadAllLocations() }
+      val employeesJob = launch { loadHqEmployees(employeeId) }
 
       routesJob.join()
       locationsJob.join()
+      employeesJob.join()
 
       val planJob = launch { loadCurrentTravelPlan(employeeId) }
       val reportJob = launch { loadCurrentDailyReport(employeeId) }
@@ -151,7 +155,12 @@ class HomeViewModel(
     _uiState.update { it.copy(todayReportRoute = route) }
   }
 
-  fun createCurrentDailyReport(dayType: DayType, srcLocId: String?, destLocId: String?) {
+  fun createCurrentDailyReport(
+    dayType: DayType,
+    srcLocId: String?,
+    destLocId: String?,
+    travellingWithId: String? = null,
+  ) {
     val employeeId = sessionManager.currentEmployee.value?.id ?: return
 
     _uiState.update { it.copy(isLoading = true) }
@@ -175,7 +184,7 @@ class HomeViewModel(
               Logger.w(
                 TAG,
                 "New route created on-the-fly: ID=${newRoute.id}, " +
-                  "SrcLocId=$srcLocId, DestLocId=$destLocId. Manual tweak may be needed."
+                        "SrcLocId=$srcLocId, DestLocId=$destLocId. Manual tweak may be needed."
               )
               // Refresh routes list to include the newly created route
               loadAllRoutes()
@@ -193,7 +202,13 @@ class HomeViewModel(
       }
 
       val result = createTodayDailyReportUseCase(
-        CreateTodayDailyReportParams(serverTime.todayIn(), employeeId, dayType, finalRouteId)
+        CreateTodayDailyReportParams(
+          serverTime.todayIn(),
+          employeeId,
+          dayType,
+          finalRouteId,
+          travellingWithId
+        )
       )
 
       when (result) {
@@ -232,6 +247,21 @@ class HomeViewModel(
     when (val result = locationRepository.getAllLocations()) {
       is Result.Success -> _uiState.update { it.copy(locations = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch locations failed: ${result.message}")
+      else -> {}
+    }
+  }
+
+  private suspend fun loadHqEmployees(employeeId: String) {
+    val user = sessionManager.currentEmployee.value
+    val hqId = user?.hqId ?: return
+
+    when (val result = userRepository.getEmployeesByHq(hqId)) {
+      is Result.Success -> {
+        val employees = result.data.filter { it.id != employeeId }
+        _uiState.update { it.copy(employees = employees) }
+      }
+
+      is Result.Error -> Logger.e(TAG, "Fetch employees failed: ${result.message}")
       else -> {}
     }
   }
