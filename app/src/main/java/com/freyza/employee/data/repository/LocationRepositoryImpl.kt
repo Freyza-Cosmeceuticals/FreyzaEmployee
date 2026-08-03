@@ -15,6 +15,8 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
     const val TAG: String = "LocationRepo"
   }
 
+  private var cachedLocations: List<Location>? = null
+
   override suspend fun getLocation(locationId: String): Result<Location?> {
     return try {
       withContext(Dispatchers.IO) {
@@ -34,14 +36,21 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
     }
   }
 
-  override suspend fun getAllLocations(): Result<List<Location>> {
+  override suspend fun getAllLocations(forceRefresh: Boolean): Result<List<Location>> {
+    if (!forceRefresh && cachedLocations != null) {
+      Logger.d(TAG, "Returning cached locations")
+      return Result.Success(cachedLocations!!)
+    }
+
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying all locations")
+        Logger.d(TAG, "Querying all locations from network")
 
         val locationDtos = postgrest.from("location").select().decodeList<LocationDto>()
+        val locations = locationDtos.map { it.toDomain() }
 
-        Result.Success(locationDtos.map { it.toDomain() })
+        cachedLocations = locations
+        Result.Success(locations)
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())

@@ -21,8 +21,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -50,14 +48,15 @@ class AuthenticationRepositoryImpl(
   }
 
   private fun observeNetworkForAutoRefresh() {
-    networkMonitor.isOnline
-      .drop(1)
-      .filter { it }
-      .onEach {
+    var wasOffline = !networkMonitor.isCurrentlyConnected
+
+    networkMonitor.isOnline.onEach { isOnline ->
+      if (wasOffline && isOnline) {
         Logger.d(TAG, "Network back online, triggering auto-refresh")
         checkSession()
       }
-      .launchIn(repositoryScope)
+      wasOffline = !isOnline
+    }.launchIn(repositoryScope)
   }
 
   private fun listenToAuthStatus() {
@@ -103,7 +102,7 @@ class AuthenticationRepositoryImpl(
         }
 
         is AuthState.Loading -> {
-          Logger.i(TAG, "AuthState: Loading")
+          Logger.d(TAG, "AuthState: Loading")
         }
 
         is AuthState.Unauthenticated -> {
@@ -160,8 +159,7 @@ class AuthenticationRepositoryImpl(
           _authState.value = AuthState.Authenticated
         } else {
           Logger.e(
-            TAG,
-            "Invalid role or inactive status. Role: ${user?.role}, Status: ${user?.status}"
+            TAG, "Invalid role or inactive status. Role: ${user?.role}, Status: ${user?.status}"
           )
           logout()
           _authState.value = AuthState.Unauthenticated
@@ -169,8 +167,7 @@ class AuthenticationRepositoryImpl(
       }
 
       is Result.Error -> {
-        if (!networkMonitor.isCurrentlyConnected || isNetworkException(result.message)
-        ) {
+        if (!networkMonitor.isCurrentlyConnected || isNetworkException(result.message)) {
           _authState.value = AuthState.Error("Please check your internet connection.")
         } else {
           Logger.e(TAG, "Error fetching user profile: ${result.message}")
@@ -240,9 +237,15 @@ class AuthenticationRepositoryImpl(
   }
 
   private fun isNetworkException(message: String): Boolean {
-    return message.contains("unable to resolve host", ignoreCase = true) ||
-            message.contains("failed to connect", ignoreCase = true) ||
-            message.contains("connecttimeout", ignoreCase = true) ||
-            message.contains("unknownhost", ignoreCase = true)
+    return message.contains(
+      "unable to resolve host",
+      ignoreCase = true
+    ) || message.contains(
+      "failed to connect",
+      ignoreCase = true
+    ) || message.contains("connecttimeout", ignoreCase = true) || message.contains(
+      "unknownhost",
+      ignoreCase = true
+    )
   }
 }

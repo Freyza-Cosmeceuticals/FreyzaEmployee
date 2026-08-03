@@ -47,14 +47,14 @@ class DailyReportViewModel(
     Logger.i(TAG, "Init")
   }
 
-  fun refresh() {
-    Logger.d(TAG, "Refreshing data")
+  fun refresh(forceRefresh: Boolean = false) {
+    Logger.d(TAG, "Refreshing data, forceRefresh:$forceRefresh")
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {
       loadAllDailyReports(employeeId)
-      loadAllRoutes()
-      loadHqEmployees()
+      loadAllRoutes(forceRefresh)
+      loadHqEmployees(forceRefresh)
     }
   }
 
@@ -107,11 +107,11 @@ class DailyReportViewModel(
     }
   }
 
-  private fun loadAllRoutes() {
+  private fun loadAllRoutes(forceRefresh: Boolean = false) {
     Logger.d(TAG, "Fetching all routes")
 
     viewModelScope.launch {
-      when (val result = routeRepository.getAllRoutesWithLocation()) {
+      when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(routes = result.data)
@@ -130,12 +130,12 @@ class DailyReportViewModel(
     }
   }
 
-  private fun loadHqEmployees() {
+  private fun loadHqEmployees(forceRefresh: Boolean = false) {
     val user = sessionManager.currentEmployee.value
     val hqId = user?.hqId ?: return
 
     viewModelScope.launch {
-      when (val result = userRepository.getEmployeesByHq(hqId)) {
+      when (val result = userRepository.getEmployeesByHq(hqId, forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(employees = result.data)

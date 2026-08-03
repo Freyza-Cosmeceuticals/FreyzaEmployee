@@ -1,10 +1,13 @@
 package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.UserDto
 import com.freyza.employee.domain.model.User
+import com.freyza.employee.domain.model.UserRole
+import com.freyza.employee.domain.model.UserStatus
 import com.freyza.employee.domain.repository.UserRepository
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.user.UserInfo
@@ -20,8 +23,10 @@ class UserRepositoryImpl(
     const val TAG: String = "UserRepository"
   }
 
+  private val cachedHqEmployees = mutableMapOf<String, List<User>>()
+
   override suspend fun getUserById(id: String): Result<User?> {
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         val userDto = postgres.from("user").select {
           filter {
@@ -29,42 +34,42 @@ class UserRepositoryImpl(
           }
         }.decodeSingleOrNull<UserDto>()
 
-        Result.Success(userDto?.toDomain())
+        userDto?.toDomain()
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
   override suspend fun getCurrentUser(): Result<UserInfo?> {
-    return try {
+    return safeApiCall(TAG) {
       val userInfo = auth.currentUserOrNull()
-      Result.Success(userInfo)
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
+      userInfo
     }
   }
 
-  override suspend fun getEmployeesByHq(hqId: String): Result<List<User>> {
-    return try {
+  override suspend fun getEmployeesByHq(hqId: String, forceRefresh: Boolean): Result<List<User>> {
+    return safeApiCall(TAG) {
+      if (!forceRefresh && cachedHqEmployees.containsKey(hqId)) {
+        Logger.d(TAG, "Returning cached employees for HQ: $hqId")
+
+        return@safeApiCall cachedHqEmployees[hqId]!!
+      }
+
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying employees by hq:${hqId}")
+        Logger.d(TAG, "Querying employees by hq:${hqId} from network")
 
         val usersDto = postgres.from("user").select {
           filter {
             UserDto::hqId eq hqId
-            UserDto::status eq "ACTIVE"
-            UserDto::role eq "EMPLOYEE"
+            UserDto::status eq UserStatus.ACTIVE
+            UserDto::role eq UserRole.EMPLOYEE
           }
         }.decodeList<UserDto>()
 
-        Result.Success(usersDto.map { it.toDomain() })
+        val employees = usersDto.map { it.toDomain() }
+        cachedHqEmployees[hqId] = employees
+
+        employees
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 }

@@ -19,6 +19,8 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
     const val TAG: String = "RouteRepository"
   }
 
+  private var cachedRoutesWithLocation: List<RouteWithLocation>? = null
+
   override suspend fun getRoute(routeId: String): Result<Route?> {
     return try {
       withContext(Dispatchers.IO) {
@@ -54,10 +56,15 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
     }
   }
 
-  override suspend fun getAllRoutesWithLocation(): Result<List<RouteWithLocation>> {
+  override suspend fun getAllRoutesWithLocation(forceRefresh: Boolean): Result<List<RouteWithLocation>> {
+    if (!forceRefresh && cachedRoutesWithLocation != null) {
+      Logger.d(TAG, "Returning cached routes with location")
+      return Result.Success(cachedRoutesWithLocation!!)
+    }
+
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying all routes with location")
+        Logger.d(TAG, "Querying all routes with location from network")
 
         val routesDto = postgrest.from("route").select(
           Columns.raw(
@@ -70,6 +77,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
         ).decodeList<RouteWithLocationDto>()
 
         val routes = routesDto.map { it.toDomain() }
+        cachedRoutesWithLocation = routes
         Result.Success(routes)
       }
     } catch (e: Exception) {
