@@ -106,7 +106,7 @@ fun ReportDetailScreenRoute(
     ReportDetailScreen(
       uiState = uiState,
       user = currentUser!!,
-      onRefresh = viewModel::refresh,
+      onRefresh = { viewModel.refresh(true) },
       onNavigateUp = onNavigateUp,
       onNavigateToVisitDetail = onNavigateToVisitDetail,
       onNavigateToAddVisit = onNavigateToAddVisit,

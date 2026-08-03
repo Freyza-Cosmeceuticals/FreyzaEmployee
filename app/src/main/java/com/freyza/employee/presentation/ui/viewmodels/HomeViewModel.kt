@@ -61,17 +61,17 @@ class HomeViewModel(
     refresh()
   }
 
-  fun refresh() {
-    Logger.d(TAG, "Refreshing data")
+  fun refresh(forceRefresh: Boolean = false) {
+    Logger.d(TAG, "Refreshing data, forceRefresh:$forceRefresh")
     val employeeId = sessionManager.currentEmployee.value?.id ?: return
 
     viewModelScope.launch {
       _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
 
       // fetch routes and locations first
-      val routesJob = launch { loadAllRoutes() }
-      val locationsJob = launch { loadAllLocations() }
-      val employeesJob = launch { loadHqEmployees(employeeId) }
+      val routesJob = launch { loadAllRoutes(forceRefresh) }
+      val locationsJob = launch { loadAllLocations(forceRefresh) }
+      val employeesJob = launch { loadHqEmployees(employeeId, forceRefresh) }
 
       routesJob.join()
       locationsJob.join()
@@ -235,27 +235,27 @@ class HomeViewModel(
     }
   }
 
-  private suspend fun loadAllRoutes() {
-    when (val result = routeRepository.getAllRoutesWithLocation()) {
+  private suspend fun loadAllRoutes(forceRefresh: Boolean = false) {
+    when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh)) {
       is Result.Success -> _uiState.update { it.copy(routes = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch routes failed: ${result.message}")
       else -> {}
     }
   }
 
-  private suspend fun loadAllLocations() {
-    when (val result = locationRepository.getAllLocations()) {
+  private suspend fun loadAllLocations(forceRefresh: Boolean = false) {
+    when (val result = locationRepository.getAllLocations(forceRefresh)) {
       is Result.Success -> _uiState.update { it.copy(locations = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch locations failed: ${result.message}")
       else -> {}
     }
   }
 
-  private suspend fun loadHqEmployees(employeeId: String) {
+  private suspend fun loadHqEmployees(employeeId: String, forceRefresh: Boolean = false) {
     val user = sessionManager.currentEmployee.value
     val hqId = user?.hqId ?: return
 
-    when (val result = userRepository.getEmployeesByHq(hqId)) {
+    when (val result = userRepository.getEmployeesByHq(hqId, forceRefresh)) {
       is Result.Success -> {
         val employees = result.data.filter { it.id != employeeId }
         _uiState.update { it.copy(employees = employees) }

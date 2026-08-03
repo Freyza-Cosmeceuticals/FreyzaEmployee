@@ -93,7 +93,7 @@ fun HomeScreenRoute(
       uiState = uiState,
       user = currentUser!!,
       modifier = modifier,
-      onRefresh = viewModel::refresh,
+      onRefresh = { viewModel.refresh(true) },
       onLogout = onNavigateToUnauthenticated,
       onExit = onExit,
       onDailyReportBegin = viewModel::createCurrentDailyReport,

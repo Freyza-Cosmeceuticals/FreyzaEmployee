@@ -74,7 +74,7 @@ fun DailyReportScreenRoute(
     DailyReportScreen(
       uiState = uiState,
       user = currentUser!!,
-      onRefresh = viewModel::refresh,
+      onRefresh = { viewModel.refresh(true) },
       modifier = modifier,
       visitCreated = visitCreated,
       onVisitCreatedConsumed = onVisitCreatedConsumed,

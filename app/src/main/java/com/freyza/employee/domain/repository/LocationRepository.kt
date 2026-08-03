@@ -5,5 +5,5 @@ import com.freyza.employee.domain.model.Location
 
 interface LocationRepository {
   suspend fun getLocation(locationId: String): Result<Location?>
-  suspend fun getAllLocations(): Result<List<Location>>
+  suspend fun getAllLocations(forceRefresh: Boolean = false): Result<List<Location>>
 }
