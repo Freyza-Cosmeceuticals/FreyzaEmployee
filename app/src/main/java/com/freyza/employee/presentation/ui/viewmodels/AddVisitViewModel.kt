@@ -80,6 +80,7 @@ class AddVisitViewModel(
   }
 
   private fun loadAvailablePois() {
+    _uiState.update { it.copy(availablePois = UIState.Loading()) }
     viewModelScope.launch {
       // 1. Get Daily Report to find routeId
       val reportResult = dailyReportRepository.getDailyReport(reportId)
@@ -94,12 +95,14 @@ class AddVisitViewModel(
               // 3. Fetch POIs for this location and visit type
               val poisResult = dailyReportRepository.getPois(destLocId, visitType)
               if (poisResult is Result.Success) {
-                _uiState.update { it.copy(availablePois = poisResult.data) }
+                _uiState.update { it.copy(availablePois = UIState.Ready(poisResult.data)) }
+                return@launch
               }
             }
           }
         }
       }
+      _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
     }
   }
 
@@ -148,7 +151,8 @@ class AddVisitViewModel(
 
   fun updateName(name: String) {
     _uiState.update { state ->
-      val matchedPoi = state.availablePois.find {
+      val pois = state.availablePois.data ?: emptyList()
+      val matchedPoi = pois.find {
         it.name.trim().equals(name.trim(), ignoreCase = true)
       }
       state.copy(

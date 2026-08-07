@@ -163,13 +163,14 @@ fun AddVisitScreen(
           visitType = uiState.visitType,
           name = form.name,
           onNameChange = onNameChange,
-          availablePois = uiState.availablePois,
+          availablePois = uiState.availablePois.data ?: emptyList(),
           selectedPoiId = form.poiId,
           onPoiSelect = onPoiSelect,
           samplesGiven = form.samplesGiven,
           onSamplesChange = onSamplesChange,
           focusManager = focusManager,
-          enabled = uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error
+          enabled = (uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error) &&
+                  uiState.availablePois !is UIState.Loading
         )
       }
 

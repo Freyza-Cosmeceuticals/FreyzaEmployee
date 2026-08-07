@@ -69,7 +69,7 @@ data class AddVisitFormState(
 data class AddVisitUiState(
   val today: LocalDateTime,
   val visitType: VisitType? = null,
-  val availablePois: List<PointOfInterest> = emptyList(),
+  val availablePois: UIState<List<PointOfInterest>> = UIState.Idle(),
   val creationState: UIState<Boolean> = UIState.Idle(),
   val form: AddVisitFormState = AddVisitFormState(),
 )

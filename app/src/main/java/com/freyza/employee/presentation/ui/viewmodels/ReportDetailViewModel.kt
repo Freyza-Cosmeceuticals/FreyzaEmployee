@@ -8,7 +8,6 @@ import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
-import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.repository.DailyReportRepository
 import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.repository.UserRepository
@@ -60,13 +59,13 @@ class ReportDetailViewModel(
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {
-      loadDailyReport(reportId = uiState.value.reportId)
+      loadDailyReport(reportId = uiState.value.reportId, forceRefresh)
       loadAllRoutes(forceRefresh)
       loadHqEmployees(forceRefresh)
     }
   }
 
-  fun loadDailyReport(reportId: String) {
+  fun loadDailyReport(reportId: String, forceRefresh: Boolean = false) {
     Logger.d(TAG, "Fetching daily report:$reportId")
 
     _uiState.update {
@@ -84,7 +83,7 @@ class ReportDetailViewModel(
           )
           
           // Trigger POI fetch as soon as we have the routeId/destLocId
-          result.data?.routeId?.let { loadRouteAndPois(it) }
+          result.data?.routeId?.let { loadRouteAndPois(it, forceRefresh) }
         }
 
         is Result.Error -> {
@@ -134,13 +133,13 @@ class ReportDetailViewModel(
     }
   }
 
-  private fun loadRouteAndPois(routeId: String) {
+  private fun loadRouteAndPois(routeId: String, forceRefresh: Boolean = false) {
     viewModelScope.launch {
       when (val result = routeRepository.getRoute(routeId)) {
         is Result.Success -> {
           val destLocId = result.data?.destLocId
           if (destLocId != null) {
-            loadPois(destLocId)
+            loadPois(destLocId, forceRefresh)
           }
         }
 
@@ -150,9 +149,9 @@ class ReportDetailViewModel(
     }
   }
 
-  private fun loadPois(locationId: String) {
+  private fun loadPois(locationId: String, forceRefresh: Boolean = false) {
     viewModelScope.launch {
-      when (val result = dailyReportRepository.getPoisByLocation(locationId)) {
+      when (val result = dailyReportRepository.getPoisByLocation(locationId, forceRefresh)) {
         is Result.Success -> {
           _uiState.update { it.copy(pois = result.data) }
         }
