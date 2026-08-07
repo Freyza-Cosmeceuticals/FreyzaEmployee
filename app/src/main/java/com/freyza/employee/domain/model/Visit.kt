@@ -34,6 +34,8 @@ sealed class Visit {
   abstract val longitude: Double
   abstract val distanceMetersFromPOI: Int
 
+  abstract val poiId: String?
+
   abstract val additionalNotes: String?
 
   abstract val createdAt: Instant
@@ -47,6 +49,8 @@ sealed class Visit {
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
+
+    override val poiId: String?,
 
     val doctorName: String,
     val productDetails: List<ProductDetail> = emptyList(),
@@ -71,6 +75,8 @@ sealed class Visit {
     override val latitude: Double,
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
+
+    override val poiId: String?,
 
     val stockistName: String,
     val samplesGiven: List<String> = emptyList(),
@@ -99,6 +105,8 @@ sealed class Visit {
     override val longitude: Double,
     override val distanceMetersFromPOI: Int,
 
+    override val poiId: String?,
+
     val chemistName: String,
     val orderTaken: Boolean = false,
     val outstandingAmount: Money = Money.ZERO,
@@ -113,6 +121,8 @@ sealed class Visit {
 }
 
 data class VisitCreate(
+  val poiId: String?,
+  val newPoiName: String?,
   val doctorName: String?,
   val stockistName: String?,
   val chemistName: String?,
@@ -153,6 +163,7 @@ fun dummyVisitDoctor(): Visit = Visit.DoctorVisit(
   latitude = 34.632,
   longitude = 55.246,
   distanceMetersFromPOI = 55,
+  poiId = null,
   doctorName = "Dr. X",
   productDetails = if (Random.nextBoolean()) listOf(
     ProductDetail("Generator", BigDecimal("100.00"), 1),
@@ -179,6 +190,7 @@ fun dummyVisitDoctorAllTrue(): Visit = Visit.DoctorVisit(
   latitude = 34.632,
   longitude = 55.246,
   distanceMetersFromPOI = 55,
+  poiId = null,
   doctorName = "Dr. X",
   productDetails = listOf(
     ProductDetail("Generator", BigDecimal("100.00"), 1),
@@ -201,6 +213,7 @@ fun dummyVisitChemist(): Visit = Visit.ChemistVisit(
   latitude = 45.653,
   longitude = 22.216,
   distanceMetersFromPOI = 34,
+  poiId = null,
   chemistName = "Ch. Y",
   orderTaken = Random.nextBoolean(),
   outstandingAmount = Random.nextDouble(0.0, 1000.0).toMoney(),
@@ -216,6 +229,7 @@ fun dummyVisitChemistAllTrue(): Visit = Visit.ChemistVisit(
   latitude = 45.653,
   longitude = 22.216,
   distanceMetersFromPOI = 34,
+  poiId = null,
   chemistName = "Ch. Y",
   orderTaken = true,
   outstandingAmount = "500.00".toMoney(),
@@ -231,6 +245,7 @@ fun dummyVisitStockist(): Visit = Visit.StockistVisit(
   latitude = 45.367,
   longitude = 43.326,
   distanceMetersFromPOI = 65,
+  poiId = null,
   stockistName = "Stockist XYZ Holmes",
   billNo = "Bill 222345",
   paymentCollected = Random.nextBoolean(),
@@ -256,6 +271,7 @@ fun dummyVisitStockistAllTrue(): Visit = Visit.StockistVisit(
   latitude = 45.367,
   longitude = 43.326,
   distanceMetersFromPOI = 65,
+  poiId = null,
   stockistName = "Stockist XYZ Holmes",
   billNo = "Bill 222345",
   paymentCollected = true,

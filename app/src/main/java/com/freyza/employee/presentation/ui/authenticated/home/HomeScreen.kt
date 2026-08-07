@@ -285,6 +285,7 @@ private fun HomeScreen(
               dailyReport = uiState.currentDailyReport,
               travellingWith = travellingWith,
               route = uiState.todayReportRoute,
+              pois = uiState.pois,
               modifier = Modifier.fillMaxSize(),
               onClick = { onNavigateToReport(uiState.currentDailyReport.id) }
             )

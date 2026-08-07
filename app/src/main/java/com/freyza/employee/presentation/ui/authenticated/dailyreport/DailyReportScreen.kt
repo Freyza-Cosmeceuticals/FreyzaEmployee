@@ -173,7 +173,7 @@ fun DailyReportScreen(
                 DailyReportListCard(
                   report = todayReport,
                   route = routeMap[todayReport.routeId],
-                  travellingWith =employeeMap[todayReport.travellingWithId] ,
+                  travellingWith = employeeMap[todayReport.travellingWithId],
                   isToday = true,
                   onClick = {
                     onNavigateToReportDetail(todayReport.id)

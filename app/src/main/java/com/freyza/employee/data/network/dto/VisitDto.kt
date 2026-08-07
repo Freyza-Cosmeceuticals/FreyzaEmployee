@@ -26,6 +26,9 @@ data class VisitDto(
   @SerialName("distanceMetersFromPOI")
   val distanceMetersFromPOI: Int,
 
+  @SerialName("poiId")
+  val poiId: String?,
+
   @SerialName("doctorName")
   val doctorName: String?,
   @SerialName("chemistName")
@@ -72,8 +75,6 @@ data class VisitDto(
 data class VisitCreateDto(
   @SerialName("reportId")
   val reportId: String,
-  @SerialName("employeeId")
-  val employeeId: String,
   @SerialName("visitType")
   val visitType: VisitType,
 
@@ -81,15 +82,11 @@ data class VisitCreateDto(
   val latitude: Double,
   @SerialName("longitude")
   val longitude: Double,
-  @SerialName("distanceMetersFromPOI")
-  val distanceMetersFromPOI: Int,
 
-  @SerialName("doctorName")
-  val doctorName: String?,
-  @SerialName("chemistName")
-  val chemistName: String?,
-  @SerialName("stockistName")
-  val stockistName: String?,
+  @SerialName("poiId")
+  val poiId: String?,
+  @SerialName("newPoiName")
+  val newPoiName: String?,
 
   @SerialName("productDetails")
   val productDetails: List<ProductDetail>,
@@ -123,12 +120,10 @@ data class VisitCreateDto(
 
 @Serializable
 data class VisitUpdateDto(
-  @SerialName("doctorName")
-  val doctorName: String?,
-  @SerialName("chemistName")
-  val chemistName: String?,
-  @SerialName("stockistName")
-  val stockistName: String?,
+  @SerialName("poiId")
+  val poiId: String?,
+  @SerialName("newPoiName")
+  val newPoiName: String?,
 
   @SerialName("productDetails")
   val productDetails: List<ProductDetail>,

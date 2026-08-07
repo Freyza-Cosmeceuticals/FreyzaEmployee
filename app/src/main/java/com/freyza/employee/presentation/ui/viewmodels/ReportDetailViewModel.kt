@@ -8,6 +8,7 @@ import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
+import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.repository.DailyReportRepository
 import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.repository.UserRepository
@@ -81,6 +82,9 @@ class ReportDetailViewModel(
           Logger.d(
             TAG, "Daily Report Fetched Successfully id:${result.data?.id}"
           )
+          
+          // Trigger POI fetch as soon as we have the routeId/destLocId
+          result.data?.routeId?.let { loadRouteAndPois(it) }
         }
 
         is Result.Error -> {
@@ -125,6 +129,35 @@ class ReportDetailViewModel(
           Logger.e(TAG, "Failed to lock report:$reportId")
         }
 
+        else -> {}
+      }
+    }
+  }
+
+  private fun loadRouteAndPois(routeId: String) {
+    viewModelScope.launch {
+      when (val result = routeRepository.getRoute(routeId)) {
+        is Result.Success -> {
+          val destLocId = result.data?.destLocId
+          if (destLocId != null) {
+            loadPois(destLocId)
+          }
+        }
+
+        is Result.Error -> Logger.e(TAG, "Failed to load route: ${result.message}")
+        else -> {}
+      }
+    }
+  }
+
+  private fun loadPois(locationId: String) {
+    viewModelScope.launch {
+      when (val result = dailyReportRepository.getPoisByLocation(locationId)) {
+        is Result.Success -> {
+          _uiState.update { it.copy(pois = result.data) }
+        }
+
+        is Result.Error -> Logger.e(TAG, "Failed to load POIs: ${result.message}")
         else -> {}
       }
     }

@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,16 +37,23 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Money
 import com.freyza.employee.core.util.toCurrencyString
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.dummyVisitChemistAllTrue
 import com.freyza.employee.domain.model.dummyVisitDoctorAllTrue
 import com.freyza.employee.domain.model.dummyVisitStockistAllTrue
+import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun VisitListItem(visit: Visit, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
+fun VisitListItem(
+  visit: Visit,
+  modifier: Modifier = Modifier,
+  poi: PointOfInterest? = null,
+  onClick: () -> Unit = {},
+) {
   ListItem(
     modifier = modifier
       .clip(RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp))
@@ -69,17 +78,21 @@ fun VisitListItem(visit: Visit, modifier: Modifier = Modifier, onClick: () -> Un
       Text(visit.visitType.name.uppercase())
     },
     headlineContent = {
-      Text(
-        text = when (visit) {
-          is Visit.DoctorVisit -> visit.doctorName
-          is Visit.StockistVisit -> visit.stockistName
-          is Visit.ChemistVisit -> visit.chemistName
-        },
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Medium
-      )
+      if (visit.poiId != null && poi == null) {
+        Skeleton(
+          modifier = Modifier
+            .width(120.dp)
+            .height(20.dp)
+        )
+      } else {
+        Text(
+          text = poi?.name ?: "???",
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          style = MaterialTheme.typography.bodyLarge,
+          fontWeight = FontWeight.Medium
+        )
+      }
     },
     supportingContent = {
       Column(verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))) {

@@ -22,6 +22,7 @@ fun VisitDto.toDomain(): Visit {
       latitude = latitude,
       longitude = longitude,
       distanceMetersFromPOI = distanceMetersFromPOI,
+      poiId = poiId,
       doctorName = doctorName ?: "Unknown Doctor",
       productDetails = productDetails,
       samplesGiven = samplesGiven,
@@ -39,6 +40,7 @@ fun VisitDto.toDomain(): Visit {
       latitude = latitude,
       longitude = longitude,
       distanceMetersFromPOI = distanceMetersFromPOI,
+      poiId = poiId,
       stockistName = stockistName ?: "Unknown Stockist",
       samplesGiven = samplesGiven,
       orderTaken = orderTaken,
@@ -59,6 +61,7 @@ fun VisitDto.toDomain(): Visit {
       latitude = latitude,
       longitude = longitude,
       distanceMetersFromPOI = distanceMetersFromPOI,
+      poiId = poiId,
       chemistName = chemistName ?: "Unknown Chemist",
       orderTaken = orderTaken,
       outstandingAmount = outstandingAmount?.let { Money(it) } ?: Money.ZERO,
@@ -77,6 +80,7 @@ fun Visit.toDto(): VisitDto {
     latitude = latitude,
     longitude = longitude,
     distanceMetersFromPOI = distanceMetersFromPOI,
+    poiId = poiId,
     additionalNotes = additionalNotes,
     doctorName = (this as? Visit.DoctorVisit)?.doctorName,
     productDetails = (this as? Visit.DoctorVisit)?.productDetails ?: emptyList(),
@@ -126,15 +130,13 @@ fun AddVisitFormState.toDto(
   longitude: Double,
 ): VisitCreateDto = VisitCreateDto(
   reportId = reportId,
-  employeeId = employeeId,
   visitType = visitType,
   latitude = latitude,
   longitude = longitude,
-  distanceMetersFromPOI = 0,
 
-  doctorName = name.value.takeIf { visitType == VisitType.DOCTOR },
-  chemistName = name.value.takeIf { visitType == VisitType.CHEMIST },
-  stockistName = name.value.takeIf { visitType == VisitType.STOCKIST },
+  poiId = poiId,
+  newPoiName = if (poiId == null) name.value else null,
+
   productDetails = productEntries.mapNotNull {
     it.toProductDetail()
   },
@@ -151,9 +153,8 @@ fun AddVisitFormState.toDto(
 )
 
 fun AddVisitFormState.toUpdateDto(visitType: VisitType, updatedAt: String? = null): VisitUpdateDto = VisitUpdateDto(
-  doctorName = name.value.takeIf { visitType == VisitType.DOCTOR },
-  chemistName = name.value.takeIf { visitType == VisitType.CHEMIST },
-  stockistName = name.value.takeIf { visitType == VisitType.STOCKIST },
+  poiId = poiId,
+  newPoiName = if (poiId == null) name.value else null,
   productDetails = productEntries.mapNotNull { it.toProductDetail() },
   samplesGiven = samplesGiven,
   orderTaken = orderTaken,
@@ -177,6 +178,7 @@ fun Visit.toFormState(): AddVisitFormState {
 
   return AddVisitFormState(
     name = FormField(commonName),
+    poiId = poiId,
     notes = FormField(additionalNotes ?: ""),
     productEntries = if (this is Visit.DoctorVisit) {
       productDetails.map { detail ->

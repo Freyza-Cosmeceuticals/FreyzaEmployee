@@ -35,12 +35,12 @@ class GPSMonitor(private val context: Context) {
   }
 
   fun startMonitoring() {
-    Logger.i(TAG, "Starting GPS monitoring")
+    Logger.d(TAG, "Starting GPS monitoring")
     context.registerReceiver(gpsReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
   }
 
   fun stopMonitoring() {
-    Logger.i(TAG, "Stopping GPS monitoring")
+    Logger.d(TAG, "Stopping GPS monitoring")
     context.unregisterReceiver(gpsReceiver)
   }
 

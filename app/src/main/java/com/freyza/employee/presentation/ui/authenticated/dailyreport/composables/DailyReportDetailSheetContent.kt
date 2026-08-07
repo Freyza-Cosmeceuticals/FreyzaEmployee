@@ -43,6 +43,10 @@ import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
+/**
+ * OBSOLETE: This component is no longer maintained and has been replaced by ReportDetailScreen.
+ */
+@Deprecated("Use ReportDetailScreen instead")
 @Composable
 fun DailyReportDetailSheetContent(
   report: DailyReport?,

@@ -50,6 +50,7 @@ val viewModelModule = module {
       sessionManager = get(),
       createVisitUseCase = get(),
       dailyReportRepository = get(),
+      routeRepository = get(),
       snackbarManager = get(),
       serverTime = get(),
       locationTracker = get()

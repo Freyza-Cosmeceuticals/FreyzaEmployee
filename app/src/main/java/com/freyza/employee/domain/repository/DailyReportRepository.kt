@@ -5,7 +5,9 @@ import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.data.network.dto.VisitUpdateDto
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
+import com.freyza.employee.domain.model.VisitType
 import kotlinx.datetime.LocalDate
 
 interface DailyReportRepository {
@@ -25,6 +27,19 @@ interface DailyReportRepository {
   suspend fun getVisits(dailyReportId: String): Result<List<Visit>>
   suspend fun getDailyReport(id: String, withVisits: Boolean = false): Result<DailyReport?>
   suspend fun getVisit(id: String): Result<Visit?>
+
+  suspend fun getPois(
+    locationId: String,
+    visitType: VisitType,
+    forceRefresh: Boolean = false,
+  ): Result<List<PointOfInterest>>
+
+  suspend fun getPoisByLocation(
+    locationId: String,
+    forceRefresh: Boolean = false,
+  ): Result<List<PointOfInterest>>
+
+  suspend fun getPoi(id: String): Result<PointOfInterest?>
 
   suspend fun createTodayDailyReport(
     today: LocalDate,

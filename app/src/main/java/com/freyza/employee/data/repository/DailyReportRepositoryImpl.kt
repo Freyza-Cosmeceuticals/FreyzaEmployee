@@ -8,12 +8,15 @@ import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.BeginReportRequest
 import com.freyza.employee.data.network.dto.BeginReportResponse
 import com.freyza.employee.data.network.dto.DailyReportDto
+import com.freyza.employee.data.network.dto.PointOfInterestDto
 import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.data.network.dto.VisitDto
 import com.freyza.employee.data.network.dto.VisitUpdateDto
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
+import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.repository.DailyReportRepository
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
@@ -21,8 +24,11 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -31,6 +37,38 @@ import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class PoisResponse(
+  @SerialName("success")
+  val success: Boolean,
+  @SerialName("data")
+  val data: List<PointOfInterestDto>
+)
+
+@Serializable
+data class VisitCreateResponse(
+  @SerialName("success")
+  val success: Boolean,
+  @SerialName("data")
+  val data: VisitDto
+)
+
+@Serializable
+data class PoiResponse(
+  @SerialName("success")
+  val success: Boolean,
+  @SerialName("data")
+  val data: PointOfInterestDto
+)
+
+@Serializable
+data class ErrorResponse(
+  @SerialName("message")
+  val message: String
+)
 
 class DailyReportRepositoryImpl(
   private val postgrest: Postgrest,
@@ -38,6 +76,8 @@ class DailyReportRepositoryImpl(
   private val appConfig: AppConfig,
   private val auth: Auth,
 ) : DailyReportRepository {
+  private val poiCache = mutableMapOf<String, List<PointOfInterest>>()
+
   companion object {
     const val TAG: String = "DailyReportRepo"
     private const val TABLE_DAILY_REPORT = "dailyReport"
@@ -175,6 +215,152 @@ class DailyReportRepositoryImpl(
     }
   }
 
+  override suspend fun getPois(
+    locationId: String,
+    visitType: VisitType,
+    forceRefresh: Boolean,
+  ): Result<List<PointOfInterest>> {
+    // 1. Read from cache if available and not force refreshing
+    if (!forceRefresh) {
+      val cached = poiCache[locationId]?.filter { it.type == visitType }
+      if (!cached.isNullOrEmpty()) {
+        Logger.d(TAG, "Cache hit for POIs (Type: $visitType) at location: $locationId")
+        return Result.Success(cached)
+      }
+    }
+
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Fetching POIs for locationId: $locationId, visitType: $visitType")
+
+        val token = auth.currentAccessTokenOrNull()
+          ?: throw IllegalStateException("No authentication token found")
+
+        val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
+          header(HttpHeaders.Authorization, "Bearer $token")
+          parameter("locationId", locationId)
+          parameter("visitType", visitType.name)
+        }
+
+        if (response.status.isSuccess()) {
+          val poisResponse = response.body<PoisResponse>()
+          if (poisResponse.success) {
+            val pois = poisResponse.data.map { dto ->
+              dto.toDomain()
+            }
+
+            // NOTE: We do not store the result in cache here because this fetch only 
+            // returns POIs for a specific visitType. We want the locationId entry in 
+            // cache to always be complete (containing all POIs for that location).
+            
+            Logger.d(TAG, "Fetched ${pois.size} POIs for locationId: $locationId, visitType: $visitType")
+            Result.Success(pois)
+          } else {
+            Result.Error("Unable to fetch POIs")
+          }
+        } else {
+          val error = response.body<ErrorResponse>()
+          Logger.e(TAG, "API Error: ${response.status} - $error")
+          Result.Error("Error: ${error.message}")
+        }
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun getPoisByLocation(
+    locationId: String,
+    forceRefresh: Boolean,
+  ): Result<List<PointOfInterest>> {
+    // 1. Read from cache if available and not force refreshing
+    if (!forceRefresh) {
+      val cached = poiCache[locationId]
+      if (cached != null) {
+        Logger.d(TAG, "Cache hit for all POIs at location: $locationId")
+        return Result.Success(cached)
+      }
+    }
+
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Fetching all POIs for locationId: $locationId")
+
+        val token = auth.currentAccessTokenOrNull()
+          ?: throw IllegalStateException("No authentication token found")
+
+        val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
+          header(HttpHeaders.Authorization, "Bearer $token")
+          parameter("locationId", locationId)
+        }
+
+        if (response.status.isSuccess()) {
+          val poisResponse = response.body<PoisResponse>()
+          if (poisResponse.success) {
+            val pois = poisResponse.data.map { dto ->
+              dto.toDomain()
+            }
+
+            // 2. Assured that this entry contains all POIs for the location
+            poiCache[locationId] = pois
+
+            Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationId: $locationId")
+            Result.Success(pois)
+          } else {
+            Result.Error("Unable to fetch POIs")
+          }
+        } else {
+          val error = response.body<ErrorResponse>()
+          Logger.e(TAG, "API Error: ${response.status} - $error")
+          Result.Error("Error: ${error.message}")
+        }
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
+  override suspend fun getPoi(id: String): Result<PointOfInterest?> {
+    // Check cache first across all locations
+    poiCache.values.flatten().find { it.id == id }?.let {
+      Logger.d(TAG, "Cache hit for POI with id: $id")
+      return Result.Success(it)
+    }
+
+    return try {
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Fetching POI with id: $id")
+
+        val token = auth.currentAccessTokenOrNull()
+          ?: throw IllegalStateException("No authentication token found")
+
+        val response = httpClient.get("${appConfig.apiUrl}/api/pois/$id") {
+          header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        if (response.status.isSuccess()) {
+          val poiResponse = response.body<PoiResponse>()
+          if (poiResponse.success) {
+            Result.Success(poiResponse.data.toDomain())
+          } else {
+            Result.Error("Unable to fetch POI")
+          }
+        } else if (response.status.value == 404) {
+          Result.Success(null)
+        } else {
+          val error = response.body<ErrorResponse>()
+          Logger.e(TAG, "API Error: ${response.status} - $error")
+          Result.Error("Error: ${error.message}")
+        }
+      }
+    } catch (e: Exception) {
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message.toString())
+    }
+  }
+
   override suspend fun createTodayDailyReport(
     today: LocalDate,
     employeeId: String,
@@ -214,9 +400,9 @@ class DailyReportRepositoryImpl(
             Result.Error("Unable to create daily report")
           }
         } else {
-          val errorBody = response.body<String>()
-          Logger.e(TAG, "API Error: ${response.status} - $errorBody")
-          Result.Error("Error: ${response.status.description}")
+          val error = response.body<ErrorResponse>()
+          Logger.e(TAG, "API Error: ${response.status} - $error")
+          Result.Error("Error: ${error.message}")
         }
       }
     } catch (e: Exception) {
@@ -237,14 +423,30 @@ class DailyReportRepositoryImpl(
       withContext(Dispatchers.IO) {
         Logger.d(
           TAG,
-          "Creating visit for current employee, dailyReportId: $dailyReportId and date: $thisDate"
+          "Creating visit via API for dailyReportId: $dailyReportId and date: $thisDate"
         )
 
-        val visitDto = postgrest.from(TABLE_VISIT).insert(visitCreateDto) {
-          select()
-        }.decodeSingle<VisitDto>()
+        val token = auth.currentAccessTokenOrNull()
+          ?: throw IllegalStateException("No authentication token found")
 
-        Result.Success(visitDto.toDomain())
+        val response = httpClient.post("${appConfig.apiUrl}/api/visits/create") {
+          contentType(ContentType.Application.Json)
+          header(HttpHeaders.Authorization, "Bearer $token")
+          setBody(visitCreateDto)
+        }
+
+        if (response.status.isSuccess()) {
+          val createResponse = response.body<VisitCreateResponse>()
+          if (createResponse.success) {
+            Result.Success(createResponse.data.toDomain())
+          } else {
+            Result.Error("Unable to create visit")
+          }
+        } else {
+          val error = response.body<ErrorResponse>()
+          Logger.e(TAG, "API Error: ${response.status} - $error")
+          Result.Error("Error: ${error.message}")
+        }
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())
@@ -300,16 +502,29 @@ class DailyReportRepositoryImpl(
   ): Result<Visit> {
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Updating visit:$visitId")
+        Logger.d(TAG, "Updating visit via API visit:$visitId")
 
-        val visitDto = postgrest.from(TABLE_VISIT).update(visitUpdateDto) {
-          filter {
-            VisitDto::id eq visitId
+        val token = auth.currentAccessTokenOrNull()
+          ?: throw IllegalStateException("No authentication token found")
+
+        val response = httpClient.put("${appConfig.apiUrl}/api/visits/${visitId}") {
+          contentType(ContentType.Application.Json)
+          header(HttpHeaders.Authorization, "Bearer $token")
+          setBody(visitUpdateDto)
+        }
+
+        if (response.status.isSuccess()) {
+          val updateResponse = response.body<VisitCreateResponse>()
+          if (updateResponse.success) {
+            Result.Success(updateResponse.data.toDomain())
+          } else {
+            Result.Error("Unable to update visit")
           }
-          select()
-        }.decodeSingle<VisitDto>()
-
-        Result.Success(visitDto.toDomain())
+        } else {
+          val error = response.body<ErrorResponse>()
+          Logger.e(TAG, "API Error: ${response.status} - $error")
+          Result.Error("Error: ${error.message}")
+        }
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())
