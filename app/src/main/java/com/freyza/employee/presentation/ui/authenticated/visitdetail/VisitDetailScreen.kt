@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -255,12 +257,20 @@ private fun VisitDetailHeader(visit: Visit, poi: PointOfInterest? = null) {
       )
     }
 
-    Text(
-      text = poi?.name ?: "???",
-      style = MaterialTheme.typography.headlineMedium,
-      fontWeight = FontWeight.ExtraBold,
-      color = MaterialTheme.colorScheme.onSurface
-    )
+    if (visit.poiId != null && poi == null) {
+      Skeleton(
+        modifier = Modifier
+          .width(80.dp)
+          .height(14.dp)
+      )
+    } else {
+      Text(
+        text = poi?.name ?: "???",
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.ExtraBold,
+        color = MaterialTheme.colorScheme.onSurface
+      )
+    }
 
     HorizontalDivider(modifier = Modifier.padding(top = 8.dp), thickness = 0.5.dp)
   }

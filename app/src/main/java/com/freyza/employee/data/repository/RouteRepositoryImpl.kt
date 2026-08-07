@@ -7,6 +7,7 @@ import com.freyza.employee.data.network.dto.RouteDto
 import com.freyza.employee.data.network.dto.RouteWithLocationDto
 import com.freyza.employee.domain.model.Route
 import com.freyza.employee.domain.model.RouteWithLocation
+import com.freyza.employee.domain.model.toRoute
 import com.freyza.employee.domain.repository.RouteRepository
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -19,12 +20,19 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
     const val TAG: String = "RouteRepository"
   }
 
+  private var routeCache = mutableMapOf<String, Route>()
+  private var routesCache: List<Route>? = null
   private var cachedRoutesWithLocation: List<RouteWithLocation>? = null
 
-  override suspend fun getRoute(routeId: String): Result<Route?> {
+  override suspend fun getRoute(routeId: String, forceRefresh: Boolean): Result<Route?> {
+    if (!forceRefresh && routeCache.containsKey(routeId)) {
+      Logger.d(TAG, "Cache hit for route ID: $routeId")
+      return Result.Success(routeCache[routeId])
+    }
+
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying route with ID: $routeId")
+        Logger.d(TAG, "Querying route with ID: $routeId from network")
 
         val routeDto = postgrest.from("route").select {
           filter {
@@ -32,7 +40,11 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
           }
         }.decodeSingleOrNull<RouteDto>()
 
-        Result.Success(routeDto?.toDomain())
+        val route = routeDto?.toDomain()
+        if (route != null) {
+          routeCache[routeId] = route
+        }
+        Result.Success(route)
       }
     } catch (e: Exception) {
       Logger.e(TAG, e.message.toString())
@@ -40,14 +52,23 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
     }
   }
 
-  override suspend fun getAllRoutes(): Result<List<Route>> {
+  override suspend fun getAllRoutes(forceRefresh: Boolean): Result<List<Route>> {
+    if (!forceRefresh && routesCache != null) {
+      Logger.d(TAG, "Cache hit for all routes")
+      return Result.Success(routesCache!!)
+    }
+
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying all routes")
+        Logger.d(TAG, "Querying all routes from network")
 
         val routesDto = postgrest.from("route").select().decodeList<RouteDto>()
 
         val routes = routesDto.map { it.toDomain() }
+        routesCache = routes
+        // Also populate individual cache
+        routes.forEach { routeCache[it.id] = it }
+        
         Result.Success(routes)
       }
     } catch (e: Exception) {
@@ -58,7 +79,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
 
   override suspend fun getAllRoutesWithLocation(forceRefresh: Boolean): Result<List<RouteWithLocation>> {
     if (!forceRefresh && cachedRoutesWithLocation != null) {
-      Logger.d(TAG, "Returning cached routes with location")
+      Logger.d(TAG, "Cache hit for all routes with location")
       return Result.Success(cachedRoutesWithLocation!!)
     }
 
@@ -78,6 +99,10 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
 
         val routes = routesDto.map { it.toDomain() }
         cachedRoutesWithLocation = routes
+        
+        // Also populate individual basic route cache
+        routes.forEach { routeCache[it.id] = it.toRoute() }
+        
         Result.Success(routes)
       }
     } catch (e: Exception) {
@@ -99,7 +124,16 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
           )
         ).decodeAs<RouteDto>()
 
-        Result.Success(routeDto.toDomain())
+        val route = routeDto.toDomain()
+        
+        // Invalidate caches
+        routeCache.clear()
+        routesCache = null
+        cachedRoutesWithLocation = null
+        
+        Logger.d(TAG, "Caches invalidated after creating new route")
+
+        Result.Success(route)
       }
     } catch (e: Exception) {
       Logger.e(TAG, "RPC get_or_create_route failed: ${e.message}")

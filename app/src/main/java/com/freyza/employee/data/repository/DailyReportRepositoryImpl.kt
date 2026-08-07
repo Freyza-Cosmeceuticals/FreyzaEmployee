@@ -45,7 +45,7 @@ data class PoisResponse(
   @SerialName("success")
   val success: Boolean,
   @SerialName("data")
-  val data: List<PointOfInterestDto>
+  val data: List<PointOfInterestDto>,
 )
 
 @Serializable
@@ -53,7 +53,7 @@ data class VisitCreateResponse(
   @SerialName("success")
   val success: Boolean,
   @SerialName("data")
-  val data: VisitDto
+  val data: VisitDto,
 )
 
 @Serializable
@@ -61,13 +61,13 @@ data class PoiResponse(
   @SerialName("success")
   val success: Boolean,
   @SerialName("data")
-  val data: PointOfInterestDto
+  val data: PointOfInterestDto,
 )
 
 @Serializable
 data class ErrorResponse(
   @SerialName("message")
-  val message: String
+  val message: String,
 )
 
 class DailyReportRepositoryImpl(
@@ -77,6 +77,7 @@ class DailyReportRepositoryImpl(
   private val auth: Auth,
 ) : DailyReportRepository {
   private val poiCache = mutableMapOf<String, List<PointOfInterest>>()
+  private val reportCache = mutableMapOf<String, DailyReport>()
 
   companion object {
     const val TAG: String = "DailyReportRepo"
@@ -111,6 +112,9 @@ class DailyReportRepositoryImpl(
         }.decodeSingleOrNull<DailyReportDto>()
 
         val dailyReport = dailyReportDto?.toDomain()
+        if (dailyReport != null) {
+          reportCache[dailyReport.id] = dailyReport
+        }
         Result.Success(dailyReport)
       }
     } catch (e: Exception) {
@@ -141,6 +145,7 @@ class DailyReportRepositoryImpl(
         }.decodeList<DailyReportDto>()
 
         val reports = reportsDto.map { it.toDomain() }
+        reports.forEach { reportCache[it.id] = it }
         Result.Success(reports)
       }
     } catch (e: Exception) {
@@ -171,12 +176,24 @@ class DailyReportRepositoryImpl(
   override suspend fun getDailyReport(
     id: String,
     withVisits: Boolean,
+    forceRefresh: Boolean,
   ): Result<DailyReport?> {
+    if (!forceRefresh && reportCache.containsKey(id)) {
+      val cached = reportCache[id]!!
+      // If we need visits but cache doesn't have them (or it's empty but we expect some), 
+      // we might want to fetch. But for now, let's say if withVisits is true, we must have them in cache.
+      // Actually, if we cached it WITH visits, we're good. If we cached it WITHOUT, and now need them, fetch.
+      if (!withVisits || cached.visits.isNotEmpty()) {
+        Logger.d(TAG, "Cache hit for dailyReport ID: $id (withVisits=$withVisits)")
+        return Result.Success(cached)
+      }
+    }
+
     val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying dailyReport with id: $id withVisits=$withVisits")
+        Logger.d(TAG, "Querying dailyReport with id: $id withVisits=$withVisits from network")
 
         val dailyReportDto = postgrest.from(TABLE_DAILY_REPORT).select(
           columns = Columns.raw(selectQuery)
@@ -187,6 +204,9 @@ class DailyReportRepositoryImpl(
         }.decodeSingleOrNull<DailyReportDto>()
 
         val dailyReport = dailyReportDto?.toDomain()
+        if (dailyReport != null) {
+          reportCache[id] = dailyReport
+        }
         Result.Success(dailyReport)
       }
     } catch (e: Exception) {
@@ -252,8 +272,11 @@ class DailyReportRepositoryImpl(
             // NOTE: We do not store the result in cache here because this fetch only 
             // returns POIs for a specific visitType. We want the locationId entry in 
             // cache to always be complete (containing all POIs for that location).
-            
-            Logger.d(TAG, "Fetched ${pois.size} POIs for locationId: $locationId, visitType: $visitType")
+
+            Logger.d(
+              TAG,
+              "Fetched ${pois.size} POIs for locationId: $locationId, visitType: $visitType"
+            )
             Result.Success(pois)
           } else {
             Result.Error("Unable to fetch POIs")
@@ -343,7 +366,17 @@ class DailyReportRepositoryImpl(
         if (response.status.isSuccess()) {
           val poiResponse = response.body<PoiResponse>()
           if (poiResponse.success) {
-            Result.Success(poiResponse.data.toDomain())
+            val poi = poiResponse.data.toDomain()
+
+            poiCache[poi.locationId]?.let { cachedList ->
+              poiCache[poi.locationId] = (cachedList + poi).distinctBy { it.id }
+              Logger.d(
+                TAG,
+                "Updated location cache for ${poi.locationId} with fetched POI: ${poi.id}"
+              )
+            }
+
+            Result.Success(poi)
           } else {
             Result.Error("Unable to fetch POI")
           }
@@ -394,7 +427,9 @@ class DailyReportRepositoryImpl(
           val beginResponse = response.body<BeginReportResponse>()
           if (beginResponse.success) {
             Logger.d(TAG, "Daily report created successfully")
-            Result.Success(beginResponse.data.toDomain())
+            val report = beginResponse.data.toDomain()
+            reportCache[report.id] = report
+            Result.Success(report)
           } else {
             Logger.e(TAG, "Unable to create daily report. ${response.status.description}")
             Result.Error("Unable to create daily report")
@@ -438,7 +473,10 @@ class DailyReportRepositoryImpl(
         if (response.status.isSuccess()) {
           val createResponse = response.body<VisitCreateResponse>()
           if (createResponse.success) {
-            Result.Success(createResponse.data.toDomain())
+            val visit = createResponse.data.toDomain()
+            // Invalidate associated report cache as visits changed
+            reportCache.remove(dailyReportId)
+            Result.Success(visit)
           } else {
             Result.Error("Unable to create visit")
           }
@@ -469,6 +507,7 @@ class DailyReportRepositoryImpl(
           }
         }
 
+        reportCache.clear()
         Result.Success(true)
       }
     } catch (e: Exception) {
@@ -488,6 +527,7 @@ class DailyReportRepositoryImpl(
           }
         }
 
+        reportCache.clear()
         Result.Success(true)
       }
     } catch (e: Exception) {
@@ -516,7 +556,10 @@ class DailyReportRepositoryImpl(
         if (response.status.isSuccess()) {
           val updateResponse = response.body<VisitCreateResponse>()
           if (updateResponse.success) {
-            Result.Success(updateResponse.data.toDomain())
+            val visit = updateResponse.data.toDomain()
+            // Invalidate associated report cache
+            reportCache.remove(visit.reportId)
+            Result.Success(visit)
           } else {
             Result.Error("Unable to update visit")
           }
