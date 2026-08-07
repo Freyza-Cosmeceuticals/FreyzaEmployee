@@ -3,7 +3,6 @@ package com.freyza.employee.presentation.ui.composables
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -20,10 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 
@@ -35,37 +32,44 @@ fun <T> SearchableDropdown(
   selectedItem: T?,
   onItemSelect: (T?) -> Unit,
   itemLabeler: (T) -> String,
+  query: String,
+  onQueryChange: (String) -> Unit,
   modifier: Modifier = Modifier,
   placeholder: String = "Select option",
+  leadingIcon: @Composable (() -> Unit)? = null,
+  isError: Boolean = false,
+  supportingText: @Composable (() -> Unit)? = null,
+  enabled: Boolean = true,
 ) {
   var expanded by remember { mutableStateOf(false) }
   val scrollState = rememberScrollState()
-  var searchQuery by rememberSaveable { mutableStateOf(selectedItem?.let(itemLabeler) ?: "") }
 
   LaunchedEffect(selectedItem) {
-    val label = selectedItem?.let(itemLabeler) ?: ""
-    if (searchQuery != label) {
-      searchQuery = label
+    if (selectedItem != null) {
+      val labelText = itemLabeler(selectedItem)
+      if (query != labelText) {
+        onQueryChange(labelText)
+      }
     }
   }
 
-  val filteredItems = remember(searchQuery, items) {
-    if (searchQuery.isEmpty()) {
+  val filteredItems = remember(query, items) {
+    if (query.isEmpty()) {
       items
     } else {
-      items.filter { itemLabeler(it).contains(searchQuery, ignoreCase = true) }
+      items.filter { itemLabeler(it).contains(query, ignoreCase = true) }
     }
   }
 
   ExposedDropdownMenuBox(
     expanded = expanded,
-    onExpandedChange = { expanded = !expanded },
+    onExpandedChange = { if (enabled) expanded = !expanded },
     modifier = modifier.fillMaxWidth()
   ) {
     OutlinedTextField(
-      value = searchQuery,
+      value = query,
       onValueChange = {
-        searchQuery = it
+        onQueryChange(it)
         expanded = true
         val matchedItem = items.find { item -> itemLabeler(item).equals(it, ignoreCase = true) }
         if (matchedItem != selectedItem) {
@@ -74,11 +78,10 @@ fun <T> SearchableDropdown(
       },
       label = { Text(label) },
       placeholder = { Text(placeholder) },
-      leadingIcon = {
-        Icon(
-          painter = painterResource(R.drawable.location_on_24px), contentDescription = null
-        )
-      },
+      enabled = enabled,
+      isError = isError,
+      supportingText = supportingText,
+      leadingIcon = leadingIcon,
       trailingIcon = {
         ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
       },
@@ -88,7 +91,7 @@ fun <T> SearchableDropdown(
           contentDescription = "Clear",
           modifier = Modifier.clickable {
             onItemSelect(null)
-            searchQuery = ""
+            onQueryChange("")
             expanded = true
           })
       },
@@ -96,7 +99,7 @@ fun <T> SearchableDropdown(
       modifier = Modifier
         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, enabled = true)
         .fillMaxWidth(),
-      shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
+//      shape = RoundedCornerShape(size = integerResource(R.integer.rounding_radius).dp),
       singleLine = true
     )
 
@@ -107,7 +110,7 @@ fun <T> SearchableDropdown(
           DropdownMenuItem(
             text = { Text(itemLabeler(item)) }, onClick = {
               onItemSelect(item)
-              searchQuery = itemLabeler(item)
+              onQueryChange(itemLabeler(item))
               expanded = false
             },
             trailingIcon = {
@@ -129,6 +132,15 @@ fun <T> SearchableDropdown(
 @Composable
 private fun SearchableDropdownPreview() {
   FreyzaEmployeeTheme {
-    SearchableDropdown("Search Stuff", listOf("Item 1", "Item 2", "Item 3"), null, {}, { it })
+    SearchableDropdown(
+      label = "Search Stuff",
+      items = listOf("Item 1", "Item 2", "Item 3"),
+      selectedItem = null,
+      onItemSelect = {},
+      query = "",
+      onQueryChange = {},
+      itemLabeler = { it },
+      leadingIcon = { Icon(painterResource(R.drawable.location_on_24px), null) }
+    )
   }
 }

@@ -53,6 +53,7 @@ class VisitDetailViewModel(
         is Result.Success -> {
           _uiState.update { it.copy(visit = UIState.Ready(result.data)) }
           result.data?.reportId?.let { loadReport(it) }
+          result.data?.poiId?.let { loadPoi(it) }
         }
 
         is Result.Error -> {
@@ -75,6 +76,23 @@ class VisitDetailViewModel(
 
         is Result.Error -> {
           _uiState.update { it.copy(report = UIState.Error(result.message)) }
+        }
+
+        else -> {}
+      }
+    }
+  }
+
+  private fun loadPoi(poiId: String) {
+    _uiState.update { it.copy(poi = UIState.Loading()) }
+    viewModelScope.launch {
+      when (val result = dailyReportRepository.getPoi(poiId)) {
+        is Result.Success -> {
+          _uiState.update { it.copy(poi = UIState.Ready(result.data)) }
+        }
+
+        is Result.Error -> {
+          _uiState.update { it.copy(poi = UIState.Error(result.message)) }
         }
 
         else -> {}

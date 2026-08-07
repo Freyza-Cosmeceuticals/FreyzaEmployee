@@ -34,6 +34,7 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.Money
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.toCurrencyString
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.presentation.ui.authenticated.visitdetail.composables.DeleteVisitButton
 import com.freyza.employee.presentation.ui.authenticated.visitdetail.composables.DetailRow
@@ -136,7 +137,7 @@ fun VisitDetailScreen(
               )
             ) {
               item("header") {
-                VisitDetailHeader(visit)
+                VisitDetailHeader(visit, uiState.poi.data)
               }
 
               item("specifics") {
@@ -232,13 +233,7 @@ fun VisitDetailScreen(
 }
 
 @Composable
-private fun VisitDetailHeader(visit: Visit) {
-  val name = when (visit) {
-    is Visit.DoctorVisit -> visit.doctorName
-    is Visit.StockistVisit -> visit.stockistName
-    is Visit.ChemistVisit -> visit.chemistName
-  }
-
+private fun VisitDetailHeader(visit: Visit, poi: PointOfInterest? = null) {
   Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Row(
       modifier = Modifier.fillMaxWidth(),
@@ -261,7 +256,7 @@ private fun VisitDetailHeader(visit: Visit) {
     }
 
     Text(
-      text = name,
+      text = poi?.name ?: "???",
       style = MaterialTheme.typography.headlineMedium,
       fontWeight = FontWeight.ExtraBold,
       color = MaterialTheme.colorScheme.onSurface

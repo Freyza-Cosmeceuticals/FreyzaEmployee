@@ -20,3 +20,6 @@ x 2026-07-17 2026-07-17 delete visits
 (A) 2026-07-23 add proper error messages on login screen
 x 2026-08-02 2026-08-01 Travelling with option in report creation
 x 2026-08-02 2026-08-01 Use new report begin endpoint for report creation
+(A) 2026-08-07 fetch POIs in create visit screen
+(A) 2026-08-07 implement POIs and other tables
+(A) 2026-08-07 create visit using new route

@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
 import com.freyza.employee.core.Constants
 import com.freyza.employee.core.util.CurrencyFormatter
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.VisitType
+import com.freyza.employee.presentation.ui.composables.SearchableDropdown
 import com.freyza.employee.presentation.ui.state.FormField
 import com.freyza.employee.presentation.ui.state.ProductEntry
 
@@ -44,6 +46,9 @@ fun ClientInfoCard(
   visitType: VisitType,
   name: FormField,
   onNameChange: (String) -> Unit,
+  availablePois: List<PointOfInterest>,
+  selectedPoiId: String?,
+  onPoiSelect: (PointOfInterest?) -> Unit,
   samplesGiven: List<String>,
   onSamplesChange: (List<String>) -> Unit,
   focusManager: FocusManager,
@@ -68,18 +73,20 @@ fun ClientInfoCard(
         VisitType.CHEMIST -> "Chemist Name"
       }
 
-      OutlinedTextField(
-        value = name.value,
-        onValueChange = onNameChange,
-        label = { Text(label) },
+      SearchableDropdown(
+        label = label,
+        items = availablePois,
+        selectedItem = availablePois.find { it.id == selectedPoiId },
+        onItemSelect = onPoiSelect,
+        onQueryChange = onNameChange,
+        query = name.value,
+        itemLabeler = { it.name },
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
+        placeholder = "Search or enter name",
+        leadingIcon = { Icon(painterResource(R.drawable.account_circle_24px), null) },
         enabled = enabled,
         isError = name.error != null,
-        supportingText = name.error?.let { { Text(it) } },
-        leadingIcon = { Icon(painterResource(R.drawable.account_circle_24px), null) },
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-        keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) })
+        supportingText = name.error?.let { { Text(it) } }
       )
 
       if (visitType == VisitType.DOCTOR || visitType == VisitType.STOCKIST) {

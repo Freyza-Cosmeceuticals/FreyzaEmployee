@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -106,6 +108,9 @@ fun BeginDailyReportSheet(
   var selectedDestination by remember(todayTravelPlanEntry, routes) {
     mutableStateOf(routes.find { it.id == todayTravelPlanEntry.routeId }?.destLoc)
   }
+
+  var sourceQuery by remember { mutableStateOf(selectedSource?.name ?: "") }
+  var destinationQuery by remember { mutableStateOf(selectedDestination?.name ?: "") }
 
   var selectedTravellingWith by remember { mutableStateOf<User?>(null) }
 
@@ -200,8 +205,11 @@ fun BeginDailyReportSheet(
           items = locations,
           selectedItem = selectedSource,
           onItemSelect = { selectedSource = it },
+          query = sourceQuery,
+          onQueryChange = { sourceQuery = it },
           itemLabeler = { it.name },
-          placeholder = "Search source..."
+          placeholder = "Search source...",
+          leadingIcon = { Icon(painterResource(R.drawable.location_on_24px), null) }
         )
 
         SearchableDropdown(
@@ -209,8 +217,11 @@ fun BeginDailyReportSheet(
           items = locations,
           selectedItem = selectedDestination,
           onItemSelect = { selectedDestination = it },
+          query = destinationQuery,
+          onQueryChange = { destinationQuery = it },
           itemLabeler = { it.name },
-          placeholder = "Search destination..."
+          placeholder = "Search destination...",
+          leadingIcon = { Icon(painterResource(R.drawable.location_on_24px), null) }
         )
 
         AnimatedVisibility(visible = matchingRoute != null) {

@@ -155,15 +155,18 @@ fun ReportDetailScreen(
   var sortDesc by rememberSaveable { mutableStateOf(true) }
 
   val filteredVisits =
-    remember(uiState.report.data?.visits, searchQuery, filterTypes, sortType, sortDesc) {
+    remember(
+      uiState.report.data?.visits,
+      uiState.pois,
+      searchQuery,
+      filterTypes,
+      sortType,
+      sortDesc
+    ) {
       uiState.report.data?.visits?.filter { visit ->
-        val name = when (visit) {
-          is Visit.DoctorVisit -> visit.doctorName
-          is Visit.StockistVisit -> visit.stockistName
-          is Visit.ChemistVisit -> visit.chemistName
-        }
+        val name = uiState.pois.find { it.id == visit.poiId }?.name
 
-        val matchesName = name.contains(searchQuery, ignoreCase = true)
+        val matchesName = name?.contains(searchQuery, ignoreCase = true) ?: false
         val matchesAdditionalNotes =
           visit.additionalNotes?.contains(searchQuery, ignoreCase = true) ?: false
 
@@ -192,11 +195,7 @@ fun ReportDetailScreen(
           when (sortType) {
             VisitSortBy.TIME -> list.sortedByDescending { it.createdAt }
             VisitSortBy.NAME -> list.sortedByDescending { visit ->
-              when (visit) {
-                is Visit.DoctorVisit -> visit.doctorName
-                is Visit.StockistVisit -> visit.stockistName
-                is Visit.ChemistVisit -> visit.chemistName
-              }
+              uiState.pois.find { it.id == visit.poiId }?.name
             }
 
             VisitSortBy.TYPE -> list.sortedByDescending { it.visitType.name }
@@ -205,11 +204,7 @@ fun ReportDetailScreen(
           when (sortType) {
             VisitSortBy.TIME -> list.sortedBy { it.createdAt }
             VisitSortBy.NAME -> list.sortedBy { visit ->
-              when (visit) {
-                is Visit.DoctorVisit -> visit.doctorName
-                is Visit.StockistVisit -> visit.stockistName
-                is Visit.ChemistVisit -> visit.chemistName
-              }
+              uiState.pois.find { it.id == visit.poiId }?.name
             }
 
             VisitSortBy.TYPE -> list.sortedBy { it.visitType.name }
@@ -471,6 +466,7 @@ fun ReportDetailScreen(
               items(filteredVisits, key = { it.id }) { visit ->
                 VisitListItem(
                   visit = visit,
+                  poi = uiState.pois.find { it.id == visit.poiId },
                   onClick = { onNavigateToVisitDetail(visit.id) },
                   modifier = Modifier.padding(0.dp)
                 )
@@ -588,9 +584,11 @@ fun ReportDetailHeader(
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically
     ) {
-      Column(modifier = Modifier
-        .weight(1f)
-        .padding(end = 16.dp)) {
+      Column(
+        modifier = Modifier
+          .weight(1f)
+          .padding(end = 16.dp)
+      ) {
         Text(
           text = report.dayType.name,
           style = MaterialTheme.typography.titleLarge,

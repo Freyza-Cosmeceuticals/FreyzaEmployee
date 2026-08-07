@@ -2,6 +2,7 @@ package com.freyza.employee.presentation.ui.state
 
 import com.freyza.employee.core.UIState
 import com.freyza.employee.domain.model.DailyReport
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyVisitDoctorAllTrue
@@ -9,6 +10,7 @@ import com.freyza.employee.domain.model.dummyVisitDoctorAllTrue
 data class VisitDetailUiState(
   val visitId: String,
   val visit: UIState<Visit?> = UIState.Idle(),
+  val poi: UIState<PointOfInterest?> = UIState.Idle(),
   val report: UIState<DailyReport?> = UIState.Idle(),
   val deletingState: UIState<Unit> = UIState.Idle(),
 )

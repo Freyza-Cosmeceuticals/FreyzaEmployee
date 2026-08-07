@@ -3,6 +3,7 @@ package com.freyza.employee.presentation.ui.state
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.DailyReport
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyDailyReportWork
@@ -17,6 +18,7 @@ data class ReportDetailUiState(
   val report: UIState<DailyReport?> = UIState.Idle(),
   val routes: List<RouteWithLocation> = listOf(),
   val employees: List<User> = listOf(),
+  val pois: List<PointOfInterest> = listOf(),
   val lockingState: UIState<Unit> = UIState.Idle(),
 )
 

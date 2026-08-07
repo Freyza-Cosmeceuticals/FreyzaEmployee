@@ -13,8 +13,10 @@ import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.data.mappers.toDto
 import com.freyza.employee.data.mappers.toFormState
 import com.freyza.employee.data.mappers.toUpdateDto
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.repository.DailyReportRepository
+import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitUseCase
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
@@ -34,6 +36,7 @@ class AddVisitViewModel(
   private val sessionManager: SessionManager,
   private val createVisitUseCase: CreateVisitUseCase,
   private val dailyReportRepository: DailyReportRepository,
+  private val routeRepository: RouteRepository,
   private val snackbarManager: SnackbarManager,
   private val serverTime: ServerTime,
   private val locationTracker: LocationTracker,
@@ -67,10 +70,36 @@ class AddVisitViewModel(
   }
 
   fun refresh() {
+    loadAvailablePois()
+
     if (isEditMode) {
       loadVisit()
     } else {
       refreshLocation()
+    }
+  }
+
+  private fun loadAvailablePois() {
+    viewModelScope.launch {
+      // 1. Get Daily Report to find routeId
+      val reportResult = dailyReportRepository.getDailyReport(reportId)
+      if (reportResult is Result.Success) {
+        val routeId = reportResult.data?.routeId
+        if (routeId != null) {
+          // 2. Get Route to find destLocId
+          val routeResult = routeRepository.getRoute(routeId)
+          if (routeResult is Result.Success) {
+            val destLocId = routeResult.data?.destLocId
+            if (destLocId != null) {
+              // 3. Fetch POIs for this location and visit type
+              val poisResult = dailyReportRepository.getPois(destLocId, visitType)
+              if (poisResult is Result.Success) {
+                _uiState.update { it.copy(availablePois = poisResult.data) }
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -118,8 +147,27 @@ class AddVisitViewModel(
   }
 
   fun updateName(name: String) {
-    _uiState.update {
-      it.copy(form = it.form.copy(name = it.form.name.copy(value = name, error = null)))
+    _uiState.update { state ->
+      val matchedPoi = state.availablePois.find {
+        it.name.trim().equals(name.trim(), ignoreCase = true)
+      }
+      state.copy(
+        form = state.form.copy(
+          name = state.form.name.copy(value = name, error = null),
+          poiId = matchedPoi?.id
+        )
+      )
+    }
+  }
+
+  fun selectPoi(poi: PointOfInterest?) {
+    _uiState.update { state ->
+      state.copy(
+        form = state.form.copy(
+          name = state.form.name.copy(value = poi?.name ?: "", error = null),
+          poiId = poi?.id
+        )
+      )
     }
   }
 
@@ -327,7 +375,11 @@ class AddVisitViewModel(
                 )
               )
             }
-            snackbarManager.showError("Unable to update visit, please try again")
+            if (result.message.isNotEmpty()) {
+              snackbarManager.showError("Unable to update visit. ${result.message}")
+            } else {
+              snackbarManager.showError("Unable to update visit, please try again")
+            }
             Logger.e(TAG, "Cannot update visit: ${result.message}")
           }
 
@@ -370,7 +422,12 @@ class AddVisitViewModel(
             _uiState.update {
               it.copy(creationState = UIState.Error("Unable to mark visit, please try again", true))
             }
-            snackbarManager.showError("Unable to mark visit, please try again")
+
+            if (result.message.isNotEmpty()) {
+              snackbarManager.showError("Unable to mark visit. ${result.message}")
+            } else {
+              snackbarManager.showError("Unable to mark visit, please try again")
+            }
             Logger.e(TAG, "Cannot mark visit: ${result.message}")
           }
 

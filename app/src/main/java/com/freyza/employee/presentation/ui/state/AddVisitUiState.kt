@@ -3,6 +3,7 @@ package com.freyza.employee.presentation.ui.state
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Money
 import com.freyza.employee.data.mappers.toProductDetail
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.VisitType
 import kotlinx.datetime.LocalDateTime
 import java.util.UUID
@@ -38,6 +39,7 @@ data class ProductEntry(
 
 data class AddVisitFormState(
   val name: FormField = FormField(),
+  val poiId: String? = null,
   val notes: FormField = FormField(),
   val productEntries: List<ProductEntry> = emptyList(),
   val samplesGiven: List<String> = emptyList(),
@@ -67,6 +69,7 @@ data class AddVisitFormState(
 data class AddVisitUiState(
   val today: LocalDateTime,
   val visitType: VisitType? = null,
+  val availablePois: List<PointOfInterest> = emptyList(),
   val creationState: UIState<Boolean> = UIState.Idle(),
   val form: AddVisitFormState = AddVisitFormState(),
 )

@@ -35,6 +35,7 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.util.toCurrencyString
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.Visit
@@ -58,6 +59,7 @@ fun DailyReportCard(
   travellingWith: User?,
   route: RouteWithLocation?,
   modifier: Modifier = Modifier,
+  pois: List<PointOfInterest> = emptyList(),
   onClick: () -> Unit = {},
 ) {
   val latestVisits = remember(dailyReport?.visits) {
@@ -157,7 +159,8 @@ fun DailyReportCard(
         DayType.WORK -> WorkStatusContent(
           dailyReport = dailyReport,
           latestVisits = latestVisits.value,
-          remainingVisits = remainingVisits
+          remainingVisits = remainingVisits,
+          pois = pois
         )
 
         DayType.HOLIDAY -> {
@@ -203,6 +206,7 @@ private fun WorkStatusContent(
   latestVisits: List<Visit>,
   remainingVisits: Int,
   modifier: Modifier = Modifier,
+  pois: List<PointOfInterest> = emptyList(),
 ) {
   if (dailyReport.visits.isEmpty()) {
     Text(
@@ -230,13 +234,22 @@ private fun WorkStatusContent(
           modifier = Modifier.size(14.dp),
           tint = MaterialTheme.colorScheme.onSurface
         )
-        Text(
-          when (visit.visitType) {
-            VisitType.DOCTOR -> (visit as Visit.DoctorVisit).doctorName
-            VisitType.STOCKIST -> (visit as Visit.StockistVisit).stockistName
-            VisitType.CHEMIST -> (visit as Visit.ChemistVisit).chemistName
-          }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface
-        )
+
+        val name = pois.find { it.id == visit.poiId }?.name
+
+        if (visit.poiId != null && pois.none { it.id == visit.poiId }) {
+          Skeleton(
+            modifier = Modifier
+              .width(80.dp)
+              .height(14.dp)
+          )
+        } else {
+          Text(
+            text = name ?: "???",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface
+          )
+        }
       }
     }
 

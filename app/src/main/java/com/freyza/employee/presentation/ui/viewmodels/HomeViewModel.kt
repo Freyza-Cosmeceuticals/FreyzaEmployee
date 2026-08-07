@@ -8,6 +8,7 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.repository.DailyReportRepository
 import com.freyza.employee.domain.repository.LocationRepository
 import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.repository.TravelPlanRepository
@@ -28,6 +29,7 @@ class HomeViewModel(
   private val sessionManager: SessionManager,
   private val userRepository: UserRepository,
   private val locationRepository: LocationRepository,
+  private val dailyReportRepository: DailyReportRepository,
   private val routeRepository: RouteRepository,
   private val travelPlanRepository: TravelPlanRepository,
   private val getTodayDailyReportUseCase: GetTodayDailyReportUseCase,
@@ -137,7 +139,10 @@ class HomeViewModel(
           )
         }
 
-        report?.routeId?.let { setReportRoute(it) }
+        report?.routeId?.let { routeId ->
+          setReportRoute(routeId)
+          viewModelScope.launch { loadReportPois(routeId) }
+        }
       }
 
       is Result.Error -> {
@@ -145,6 +150,20 @@ class HomeViewModel(
         Logger.e(TAG, "Fetch daily report failed: ${result.message}")
       }
 
+      else -> {}
+    }
+  }
+
+  private suspend fun loadReportPois(routeId: String) {
+    val route = _uiState.value.routes.find { it.id == routeId }
+    val destLocId = route?.destLoc?.id ?: return
+
+    when (val result = dailyReportRepository.getPoisByLocation(destLocId)) {
+      is Result.Success -> {
+        _uiState.update { it.copy(pois = result.data) }
+      }
+
+      is Result.Error -> Logger.e(TAG, "Fetch POIs failed: ${result.message}")
       else -> {}
     }
   }

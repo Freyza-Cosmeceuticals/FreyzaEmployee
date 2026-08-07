@@ -21,6 +21,7 @@ import com.freyza.employee.R
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
+import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.model.dummyUserEmployee
@@ -64,6 +65,7 @@ fun AddVisitScreenRoute(
       onNavigateUp = onNavigateUp,
       onRetry = viewModel::refresh,
       onNameChange = viewModel::updateName,
+      onPoiSelect = viewModel::selectPoi,
       onNotesChange = viewModel::updateNotes,
       onSamplesChange = viewModel::updateSamplesGiven,
       onOrderTakenChange = viewModel::updateOrderTaken,
@@ -89,6 +91,7 @@ fun AddVisitScreen(
   onNavigateUp: (created: Boolean?) -> Unit,
   onRetry: () -> Unit,
   onNameChange: (String) -> Unit,
+  onPoiSelect: (PointOfInterest?) -> Unit,
   onNotesChange: (String) -> Unit,
   onSamplesChange: (List<String>) -> Unit,
   onOrderTakenChange: (Boolean) -> Unit,
@@ -160,6 +163,9 @@ fun AddVisitScreen(
           visitType = uiState.visitType,
           name = form.name,
           onNameChange = onNameChange,
+          availablePois = uiState.availablePois,
+          selectedPoiId = form.poiId,
+          onPoiSelect = onPoiSelect,
           samplesGiven = form.samplesGiven,
           onSamplesChange = onSamplesChange,
           focusManager = focusManager,
@@ -227,6 +233,7 @@ private fun AddVisitScreenPreviewDoctor() {
       onNavigateUp = {},
       onRetry = {},
       onNameChange = {},
+      onPoiSelect = {},
       onNotesChange = {},
       onSamplesChange = {},
       onOrderTakenChange = {},
@@ -257,6 +264,7 @@ private fun AddVisitScreenPreviewStockist() {
       onNavigateUp = {},
       onRetry = {},
       onNameChange = {},
+      onPoiSelect = {},
       onNotesChange = {},
       onSamplesChange = {},
       onOrderTakenChange = {},
@@ -287,6 +295,7 @@ private fun AddVisitScreenPreviewChemist() {
       onNavigateUp = {},
       onRetry = {},
       onNameChange = {},
+      onPoiSelect = {},
       onNotesChange = {},
       onSamplesChange = {},
       onOrderTakenChange = {},
@@ -315,6 +324,7 @@ private fun AddVisitScreenPreviewNull() {
       onNavigateUp = {},
       onRetry = {},
       onNameChange = {},
+      onPoiSelect = {},
       onNotesChange = {},
       onSamplesChange = {},
       onOrderTakenChange = {},
