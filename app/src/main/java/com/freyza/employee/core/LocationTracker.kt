@@ -29,11 +29,13 @@ class LocationTracker(private val context: Context) {
   private val LOCATION_REQUEST_TIMEOUT = 10.seconds
 
   suspend fun getCurrentLocation(): Location? {
+    val span = Sentry.getSpan()?.startChild("location.gps", "Acquire GPS Location")
     val now = System.currentTimeMillis()
 
     // 1. Return cache if valid
     if (cachedLocation != null && (now - lastFetchTime) < CACHE_DURATION_MS) {
       Logger.d(TAG, "cache still fresh, reusing $cachedLocation")
+      span?.finish()
       return cachedLocation
     }
 
@@ -55,6 +57,8 @@ class LocationTracker(private val context: Context) {
 
     if (!isGpsEnabled || !(hasGrantedFineLocationPermission || hasGrantedCoarseLocationPermission)) {
       Logger.w(TAG, "Location permissions not granted or GPS is not enabled")
+      span?.status = io.sentry.SpanStatus.PERMISSION_DENIED
+      span?.finish()
       return null
     }
 
@@ -72,12 +76,18 @@ class LocationTracker(private val context: Context) {
         Logger.d(TAG, "Fetched fresh location: $freshLocation. Caching and returning")
         cachedLocation = freshLocation
         lastFetchTime = now
+        span?.status = io.sentry.SpanStatus.OK
         cachedLocation
       } else {
+        span?.status = io.sentry.SpanStatus.DEADLINE_EXCEEDED
         handleLocationFailure(Exception("Timeout waiting for fresh GPS lock $LOCATION_REQUEST_TIMEOUT"))
       }
     } catch (e: Exception) {
+      span?.status = io.sentry.SpanStatus.INTERNAL_ERROR
+      span?.throwable = e
       handleLocationFailure(e)
+    } finally {
+      span?.finish()
     }
   }
 

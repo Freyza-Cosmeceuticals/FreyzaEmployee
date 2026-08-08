@@ -8,6 +8,8 @@ import android.net.NetworkRequest
 import androidx.core.content.getSystemService
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.Logger
+import io.sentry.Sentry
+import io.sentry.SpanStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -92,13 +94,28 @@ class ConnectivityManagerNetworkMonitor(
 }
 
 suspend fun <T> safeApiCall(TAG: String = "safeApiCall", apiCall: suspend () -> T): Result<T> {
+  val span = Sentry.getSpan()?.startChild("http.client", TAG)
+
   return try {
-    Result.Success(apiCall())
+    val result = apiCall()
+    span?.status = SpanStatus.OK
+
+    Result.Success(result)
   } catch (e: OfflineException) {
+    span?.status = SpanStatus.UNAVAILABLE
+    Sentry.addBreadcrumb("${TAG}: OfflineException")
+
     Logger.d(TAG, "OfflineException: ${e.message.toString()}")
     Result.Error("Please check your internet connection.")
   } catch (e: Exception) {
+    span?.status = SpanStatus.INTERNAL_ERROR
+    span?.throwable = e
+
+    Sentry.captureException(e)
+
     Logger.e(TAG, e.message.toString())
     Result.Error(e.message ?: "An unknown error occurred")
+  } finally {
+    span?.finish()
   }
 }

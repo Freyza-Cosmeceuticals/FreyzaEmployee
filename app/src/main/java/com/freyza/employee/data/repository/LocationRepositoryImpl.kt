@@ -1,6 +1,7 @@
 package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.LocationDto
@@ -18,10 +19,18 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
   // Cache for the complete list of locations
   private var cachedLocations: List<Location>? = null
 
-  override suspend fun getLocation(locationId: String): Result<Location?> {
-    return try {
+  // Cache for location by id
+  private var cachedLocationsById: MutableMap<String, Location?> = mutableMapOf()
+
+  override suspend fun getLocation(locationId: String, forceRefresh: Boolean): Result<Location?> {
+    if (!forceRefresh && cachedLocationsById[locationId] != null) {
+      Logger.d(TAG, "Returning location from cache")
+      return Result.Success(cachedLocationsById[locationId])
+    }
+
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying location with ID: $locationId")
+        Logger.d(TAG, "Querying location with ID: $locationId from network")
 
         val locationDto = postgrest.from("location").select {
           filter {
@@ -29,21 +38,23 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
           }
         }.decodeSingleOrNull<LocationDto>()
 
-        Result.Success(locationDto?.toDomain())
+        val location = locationDto?.toDomain()
+        if (location != null) {
+          cachedLocationsById[locationId] = location
+        }
+
+        location
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
   override suspend fun getAllLocations(forceRefresh: Boolean): Result<List<Location>> {
     if (!forceRefresh && cachedLocations != null) {
-      Logger.d(TAG, "Returning cached locations")
+      Logger.d(TAG, "Returning locations from cache")
       return Result.Success(cachedLocations!!)
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying all locations from network")
 
@@ -51,11 +62,10 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
         val locations = locationDtos.map { it.toDomain() }
 
         cachedLocations = locations
-        Result.Success(locations)
+        cachedLocations?.forEach { cachedLocationsById[it.id] = it }
+
+        locations
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 }

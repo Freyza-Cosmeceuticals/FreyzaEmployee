@@ -16,6 +16,7 @@ interface DailyReportRepository {
     today: LocalDate,
     employeeId: String,
     withVisits: Boolean = false,
+    forceRefresh: Boolean = false,
   ): Result<DailyReport?>
 
   suspend fun getRecentDailyReports(
@@ -31,9 +32,9 @@ interface DailyReportRepository {
     forceRefresh: Boolean = false,
   ): Result<DailyReport?>
 
-  suspend fun getVisit(id: String): Result<Visit?>
-
+  suspend fun getVisit(id: String, forceRefresh: Boolean = false): Result<Visit?>
   suspend fun getPois(
+
     locationId: String,
     visitType: VisitType,
     forceRefresh: Boolean = false,

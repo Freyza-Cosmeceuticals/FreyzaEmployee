@@ -1,6 +1,7 @@
 package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
@@ -46,7 +47,7 @@ class TravelPlanRepositoryImpl(
       return Result.Success(currentPlanCache)
     }
 
-    return try {
+    return safeApiCall(TAG) {
       val today = serverTime.todayIn()
       val thisMonth = DateFormatter.format(
         LocalDate(year = today.year, month = today.month, day = 1),
@@ -68,12 +69,9 @@ class TravelPlanRepositoryImpl(
           currentPlanCache = plan
           planCache[plan.id] = plan
         }
-        Result.Success(plan)
-      }
 
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
+        plan
+      }
     }
   }
 
@@ -90,7 +88,7 @@ class TravelPlanRepositoryImpl(
       return Result.Success(todayEntryCache[cacheKey])
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(
           TAG,
@@ -106,12 +104,9 @@ class TravelPlanRepositoryImpl(
 
         val entry = travelPlanEntryDto?.toDomain()
         todayEntryCache[cacheKey] = entry
-        Result.Success(entry)
-      }
 
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
+        entry
+      }
     }
   }
 
@@ -124,7 +119,7 @@ class TravelPlanRepositoryImpl(
       return Result.Success(entriesCache[tpId]!!)
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(
           TAG,
@@ -139,11 +134,9 @@ class TravelPlanRepositoryImpl(
 
         val travelPlanEntries = travelPlanEntriesDto.map { it.toDomain() }
         entriesCache[tpId] = travelPlanEntries
-        Result.Success(travelPlanEntries)
+
+        travelPlanEntries
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -156,7 +149,7 @@ class TravelPlanRepositoryImpl(
       return Result.Success(planCache[id])
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying travel plan ID: $id from network")
         val travelPlanDto = postgrest.from("travelPlan").select {
@@ -167,12 +160,9 @@ class TravelPlanRepositoryImpl(
         if (plan != null) {
           planCache[id] = plan
         }
-        Result.Success(plan)
-      }
 
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
+        plan
+      }
     }
   }
 }

@@ -2,6 +2,7 @@ package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.ApiErrorResponse
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
@@ -64,11 +65,6 @@ data class PoiResponse(
   val data: PointOfInterestDto,
 )
 
-@Serializable
-data class ErrorResponse(
-  @SerialName("message")
-  val message: String,
-)
 
 class DailyReportRepositoryImpl(
   private val postgrest: Postgrest,
@@ -94,6 +90,7 @@ class DailyReportRepositoryImpl(
     today: LocalDate,
     employeeId: String,
     withVisits: Boolean,
+    forceRefresh: Boolean
   ): Result<DailyReport?> {
     return try {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
@@ -165,6 +162,7 @@ class DailyReportRepositoryImpl(
           filter {
             VisitDto::reportId eq dailyReportId
           }
+          order(VisitDto::createdAt.name, Order.DESCENDING)
         }.decodeList<VisitDto>()
 
         val visits = visitsDto.map { it.toDomain() }
@@ -183,7 +181,7 @@ class DailyReportRepositoryImpl(
   ): Result<DailyReport?> {
     if (!forceRefresh && reportCache.containsKey(id)) {
       val cached = reportCache[id]!!
-      // If we need visits but cache doesn't have them (or it's empty but we expect some), 
+      // If we need visits but cache doesn't have them (or it's empty, but we expect some),
       // we might want to fetch. But for now, let's say if withVisits is true, we must have them in cache.
       // Actually, if we cached it WITH visits, we're good. If we cached it WITHOUT, and now need them, fetch.
       if (!withVisits || cached.visits.isNotEmpty()) {
@@ -218,7 +216,7 @@ class DailyReportRepositoryImpl(
     }
   }
 
-  override suspend fun getVisit(id: String): Result<Visit?> {
+  override suspend fun getVisit(id: String, forceRefresh: Boolean): Result<Visit?> {
     return try {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying visit with id: $id")
@@ -285,9 +283,13 @@ class DailyReportRepositoryImpl(
             Result.Error("Unable to fetch POIs")
           }
         } else {
-          val error = response.body<ErrorResponse>()
+          val error = try {
+            response.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = response.status.description)
+          }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error("Error: ${error.message}")
+          Result.Error(message = error.message, errorBody = error)
         }
       }
     } catch (e: Exception) {
@@ -337,9 +339,13 @@ class DailyReportRepositoryImpl(
             Result.Error("Unable to fetch POIs")
           }
         } else {
-          val error = response.body<ErrorResponse>()
+          val error = try {
+            response.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = response.status.description)
+          }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error("Error: ${error.message}")
+          Result.Error(message = error.message, errorBody = error)
         }
       }
     } catch (e: Exception) {
@@ -386,9 +392,13 @@ class DailyReportRepositoryImpl(
         } else if (response.status.value == 404) {
           Result.Success(null)
         } else {
-          val error = response.body<ErrorResponse>()
+          val error = try {
+            response.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = response.status.description)
+          }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error("Error: ${error.message}")
+          Result.Error(message = error.message, errorBody = error)
         }
       }
     } catch (e: Exception) {
@@ -438,9 +448,13 @@ class DailyReportRepositoryImpl(
             Result.Error("Unable to create daily report")
           }
         } else {
-          val error = response.body<ErrorResponse>()
+          val error = try {
+            response.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = response.status.description)
+          }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error("Error: ${error.message}")
+          Result.Error(message = error.message, errorBody = error)
         }
       }
     } catch (e: Exception) {
@@ -484,9 +498,13 @@ class DailyReportRepositoryImpl(
             Result.Error("Unable to create visit")
           }
         } else {
-          val error = response.body<ErrorResponse>()
+          val error = try {
+            response.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = response.status.description)
+          }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error("Error: ${error.message}")
+          Result.Error(message = error.message, errorBody = error)
         }
       }
     } catch (e: Exception) {
@@ -567,9 +585,13 @@ class DailyReportRepositoryImpl(
             Result.Error("Unable to update visit")
           }
         } else {
-          val error = response.body<ErrorResponse>()
+          val error = try {
+            response.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = response.status.description)
+          }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error("Error: ${error.message}")
+          Result.Error(message = error.message, errorBody = error)
         }
       }
     } catch (e: Exception) {
