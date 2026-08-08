@@ -44,7 +44,7 @@ class DailyReportViewModel(
   val currentUser = sessionManager.currentEmployee
 
   init {
-    Logger.i(TAG, "Init")
+    Logger.d(TAG, "Init")
   }
 
   fun refresh(forceRefresh: Boolean = false) {

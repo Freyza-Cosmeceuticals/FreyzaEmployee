@@ -101,7 +101,7 @@ class VisitDetailViewModel(
   }
 
   fun deleteVisit() {
-    Logger.i(TAG, "Deleting visit: $visitId")
+    Logger.d(TAG, "Deleting visit: $visitId")
     _uiState.update { it.copy(deletingState = UIState.Loading()) }
 
     viewModelScope.launch {

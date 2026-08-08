@@ -15,6 +15,7 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
     const val TAG: String = "LocationRepo"
   }
 
+  // Cache for the complete list of locations
   private var cachedLocations: List<Location>? = null
 
   override suspend fun getLocation(locationId: String): Result<Location?> {

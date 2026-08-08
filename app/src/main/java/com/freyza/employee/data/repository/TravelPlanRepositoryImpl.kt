@@ -20,6 +20,18 @@ class TravelPlanRepositoryImpl(
   private val serverTime: ServerTime,
 ) : TravelPlanRepository {
 
+  // Cache for the most recently fetched current travel plan
+  private var currentPlanCache: TravelPlan? = null
+
+  // Cache for travel plans keyed by their ID
+  private val planCache = mutableMapOf<String, TravelPlan>()
+
+  // Cache for specific day plan entries keyed by "tpId-yyyy-mm-dd"
+  private val todayEntryCache = mutableMapOf<String, TravelPlanEntry?>()
+
+  // Cache for complete entry lists keyed by travel plan ID
+  private val entriesCache = mutableMapOf<String, List<TravelPlanEntry>>()
+
   companion object {
     const val TAG: String = "TravelPlanRepo"
   }
@@ -27,7 +39,13 @@ class TravelPlanRepositoryImpl(
   override suspend fun getCurrentTravelPlan(
     employeeId: String,
     withEntries: Boolean,
+    forceRefresh: Boolean,
   ): Result<TravelPlan?> {
+    if (!forceRefresh && currentPlanCache != null && currentPlanCache?.employeeId == employeeId) {
+      Logger.d(TAG, "Cache hit for current travel plan")
+      return Result.Success(currentPlanCache)
+    }
+
     return try {
       val today = serverTime.todayIn()
       val thisMonth = DateFormatter.format(
@@ -36,7 +54,7 @@ class TravelPlanRepositoryImpl(
       )
 
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying travelPlan for current employee and month: $thisMonth")
+        Logger.d(TAG, "Querying travelPlan for current employee and month: $thisMonth from network")
 
         val travelPlanDto = postgrest.from("travelPlan").select {
           filter {
@@ -45,7 +63,12 @@ class TravelPlanRepositoryImpl(
           }
         }.decodeSingleOrNull<TravelPlanDto>()
 
-        Result.Success(travelPlanDto?.toDomain())
+        val plan = travelPlanDto?.toDomain()
+        if (plan != null) {
+          currentPlanCache = plan
+          planCache[plan.id] = plan
+        }
+        Result.Success(plan)
       }
 
     } catch (e: Exception) {
@@ -54,13 +77,25 @@ class TravelPlanRepositoryImpl(
     }
   }
 
-  override suspend fun getTodayTravelPlanEntry(tpId: String): Result<TravelPlanEntry?> {
-    return try {
-      val today = serverTime.todayIn()
-      val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
+  override suspend fun getTodayTravelPlanEntry(
+    tpId: String,
+    forceRefresh: Boolean,
+  ): Result<TravelPlanEntry?> {
+    val today = serverTime.todayIn()
+    val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
+    val cacheKey = "$tpId-$thisDay"
 
+    if (!forceRefresh && todayEntryCache.containsKey(cacheKey)) {
+      Logger.d(TAG, "Cache hit for today's travel plan entry")
+      return Result.Success(todayEntryCache[cacheKey])
+    }
+
+    return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying travelPlanEntry for current employee and day: $thisDay")
+        Logger.d(
+          TAG,
+          "Querying travelPlanEntry for current employee and day: $thisDay from network"
+        )
 
         val travelPlanEntryDto = postgrest.from("travelPlanEntry").select {
           filter {
@@ -69,7 +104,9 @@ class TravelPlanRepositoryImpl(
           }
         }.decodeSingleOrNull<TravelPlanEntryDto>()
 
-        Result.Success(travelPlanEntryDto?.toDomain())
+        val entry = travelPlanEntryDto?.toDomain()
+        todayEntryCache[cacheKey] = entry
+        Result.Success(entry)
       }
 
     } catch (e: Exception) {
@@ -78,10 +115,21 @@ class TravelPlanRepositoryImpl(
     }
   }
 
-  override suspend fun getTravelPlanEntries(tpId: String): Result<List<TravelPlanEntry>> {
+  override suspend fun getTravelPlanEntries(
+    tpId: String,
+    forceRefresh: Boolean,
+  ): Result<List<TravelPlanEntry>> {
+    if (!forceRefresh && entriesCache.containsKey(tpId)) {
+      Logger.d(TAG, "Cache hit for travel plan entries: $tpId")
+      return Result.Success(entriesCache[tpId]!!)
+    }
+
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying travelPlanEntries for current employee and tpId: $tpId")
+        Logger.d(
+          TAG,
+          "Querying travelPlanEntries for current employee and tpId: $tpId from network"
+        )
 
         val travelPlanEntriesDto = postgrest.from("travelPlanEntry").select {
           filter {
@@ -90,6 +138,7 @@ class TravelPlanRepositoryImpl(
         }.decodeList<TravelPlanEntryDto>()
 
         val travelPlanEntries = travelPlanEntriesDto.map { it.toDomain() }
+        entriesCache[tpId] = travelPlanEntries
         Result.Success(travelPlanEntries)
       }
     } catch (e: Exception) {
@@ -98,14 +147,27 @@ class TravelPlanRepositoryImpl(
     }
   }
 
-  override suspend fun getTravelPlan(id: String): Result<TravelPlan?> {
+  override suspend fun getTravelPlan(
+    id: String,
+    forceRefresh: Boolean,
+  ): Result<TravelPlan?> {
+    if (!forceRefresh && planCache.containsKey(id)) {
+      Logger.d(TAG, "Cache hit for travel plan ID: $id")
+      return Result.Success(planCache[id])
+    }
+
     return try {
       withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Querying travel plan ID: $id from network")
         val travelPlanDto = postgrest.from("travelPlan").select {
           filter { TravelPlanDto::id eq id }
         }.decodeSingleOrNull<TravelPlanDto>()
 
-        Result.Success(travelPlanDto?.toDomain())
+        val plan = travelPlanDto?.toDomain()
+        if (plan != null) {
+          planCache[id] = plan
+        }
+        Result.Success(plan)
       }
 
     } catch (e: Exception) {

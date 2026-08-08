@@ -101,7 +101,7 @@ class ReportDetailViewModel(
   }
 
   fun lockReport(reportId: String) {
-    Logger.i(TAG, "Locking report:$reportId")
+    Logger.d(TAG, "Locking report:$reportId")
 
     _uiState.update {
       it.copy(lockingState = UIState.Loading())

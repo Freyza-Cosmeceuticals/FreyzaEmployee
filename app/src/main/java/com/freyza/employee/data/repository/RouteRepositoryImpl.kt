@@ -20,8 +20,13 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
     const val TAG: String = "RouteRepository"
   }
 
+  // Cache for individual routes keyed by route ID
   private var routeCache = mutableMapOf<String, Route>()
+
+  // Cache for the complete list of basic routes
   private var routesCache: List<Route>? = null
+
+  // Cache for the complete list of routes with nested location data
   private var cachedRoutesWithLocation: List<RouteWithLocation>? = null
 
   override suspend fun getRoute(routeId: String, forceRefresh: Boolean): Result<Route?> {
@@ -68,7 +73,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
         routesCache = routes
         // Also populate individual cache
         routes.forEach { routeCache[it.id] = it }
-        
+
         Result.Success(routes)
       }
     } catch (e: Exception) {
@@ -99,10 +104,10 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
 
         val routes = routesDto.map { it.toDomain() }
         cachedRoutesWithLocation = routes
-        
+
         // Also populate individual basic route cache
         routes.forEach { routeCache[it.id] = it.toRoute() }
-        
+
         Result.Success(routes)
       }
     } catch (e: Exception) {
@@ -117,20 +122,18 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
         Logger.d(TAG, "Calling RPC get_or_create_route for $srcLocId -> $destLocId")
 
         val routeDto = postgrest.rpc(
-          function = "get_or_create_route",
-          parameters = mapOf(
-            "p_src_loc_id" to srcLocId,
-            "p_dest_loc_id" to destLocId
+          function = "get_or_create_route", parameters = mapOf(
+            "p_src_loc_id" to srcLocId, "p_dest_loc_id" to destLocId
           )
         ).decodeAs<RouteDto>()
 
         val route = routeDto.toDomain()
-        
+
         // Invalidate caches
         routeCache.clear()
         routesCache = null
         cachedRoutesWithLocation = null
-        
+
         Logger.d(TAG, "Caches invalidated after creating new route")
 
         Result.Success(route)
