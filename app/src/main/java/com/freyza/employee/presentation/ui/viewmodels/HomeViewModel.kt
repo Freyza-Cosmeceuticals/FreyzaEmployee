@@ -79,8 +79,8 @@ class HomeViewModel(
       locationsJob.join()
       employeesJob.join()
 
-      val planJob = launch { loadCurrentTravelPlan(employeeId) }
-      val reportJob = launch { loadCurrentDailyReport(employeeId) }
+      val planJob = launch { loadCurrentTravelPlan(employeeId, forceRefresh) }
+      val reportJob = launch { loadCurrentDailyReport(employeeId, forceRefresh) }
 
       planJob.join()
       reportJob.join()
@@ -89,7 +89,7 @@ class HomeViewModel(
     }
   }
 
-  private suspend fun loadCurrentTravelPlan(employeeId: String) {
+  private suspend fun loadCurrentTravelPlan(employeeId: String, forceRefresh: Boolean) {
     when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId)) {
       is Result.Success -> {
         _uiState.update { it.copy(currentTravelPlan = result.data) }
@@ -122,7 +122,7 @@ class HomeViewModel(
     }
   }
 
-  private suspend fun loadCurrentDailyReport(employeeId: String) {
+  private suspend fun loadCurrentDailyReport(employeeId: String, forceRefresh: Boolean) {
     val result = getTodayDailyReportUseCase(
       GetTodayDailyReportParams(serverTime.todayIn(), employeeId, true)
     )
@@ -141,7 +141,7 @@ class HomeViewModel(
 
         report?.routeId?.let { routeId ->
           setReportRoute(routeId)
-          viewModelScope.launch { loadReportPois(routeId) }
+          viewModelScope.launch { loadReportPois(routeId, forceRefresh) }
         }
       }
 
@@ -154,11 +154,11 @@ class HomeViewModel(
     }
   }
 
-  private suspend fun loadReportPois(routeId: String) {
+  private suspend fun loadReportPois(routeId: String, forceRefresh: Boolean) {
     val route = _uiState.value.routes.find { it.id == routeId }
     val destLocId = route?.destLoc?.id ?: return
 
-    when (val result = dailyReportRepository.getPoisByLocation(destLocId)) {
+    when (val result = dailyReportRepository.getPoisByLocation(destLocId, forceRefresh)) {
       is Result.Success -> {
         _uiState.update { it.copy(pois = result.data) }
       }

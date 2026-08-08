@@ -586,7 +586,7 @@ fun ReportDetailHeader(
     ) {
       Column(
         modifier = Modifier
-          .weight(1f)
+          .weight(3f)
           .padding(end = 16.dp)
       ) {
         Text(
@@ -624,7 +624,7 @@ fun ReportDetailHeader(
         }
       }
 
-      Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
+      Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(2f)) {
         Text(
           text = report.totalExpense.toCurrencyString(),
           style = MaterialTheme.typography.headlineSmall,

@@ -151,7 +151,7 @@ fun AddVisitScreen(
         // ime is taken by the scaffold itself for local bottom bar
         .padding(paddingValues)
     ) {
-      if (uiState.visitType == null) {
+      if (uiState.visitType == null || uiState.availablePois is UIState.Loading) {
         item("loading") {
           LoadingIndicator(Modifier.fillMaxSize(), message = "Loading form...")
         }
@@ -169,8 +169,7 @@ fun AddVisitScreen(
           samplesGiven = form.samplesGiven,
           onSamplesChange = onSamplesChange,
           focusManager = focusManager,
-          enabled = (uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error) &&
-                  uiState.availablePois !is UIState.Loading
+          enabled = uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error
         )
       }
 

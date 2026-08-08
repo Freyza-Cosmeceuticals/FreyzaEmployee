@@ -133,9 +133,9 @@ class ReportDetailViewModel(
     }
   }
 
-  private fun loadRouteAndPois(routeId: String, forceRefresh: Boolean = false) {
+  private fun loadRouteAndPois(routeId: String, forceRefresh: Boolean) {
     viewModelScope.launch {
-      when (val result = routeRepository.getRoute(routeId)) {
+      when (val result = routeRepository.getRoute(routeId, forceRefresh)) {
         is Result.Success -> {
           val destLocId = result.data?.destLocId
           if (destLocId != null) {
@@ -149,7 +149,7 @@ class ReportDetailViewModel(
     }
   }
 
-  private fun loadPois(locationId: String, forceRefresh: Boolean = false) {
+  private fun loadPois(locationId: String, forceRefresh: Boolean) {
     viewModelScope.launch {
       when (val result = dailyReportRepository.getPoisByLocation(locationId, forceRefresh)) {
         is Result.Success -> {
@@ -171,6 +171,7 @@ class ReportDetailViewModel(
           _uiState.update {
             it.copy(routes = result.data)
           }
+
           Logger.d(
             TAG, "All routes fetched successfully: ${result.data.size} routes"
           )
