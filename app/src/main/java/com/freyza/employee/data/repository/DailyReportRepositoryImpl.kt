@@ -76,7 +76,10 @@ class DailyReportRepositoryImpl(
   private val appConfig: AppConfig,
   private val auth: Auth,
 ) : DailyReportRepository {
+  // Cache for complete POI lists keyed by location ID
   private val poiCache = mutableMapOf<String, List<PointOfInterest>>()
+
+  // Cache for daily reports keyed by report ID
   private val reportCache = mutableMapOf<String, DailyReport>()
 
   companion object {

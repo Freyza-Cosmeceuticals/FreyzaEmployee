@@ -90,10 +90,10 @@ class HomeViewModel(
   }
 
   private suspend fun loadCurrentTravelPlan(employeeId: String, forceRefresh: Boolean) {
-    when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId)) {
+    when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         _uiState.update { it.copy(currentTravelPlan = result.data) }
-        result.data?.id?.let { loadTodayTravelPlanEntry(it) }
+        result.data?.id?.let { loadTodayTravelPlanEntry(it, forceRefresh) }
       }
 
       is Result.Error -> {
@@ -105,8 +105,8 @@ class HomeViewModel(
     }
   }
 
-  private suspend fun loadTodayTravelPlanEntry(tpId: String) {
-    when (val result = travelPlanRepository.getTodayTravelPlanEntry(tpId)) {
+  private suspend fun loadTodayTravelPlanEntry(tpId: String, forceRefresh: Boolean) {
+    when (val result = travelPlanRepository.getTodayTravelPlanEntry(tpId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         val entry = result.data
         val route = _uiState.value.routes.find { it.id == entry?.routeId }

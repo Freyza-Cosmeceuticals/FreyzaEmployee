@@ -367,7 +367,7 @@ class AddVisitViewModel(
               it.copy(creationState = UIState.Ready(false))
             }
             snackbarManager.showSuccess("Visit updated successfully")
-            Logger.i(TAG, "visit:${result.data.id} Visit updated successfully.")
+            Logger.d(TAG, "visit:${result.data.id} Visit updated successfully.")
           }
 
           is Result.Error -> {

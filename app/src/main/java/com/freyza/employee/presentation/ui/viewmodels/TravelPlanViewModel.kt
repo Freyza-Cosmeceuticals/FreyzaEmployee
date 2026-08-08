@@ -34,10 +34,7 @@ class TravelPlanViewModel(
 
   private val _uiState = MutableStateFlow(TravelPlanUiState(today = serverTime.nowLocalDateTime()))
   val uiState = _uiState.onStart {
-    loadAllRoutes()
-
-    val employeeId = sessionManager.currentEmployee.value?.id
-    if (employeeId != null) loadCurrentTravelPlan(employeeId)
+    refresh()
   }.stateIn(
     viewModelScope,
     SharingStarted.WhileSubscribed(5_000),
@@ -50,7 +47,14 @@ class TravelPlanViewModel(
     Logger.d(TAG, "Init")
   }
 
-  fun loadCurrentTravelPlan(employeeId: String) {
+  fun refresh(forceRefresh: Boolean = false) {
+    loadAllRoutes(forceRefresh)
+
+    val employeeId = sessionManager.currentEmployee.value?.id
+    if (employeeId != null) loadCurrentTravelPlan(employeeId, forceRefresh)
+  }
+
+  fun loadCurrentTravelPlan(employeeId: String, forceRefresh: Boolean = false) {
     Logger.d(TAG, "Fetching current travel plan for $employeeId")
 
     _uiState.update {
@@ -59,7 +63,7 @@ class TravelPlanViewModel(
       )
     }
     viewModelScope.launch {
-      when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId)) {
+      when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(currentTravelPlan = UIState.Ready(result.data))
@@ -70,7 +74,7 @@ class TravelPlanViewModel(
           )
 
           // fetch all entries
-          if (result.data?.id !== null) loadTravelPlanEntries(result.data.id)
+          if (result.data?.id !== null) loadTravelPlanEntries(result.data.id, forceRefresh)
         }
 
         is Result.Error -> {
@@ -87,11 +91,11 @@ class TravelPlanViewModel(
     }
   }
 
-  private fun loadAllRoutes() {
+  private fun loadAllRoutes(forceRefresh: Boolean = false) {
     Logger.d(TAG, "Fetching all routes")
 
     viewModelScope.launch {
-      when (val result = routeRepository.getAllRoutesWithLocation()) {
+      when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(routes = result.data)
@@ -115,7 +119,7 @@ class TravelPlanViewModel(
     }
   }
 
-  private fun loadTravelPlanEntries(tpId: String) {
+  private fun loadTravelPlanEntries(tpId: String, forceRefresh: Boolean = false) {
     Logger.d(TAG, "Fetching plan Entries plan for tpId:$tpId")
 
     _uiState.update {
@@ -125,7 +129,7 @@ class TravelPlanViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = travelPlanRepository.getTravelPlanEntries(tpId)) {
+      when (val result = travelPlanRepository.getTravelPlanEntries(tpId, forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(travelPlanEntries = UIState.Ready(result.data))
@@ -151,7 +155,7 @@ class TravelPlanViewModel(
   }
 
   fun loadSelectedPlanEntryRoute(tpEntryId: String) {
-    Logger.i(TAG, "Fetching plan entry route data for tpEntryId:$tpEntryId")
+    Logger.d(TAG, "Fetching plan entry route data for tpEntryId:$tpEntryId")
 
     _uiState.update {
       it.copy(

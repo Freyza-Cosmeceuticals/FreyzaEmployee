@@ -23,6 +23,7 @@ class UserRepositoryImpl(
     const val TAG: String = "UserRepository"
   }
 
+  // Cache for employee lists keyed by HQ ID
   private val cachedHqEmployees = mutableMapOf<String, List<User>>()
 
   override suspend fun getUserById(id: String): Result<User?> {
