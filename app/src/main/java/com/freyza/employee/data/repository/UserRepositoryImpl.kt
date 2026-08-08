@@ -48,13 +48,13 @@ class UserRepositoryImpl(
   }
 
   override suspend fun getEmployeesByHq(hqId: String, forceRefresh: Boolean): Result<List<User>> {
+    if (!forceRefresh && cachedHqEmployees.containsKey(hqId)) {
+      Logger.d(TAG, "Returning cached employees for HQ: $hqId")
+
+      return Result.Success(cachedHqEmployees[hqId]!!)
+    }
+
     return safeApiCall(TAG) {
-      if (!forceRefresh && cachedHqEmployees.containsKey(hqId)) {
-        Logger.d(TAG, "Returning cached employees for HQ: $hqId")
-
-        return@safeApiCall cachedHqEmployees[hqId]!!
-      }
-
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying employees by hq:${hqId} from network")
 

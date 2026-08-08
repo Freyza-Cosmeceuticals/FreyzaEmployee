@@ -15,8 +15,6 @@ import com.freyza.employee.domain.repository.TravelPlanRepository
 import com.freyza.employee.domain.repository.UserRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
-import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportParams
-import com.freyza.employee.domain.usecase.dailyreport.GetTodayDailyReportUseCase
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,7 +30,6 @@ class HomeViewModel(
   private val dailyReportRepository: DailyReportRepository,
   private val routeRepository: RouteRepository,
   private val travelPlanRepository: TravelPlanRepository,
-  private val getTodayDailyReportUseCase: GetTodayDailyReportUseCase,
   private val createTodayDailyReportUseCase: CreateTodayDailyReportUseCase,
   private val snackbarManager: SnackbarManager,
   private val serverTime: ServerTime,
@@ -90,7 +87,8 @@ class HomeViewModel(
   }
 
   private suspend fun loadCurrentTravelPlan(employeeId: String, forceRefresh: Boolean) {
-    when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
+    when (val result =
+      travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         _uiState.update { it.copy(currentTravelPlan = result.data) }
         result.data?.id?.let { loadTodayTravelPlanEntry(it, forceRefresh) }
@@ -106,7 +104,8 @@ class HomeViewModel(
   }
 
   private suspend fun loadTodayTravelPlanEntry(tpId: String, forceRefresh: Boolean) {
-    when (val result = travelPlanRepository.getTodayTravelPlanEntry(tpId, forceRefresh = forceRefresh)) {
+    when (val result =
+      travelPlanRepository.getTodayTravelPlanEntry(tpId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         val entry = result.data
         val route = _uiState.value.routes.find { it.id == entry?.routeId }
@@ -123,8 +122,11 @@ class HomeViewModel(
   }
 
   private suspend fun loadCurrentDailyReport(employeeId: String, forceRefresh: Boolean) {
-    val result = getTodayDailyReportUseCase(
-      GetTodayDailyReportParams(serverTime.todayIn(), employeeId, true)
+    val result = dailyReportRepository.getTodayDailyReport(
+      today = serverTime.todayIn(),
+      employeeId = employeeId,
+      withVisits = true,
+      forceRefresh = forceRefresh
     )
 
     when (result) {
@@ -202,8 +204,7 @@ class HomeViewModel(
               finalRouteId = newRoute.id
               Logger.w(
                 TAG,
-                "New route created on-the-fly: ID=${newRoute.id}, " +
-                        "SrcLocId=$srcLocId, DestLocId=$destLocId. Manual tweak may be needed."
+                "New route created on-the-fly: ID=${newRoute.id}, " + "SrcLocId=$srcLocId, DestLocId=$destLocId. Manual tweak may be needed."
               )
               // Refresh routes list to include the newly created route
               loadAllRoutes()
@@ -222,11 +223,7 @@ class HomeViewModel(
 
       val result = createTodayDailyReportUseCase(
         CreateTodayDailyReportParams(
-          serverTime.todayIn(),
-          employeeId,
-          dayType,
-          finalRouteId,
-          travellingWithId
+          serverTime.todayIn(), employeeId, dayType, finalRouteId, travellingWithId
         )
       )
 
@@ -255,7 +252,7 @@ class HomeViewModel(
   }
 
   private suspend fun loadAllRoutes(forceRefresh: Boolean = false) {
-    when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh)) {
+    when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh = forceRefresh)) {
       is Result.Success -> _uiState.update { it.copy(routes = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch routes failed: ${result.message}")
       else -> {}
@@ -263,7 +260,7 @@ class HomeViewModel(
   }
 
   private suspend fun loadAllLocations(forceRefresh: Boolean = false) {
-    when (val result = locationRepository.getAllLocations(forceRefresh)) {
+    when (val result = locationRepository.getAllLocations(forceRefresh = forceRefresh)) {
       is Result.Success -> _uiState.update { it.copy(locations = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch locations failed: ${result.message}")
       else -> {}
@@ -274,7 +271,7 @@ class HomeViewModel(
     val user = sessionManager.currentEmployee.value
     val hqId = user?.hqId ?: return
 
-    when (val result = userRepository.getEmployeesByHq(hqId, forceRefresh)) {
+    when (val result = userRepository.getEmployeesByHq(hqId = hqId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         val employees = result.data.filter { it.id != employeeId }
         _uiState.update { it.copy(employees = employees) }

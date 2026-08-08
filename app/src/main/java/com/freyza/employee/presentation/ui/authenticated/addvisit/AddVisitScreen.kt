@@ -46,7 +46,7 @@ import org.koin.androidx.compose.koinViewModel
 fun AddVisitScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: AddVisitViewModel = koinViewModel(),
-  onNavigateUp: (created: Boolean?) -> Unit,
+  onNavigateUp: (created: Boolean?, updated: Boolean?) -> Unit,
   onNavigateToUnauthenticated: () -> Unit,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,7 +88,7 @@ fun AddVisitScreenRoute(
 fun AddVisitScreen(
   uiState: AddVisitUiState,
   user: User,
-  onNavigateUp: (created: Boolean?) -> Unit,
+  onNavigateUp: (created: Boolean?, updated: Boolean?) -> Unit,
   onRetry: () -> Unit,
   onNameChange: (String) -> Unit,
   onPoiSelect: (PointOfInterest?) -> Unit,
@@ -114,9 +114,11 @@ fun AddVisitScreen(
   Scaffold(
     topBar = {
       FreyzaAddVisitAppBar(
-        uiState.visitType,
-        navigateUp = { onNavigateUp(if (uiState.creationState is UIState.Error) false else null) },
-        isEdit = isEdit
+        uiState.visitType, navigateUp = {
+          val created = if (uiState.creationState is UIState.Error && !isEdit) false else null
+          val updated = if (uiState.creationState is UIState.Error && isEdit) false else null
+          onNavigateUp(created, updated)
+        }, isEdit = isEdit
       )
     }, bottomBar = {
       if (uiState.visitType != null) BottomStatusBar(
@@ -126,7 +128,10 @@ fun AddVisitScreen(
         numProducts = form.numProducts,
         totalQuantity = form.totalQuantity,
         creationState = uiState.creationState,
-        onSubmitVisit = onSubmitVisit,
+        onSubmitVisit = {
+          focusManager.clearFocus()
+          onSubmitVisit()
+        },
         modifier = Modifier.fillMaxWidth()
       )
     },
@@ -136,7 +141,7 @@ fun AddVisitScreen(
     // handle screen transitions and error states
     LaunchedEffect(uiState.creationState) {
       if (uiState.creationState is UIState.Ready) {
-        onNavigateUp(true)
+        onNavigateUp(!isEdit, isEdit)
       }
     }
 
@@ -167,6 +172,7 @@ fun AddVisitScreen(
           selectedPoiId = form.poiId,
           onPoiSelect = onPoiSelect,
           samplesGiven = form.samplesGiven,
+          samplesError = form.samplesError,
           onSamplesChange = onSamplesChange,
           focusManager = focusManager,
           enabled = uiState.creationState is UIState.Idle || uiState.creationState is UIState.Error
@@ -230,7 +236,7 @@ private fun AddVisitScreenPreviewDoctor() {
         form = dummyAddVisitFormDoctor()
       ),
       user = dummyUserEmployee(),
-      onNavigateUp = {},
+      onNavigateUp = { _, _ -> },
       onRetry = {},
       onNameChange = {},
       onPoiSelect = {},
@@ -261,7 +267,7 @@ private fun AddVisitScreenPreviewStockist() {
         form = dummyAddVisitFormStockist()
       ),
       user = dummyUserEmployee(),
-      onNavigateUp = {},
+      onNavigateUp = { _, _ -> },
       onRetry = {},
       onNameChange = {},
       onPoiSelect = {},
@@ -292,7 +298,7 @@ private fun AddVisitScreenPreviewChemist() {
         form = dummyAddVisitFormChemist()
       ),
       user = dummyUserEmployee(),
-      onNavigateUp = {},
+      onNavigateUp = { _, _ -> },
       onRetry = {},
       onNameChange = {},
       onPoiSelect = {},
@@ -321,7 +327,7 @@ private fun AddVisitScreenPreviewNull() {
         today = ServerTime().nowLocalDateTime(), visitType = null
       ),
       user = dummyUserEmployee(),
-      onNavigateUp = {},
+      onNavigateUp = { _, _ -> },
       onRetry = {},
       onNameChange = {},
       onPoiSelect = {},

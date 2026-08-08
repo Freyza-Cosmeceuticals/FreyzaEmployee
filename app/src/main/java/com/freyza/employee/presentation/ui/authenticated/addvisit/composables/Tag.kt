@@ -45,6 +45,7 @@ internal fun TagInputField(
   label: String,
   modifier: Modifier = Modifier,
   enabled: Boolean = true,
+  error: String? = null,
 ) {
   var currentText by rememberSaveable { mutableStateOf("") }
 
@@ -118,6 +119,8 @@ internal fun TagInputField(
       placeholder = { Text("Type and press comma (,)") },
       modifier = Modifier.fillMaxWidth(),
       enabled = enabled,
+      isError = error != null,
+      supportingText = error?.let { { Text(it) } },
       keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
       keyboardActions = KeyboardActions(onDone = {
         if (currentText.isNotBlank()) {

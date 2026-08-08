@@ -15,6 +15,8 @@ import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserInfo
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -52,6 +54,7 @@ class AuthenticationRepositoryImpl(
 
     networkMonitor.isOnline.onEach { isOnline ->
       if (wasOffline && isOnline) {
+        Sentry.addBreadcrumb(Breadcrumb.info("${TAG}: Network back online, triggering auto-refresh"))
         Logger.d(TAG, "Network back online, triggering auto-refresh")
         checkSession()
       }
@@ -62,6 +65,17 @@ class AuthenticationRepositoryImpl(
   private fun listenToAuthStatus() {
     repositoryScope.launch {
       auth.sessionStatus.collect { status ->
+        val breadcrumb = Breadcrumb().apply {
+          category = "auth"
+          message = when (status) {
+            is SessionStatus.Authenticated -> "SessionStatus: Authenticated"
+            is SessionStatus.NotAuthenticated -> "SessionStatus: NotAuthenticated"
+            SessionStatus.Initializing -> "SessionStatus: Initializing"
+            is SessionStatus.RefreshFailure -> "SessionStatus: RefreshFailure"
+          }
+        }
+        Sentry.addBreadcrumb(breadcrumb)
+
         when (status) {
           is SessionStatus.Authenticated -> {
             Logger.d(TAG, "Authenticated: fetching profile")
@@ -92,9 +106,20 @@ class AuthenticationRepositoryImpl(
 
   private fun logAuthState() {
     authState.onEach { state ->
+      val breadcrumb = Breadcrumb().apply {
+        category = "auth"
+        message = when (state) {
+          is AuthState.Authenticated -> "AuthState: User logged in"
+          is AuthState.Error -> "AuthState: Error (${state.message})"
+          is AuthState.Loading -> "AuthState: Auth state changed to Loading"
+          is AuthState.Unauthenticated -> "AuthState: Session expired or Unauthenticated"
+        }
+      }
+      Sentry.addBreadcrumb(breadcrumb)
+
       when (state) {
         is AuthState.Authenticated -> {
-          Logger.i(TAG, "AuthState: Authenticated")
+          Logger.d(TAG, "AuthState: Authenticated")
         }
 
         is AuthState.Error -> {
@@ -106,7 +131,7 @@ class AuthenticationRepositoryImpl(
         }
 
         is AuthState.Unauthenticated -> {
-          Logger.i(TAG, "AuthState: Unauthenticated")
+          Logger.d(TAG, "AuthState: Unauthenticated")
         }
       }
     }.launchIn(repositoryScope)

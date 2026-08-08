@@ -50,6 +50,7 @@ fun ClientInfoCard(
   selectedPoiId: String?,
   onPoiSelect: (PointOfInterest?) -> Unit,
   samplesGiven: List<String>,
+  samplesError: String?,
   onSamplesChange: (List<String>) -> Unit,
   focusManager: FocusManager,
   modifier: Modifier = Modifier,
@@ -95,7 +96,8 @@ fun ClientInfoCard(
           onItemAdded = { if (!samplesGiven.contains(it)) onSamplesChange(samplesGiven + it) },
           onItemRemoved = { onSamplesChange(samplesGiven - it) },
           label = "Samples Given",
-          enabled = enabled
+          enabled = enabled,
+          error = samplesError
         )
       }
     }

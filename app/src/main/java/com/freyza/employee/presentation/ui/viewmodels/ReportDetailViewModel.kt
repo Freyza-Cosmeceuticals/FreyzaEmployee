@@ -73,7 +73,11 @@ class ReportDetailViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = dailyReportRepository.getDailyReport(id = reportId, withVisits = true)) {
+      when (val result = dailyReportRepository.getDailyReport(
+        id = reportId,
+        withVisits = true,
+        forceRefresh = forceRefresh
+      )) {
         is Result.Success -> {
           _uiState.update {
             it.copy(report = UIState.Ready(result.data))
@@ -81,7 +85,7 @@ class ReportDetailViewModel(
           Logger.d(
             TAG, "Daily Report Fetched Successfully id:${result.data?.id}"
           )
-          
+
           // Trigger POI fetch as soon as we have the routeId/destLocId
           result.data?.routeId?.let { loadRouteAndPois(it, forceRefresh) }
         }

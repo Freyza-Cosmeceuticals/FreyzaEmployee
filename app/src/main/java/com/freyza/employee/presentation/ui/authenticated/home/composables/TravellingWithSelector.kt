@@ -55,7 +55,6 @@ fun TravellingWithSelector(
 
   OutlinedCard(
     onClick = { showDialog = true },
-    shape = RoundedCornerShape(integerResource(R.integer.rounding_radius)),
     colors = CardDefaults.outlinedCardColors(
       containerColor = if (selectedEmployee != null) MaterialTheme.colorScheme.primaryContainer.copy(
         alpha = 0.3f

@@ -82,6 +82,14 @@ internal fun BottomStatusBar(
         }
       }
 
+      if (creationState is UIState.Error) {
+        Text(
+          creationState.message ?: "An error has occurred",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.error
+        )
+      }
+
       SubmitVisitButton(
         onSubmitVisit = onSubmitVisit,
         creationState = creationState,
@@ -132,7 +140,7 @@ private fun BottomStatusBarStockistPreview() {
       orderAmount = "7833.23328".toMoney(),
       numProducts = 7,
       totalQuantity = 86,
-      creationState = UIState.Ready(false),
+      creationState = UIState.Error("Here is an error"),
       onSubmitVisit = {})
   }
 }

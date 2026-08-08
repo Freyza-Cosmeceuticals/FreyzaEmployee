@@ -6,6 +6,10 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.LocationTracker
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
+import com.freyza.employee.core.network.ApiErrorResponse
+import com.freyza.employee.core.network.getArrayIndex
+import com.freyza.employee.core.network.getNestedField
+import com.freyza.employee.core.network.getRootField
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
@@ -21,6 +25,8 @@ import com.freyza.employee.domain.usecase.dailyreport.CreateVisitParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateVisitUseCase
 import com.freyza.employee.presentation.ui.state.AddVisitUiState
 import com.freyza.employee.presentation.ui.state.ProductEntry
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -47,14 +53,13 @@ class AddVisitViewModel(
 
   val isEditMode = visitId != null
 
-  private val _uiState =
-    MutableStateFlow(
-      AddVisitUiState(
-        today = serverTime.nowLocalDateTime(),
-        visitType = visitType,
-        creationState = UIState.Idle(true)
-      )
+  private val _uiState = MutableStateFlow(
+    AddVisitUiState(
+      today = serverTime.nowLocalDateTime(),
+      visitType = visitType,
+      creationState = UIState.Idle(true)
     )
+  )
   val uiState = _uiState.onStart {
     refresh()
   }.stateIn(
@@ -120,8 +125,7 @@ class AddVisitViewModel(
           if (visit != null) {
             _uiState.update {
               it.copy(
-                form = visit.toFormState(),
-                creationState = UIState.Idle(true)
+                form = visit.toFormState(), creationState = UIState.Idle(true)
               )
             }
           } else {
@@ -155,21 +159,34 @@ class AddVisitViewModel(
       val matchedPoi = pois.find {
         it.name.trim().equals(name.trim(), ignoreCase = true)
       }
+      if (matchedPoi == null && name.isNotBlank()) {
+        Sentry.addBreadcrumb(Breadcrumb().apply {
+          category = "ui.action"
+          message = "Entered custom POI name"
+        })
+      } else if (matchedPoi != null) {
+        Sentry.addBreadcrumb(Breadcrumb().apply {
+          category = "ui.action"
+          message = "Selected POI ID: ${matchedPoi.id}"
+        })
+      }
       state.copy(
         form = state.form.copy(
-          name = state.form.name.copy(value = name, error = null),
-          poiId = matchedPoi?.id
+          name = state.form.name.copy(value = name, error = null), poiId = matchedPoi?.id
         )
       )
     }
   }
 
   fun selectPoi(poi: PointOfInterest?) {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = if (poi != null) "Selected POI ID: ${poi.id}" else "Cleared POI selection"
+    })
     _uiState.update { state ->
       state.copy(
         form = state.form.copy(
-          name = state.form.name.copy(value = poi?.name ?: "", error = null),
-          poiId = poi?.id
+          name = state.form.name.copy(value = poi?.name ?: "", error = null), poiId = poi?.id
         )
       )
     }
@@ -183,7 +200,7 @@ class AddVisitViewModel(
 
   fun updateSamplesGiven(samples: List<String>) {
     _uiState.update {
-      it.copy(form = it.form.copy(samplesGiven = samples))
+      it.copy(form = it.form.copy(samplesGiven = samples, samplesError = null))
     }
   }
 
@@ -226,8 +243,7 @@ class AddVisitViewModel(
       it.copy(
         form = it.form.copy(
           outstandingAmount = it.form.outstandingAmount.copy(
-            value = amount,
-            error = null
+            value = amount, error = null
           )
         )
       )
@@ -251,8 +267,7 @@ class AddVisitViewModel(
       it.copy(
         form = it.form.copy(
           amountWithGST = it.form.amountWithGST.copy(
-            value = amount,
-            error = null
+            value = amount, error = null
           )
         )
       )
@@ -264,8 +279,7 @@ class AddVisitViewModel(
       it.copy(
         form = it.form.copy(
           amountWithoutGST = it.form.amountWithoutGST.copy(
-            value = amount,
-            error = null
+            value = amount, error = null
           )
         )
       )
@@ -312,13 +326,21 @@ class AddVisitViewModel(
 
     } else Pair(form.amountWithGST.copy(error = null), form.amountWithoutGST.copy(error = null))
 
+    val newOutstandingAmount =
+      if (form.outstandingAmount.isNotBlank && !form.outstandingAmount.isValidNumber) {
+        isValid = false
+        form.outstandingAmount.copy(error = "Invalid")
+      } else form.outstandingAmount
+
+
     _uiState.update {
       it.copy(
         form = form.copy(
           name = newName,
           productEntries = newProductEntries,
           amountWithGST = newAmountWithGST,
-          amountWithoutGST = newAmountWithoutGST
+          amountWithoutGST = newAmountWithoutGST,
+          outstandingAmount = newOutstandingAmount
         )
       )
     }
@@ -326,7 +348,84 @@ class AddVisitViewModel(
     return isValid
   }
 
+  private fun handleApiError(error: ApiErrorResponse) {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "network"
+      message = "API Validation Error: ${error.message}"
+      setData("issues", error.data.toString())
+    })
+
+    _uiState.update { state ->
+      var currentForm = state.form
+      var unmappedErrorMessage: String? = null
+
+      error.data.forEach { issue ->
+        val rootField = issue.getRootField()
+        val message = issue.message
+
+        currentForm = when (rootField) {
+          "poiId" -> currentForm.copy(name = currentForm.name.copy(error = message))
+          "newPoiName" -> currentForm.copy(name = currentForm.name.copy(error = message))
+          "additionalNotes" -> currentForm.copy(notes = currentForm.notes.copy(error = message))
+
+          "billNo" -> currentForm.copy(billNo = currentForm.billNo.copy(error = message))
+
+          "amountWithGST" -> currentForm.copy(amountWithGST = currentForm.amountWithGST.copy(error = message))
+          "amountWithoutGST" -> currentForm.copy(
+            amountWithoutGST = currentForm.amountWithoutGST.copy(
+              error = message
+            )
+          )
+
+          "outstandingAmount" -> currentForm.copy(
+            outstandingAmount = currentForm.outstandingAmount.copy(
+              error = message
+            )
+          )
+
+          "samplesGiven" -> currentForm.copy(samplesError = message)
+
+          "productDetails" -> {
+            val index = issue.getArrayIndex()
+            val nestedField = issue.getNestedField()
+
+            if (index != null && nestedField != null) {
+              val updatedEntries = currentForm.productEntries.mapIndexed { i, entry ->
+                if (i == index) {
+                  when (nestedField) {
+                    "name" -> entry.copy(name = entry.name.copy(error = issue.message))
+                    "rate" -> entry.copy(rate = entry.rate.copy(error = issue.message))
+                    "quantity" -> entry.copy(quantity = entry.quantity.copy(error = issue.message))
+                    else -> entry
+                  }
+                } else entry
+              }
+              currentForm.copy(productEntries = updatedEntries)
+            } else {
+              currentForm
+            }
+          }
+
+          else -> {
+            unmappedErrorMessage = message
+            currentForm
+          }
+        }
+      }
+
+      state.copy(
+        form = currentForm,
+        creationState = UIState.Error(unmappedErrorMessage ?: error.message, true)
+      )
+    }
+  }
+
   fun submitVisit() {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "submitVisit called (visitType=${_uiState.value.visitType}, isEditMode=$isEditMode)"
+    })
+
     if (!validateForm()) {
       snackbarManager.showError("Please fix errors in the form")
       return
@@ -361,6 +460,7 @@ class AddVisitViewModel(
     viewModelScope.launch {
       if (isEditMode && visitId != null) {
         val updateDto = form.toUpdateDto(visitType, updatedAt = serverTime.now().toString())
+
         when (val result = dailyReportRepository.updateVisit(visitId, updateDto)) {
           is Result.Success -> {
             _uiState.update {
@@ -371,18 +471,23 @@ class AddVisitViewModel(
           }
 
           is Result.Error -> {
-            _uiState.update {
-              it.copy(
-                creationState = UIState.Error(
-                  "Unable to update visit, please try again",
-                  true
-                )
-              )
-            }
-            if (result.message.isNotEmpty()) {
-              snackbarManager.showError("Unable to update visit. ${result.message}")
+            val apiError = result.errorBody as? ApiErrorResponse
+            if (apiError != null) {
+              handleApiError(apiError)
+              snackbarManager.showError("Please correct errors in the form.")
             } else {
-              snackbarManager.showError("Unable to update visit, please try again")
+              _uiState.update {
+                it.copy(
+                  creationState = UIState.Error(
+                    "Unable to update visit, please try again", true
+                  )
+                )
+              }
+              if (result.message.isNotEmpty()) {
+                snackbarManager.showError("Unable to update visit. ${result.message}")
+              } else {
+                snackbarManager.showError("Unable to update visit, please try again")
+              }
             }
             Logger.e(TAG, "Cannot update visit: ${result.message}")
           }
@@ -413,7 +518,6 @@ class AddVisitViewModel(
         when (result) {
           is Result.Success -> {
             _uiState.update {
-              // canSubmit = false
               it.copy(creationState = UIState.Ready(false))
             }
             snackbarManager.showSuccess("Visit created successfully")
@@ -423,15 +527,23 @@ class AddVisitViewModel(
           }
 
           is Result.Error -> {
-            _uiState.update {
-              it.copy(creationState = UIState.Error("Unable to mark visit, please try again", true))
+            val apiError = result.errorBody as? ApiErrorResponse
+            if (apiError != null) {
+              handleApiError(apiError)
+              snackbarManager.showError("Please correct errors in the form.")
+            } else {
+              _uiState.update {
+                it.copy(
+                  creationState = UIState.Error("Unable to mark visit, please try again", true)
+                )
+              }
+              if (result.message.isNotEmpty()) {
+                snackbarManager.showError("Unable to mark visit. ${result.message}")
+              } else {
+                snackbarManager.showError("Unable to mark visit, please try again")
+              }
             }
 
-            if (result.message.isNotEmpty()) {
-              snackbarManager.showError("Unable to mark visit. ${result.message}")
-            } else {
-              snackbarManager.showError("Unable to mark visit, please try again")
-            }
             Logger.e(TAG, "Cannot mark visit: ${result.message}")
           }
 

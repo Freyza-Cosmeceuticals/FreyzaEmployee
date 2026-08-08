@@ -11,6 +11,8 @@ import com.freyza.employee.domain.usecase.auth.LoginParams
 import com.freyza.employee.domain.usecase.auth.LoginUseCase
 import com.freyza.employee.domain.usecase.auth.LoginWithGoogleUseCase
 import io.github.jan.supabase.auth.user.UserInfo
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -48,6 +50,11 @@ class LoginViewModel(
   }
 
   fun loginWithEmail(email: String, password: String) {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "loginWithEmail triggered"
+    })
+
     if (email.isBlank() || password.isBlank()) {
       _uiState.update {
         // TODO: Replace with R.string.error_blank_email_pass
@@ -91,6 +98,11 @@ class LoginViewModel(
   }
 
   fun loginWithGoogle() {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "loginWithGoogle triggered"
+    })
+
     _uiState.value = UIState.Loading()
 
     viewModelScope.launch {

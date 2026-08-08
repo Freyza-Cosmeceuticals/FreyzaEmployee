@@ -40,16 +40,16 @@ class VisitDetailViewModel(
 
   fun getToday() = serverTime.nowLocalDateTime()
 
-  fun refresh() {
-    loadVisit()
+  fun refresh(forceRefresh: Boolean = false) {
+    loadVisit(forceRefresh = forceRefresh)
   }
 
-  private fun loadVisit() {
+  private fun loadVisit(forceRefresh: Boolean) {
     Logger.d(TAG, "Fetching visit: $visitId")
     _uiState.update { it.copy(visit = UIState.Loading(it.visit.data)) }
 
     viewModelScope.launch {
-      when (val result = dailyReportRepository.getVisit(visitId)) {
+      when (val result = dailyReportRepository.getVisit(visitId, forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update { it.copy(visit = UIState.Ready(result.data)) }
           result.data?.reportId?.let { loadReport(it) }

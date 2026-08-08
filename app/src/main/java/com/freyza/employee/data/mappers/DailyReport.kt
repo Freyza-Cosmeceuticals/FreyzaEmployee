@@ -17,7 +17,7 @@ fun DailyReportDto.toDomain(): DailyReport {
     ta = ta?.let { Money(it) },
     da = da?.let { Money(it) },
     totalExpense = totalExpense?.let { Money(it) },
-    visits = visits?.map { it.toDomain() } ?: emptyList(),
+    visits = visits?.map { it.toDomain() }?.sortedBy { it.createdAt } ?: emptyList(),
     locked = locked,
     lockedAt = lockedAt?.let { Instant.parse(it) },
     createdAt = Instant.parse(createdAt),

@@ -43,6 +43,7 @@ data class AddVisitFormState(
   val notes: FormField = FormField(),
   val productEntries: List<ProductEntry> = emptyList(),
   val samplesGiven: List<String> = emptyList(),
+  val samplesError: String? = null,
   val orderTaken: Boolean = false,
   val billNo: FormField = FormField(),
   val paymentCollected: Boolean = false,

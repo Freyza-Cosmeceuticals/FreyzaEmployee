@@ -57,6 +57,8 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun VisitDetailScreenRoute(
   modifier: Modifier = Modifier,
+  visitUpdated: Boolean?,
+  onVisitUpdatedConsumed: () -> Unit,
   viewModel: VisitDetailViewModel = koinViewModel(),
   onNavigateUp: (deleted: Boolean?) -> Unit,
   onEditVisit: (Visit) -> Unit,
@@ -79,6 +81,8 @@ fun VisitDetailScreenRoute(
       onEditVisit = {
         uiState.visit.data?.let { onEditVisit(it) }
       },
+      visitUpdated = visitUpdated,
+      onVisitUpdatedConsumed = onVisitUpdatedConsumed,
       modifier = modifier
     )
   }
@@ -92,6 +96,8 @@ fun VisitDetailScreen(
   onNavigateUp: (Boolean?) -> Unit,
   onDeleteVisit: () -> Unit,
   onEditVisit: () -> Unit,
+  visitUpdated: Boolean?,
+  onVisitUpdatedConsumed: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
@@ -109,6 +115,13 @@ fun VisitDetailScreen(
     LaunchedEffect(uiState.deletingState) {
       if (uiState.deletingState is UIState.Ready) {
         onNavigateUp(true)
+      }
+    }
+
+    LaunchedEffect(visitUpdated) {
+      if (visitUpdated != null) {
+        onVisitUpdatedConsumed()
+        onRefresh()
       }
     }
 
@@ -343,7 +356,9 @@ private fun VisitDetailScreenPreview() {
       onRefresh = {},
       onNavigateUp = {},
       onDeleteVisit = {},
-      onEditVisit = {})
+      onEditVisit = {},
+      visitUpdated = null,
+      onVisitUpdatedConsumed = {})
   }
 }
 
@@ -358,6 +373,8 @@ private fun VisitDetailScreenErrorPreview() {
       onRefresh = {},
       onNavigateUp = {},
       onDeleteVisit = {},
-      onEditVisit = {})
+      onEditVisit = {},
+      visitUpdated = null,
+      onVisitUpdatedConsumed = {})
   }
 }

@@ -1,6 +1,7 @@
 package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.RouteDto
@@ -35,7 +36,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
       return Result.Success(routeCache[routeId])
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying route with ID: $routeId from network")
 
@@ -49,11 +50,9 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
         if (route != null) {
           routeCache[routeId] = route
         }
-        Result.Success(route)
+
+        route
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -63,7 +62,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
       return Result.Success(routesCache!!)
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying all routes from network")
 
@@ -74,11 +73,8 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
         // Also populate individual cache
         routes.forEach { routeCache[it.id] = it }
 
-        Result.Success(routes)
+        routes
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -88,7 +84,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
       return Result.Success(cachedRoutesWithLocation!!)
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying all routes with location from network")
 
@@ -108,11 +104,8 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
         // Also populate individual basic route cache
         routes.forEach { routeCache[it.id] = it.toRoute() }
 
-        Result.Success(routes)
+        routes
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 

@@ -189,31 +189,40 @@ fun NavGraphBuilder.authenticatedGraph(
     composable<NavRoutes.Authenticated.VisitDetail> { navBackStackEntry ->
       val visitId = navBackStackEntry.toRoute<NavRoutes.Authenticated.VisitDetail>().visitId
 
+      val visitUpdated by navBackStackEntry.savedStateHandle.getStateFlow<Boolean?>("updated", null)
+        .collectAsStateWithLifecycle()
+
+      LaunchedEffect(visitUpdated) {
+        visitUpdated?.let {
+          Logger.d(
+            TAG, "Got `updated` from AddVisit's backstack entry: $it"
+          )
+        }
+      }
+
       val vm = koinViewModel<VisitDetailViewModel>(
         parameters = { parametersOf(visitId) })
 
-      VisitDetailScreenRoute(
-        viewModel = vm,
-        onNavigateUp = { deleted ->
-          Logger.d(
-            TAG,
-            "Navigating back from VisitDetail, deleted: ${deleted}, saving to savestate"
-          )
+      VisitDetailScreenRoute(viewModel = vm, visitUpdated = visitUpdated, onVisitUpdatedConsumed = {
+        // The child screen calls this AFTER it has shown the UI change
+        navBackStackEntry.savedStateHandle["updated"] = null
+      }, onNavigateUp = { deleted ->
+        Logger.d(
+          TAG, "Navigating back from VisitDetail, deleted: ${deleted}, saving to savestate"
+        )
 
-          navController.previousBackStackEntry?.savedStateHandle?.set("deleted", deleted)
-          navController.popBackStack()
-        },
-        onEditVisit = { visit ->
-          navController.navigate(
-            NavRoutes.Authenticated.AddVisit(
-              type = visit.visitType,
-              reportId = visit.reportId,
-              employeeId = visit.employeeId,
-              visitId = visit.id
-            )
+        navController.previousBackStackEntry?.savedStateHandle?.set("deleted", deleted)
+        navController.popBackStack()
+      }, onEditVisit = { visit ->
+        navController.navigate(
+          NavRoutes.Authenticated.AddVisit(
+            type = visit.visitType,
+            reportId = visit.reportId,
+            employeeId = visit.employeeId,
+            visitId = visit.id
           )
-        }
-      )
+        )
+      })
     }
 
     composable<NavRoutes.Authenticated.AddVisit> { navBackStackEntry ->
@@ -225,13 +234,14 @@ fun NavGraphBuilder.authenticatedGraph(
       val vm = koinViewModel<AddVisitViewModel>(
         parameters = { parametersOf(visitType, reportId, employeeId, visitId) })
 
-      AddVisitScreenRoute(viewModel = vm, onNavigateUp = { created ->
+      AddVisitScreenRoute(viewModel = vm, onNavigateUp = { created, updated ->
         Logger.d(
           TAG,
-          "Navigating back from AddVisit, created: ${created}, saving to previous backstack's savestate"
+          "Navigating back from AddVisit, created: ${created}, updated: ${updated}, saving to previous backstack's savestate"
         )
 
         navController.previousBackStackEntry?.savedStateHandle?.set("created", created)
+        navController.previousBackStackEntry?.savedStateHandle?.set("updated", updated)
         navController.popBackStack()
       }, onNavigateToUnauthenticated = {
         onLogout()

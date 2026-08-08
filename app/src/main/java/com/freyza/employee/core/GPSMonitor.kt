@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.location.LocationManager
 import com.freyza.employee.core.util.Logger
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -35,12 +37,20 @@ class GPSMonitor(private val context: Context) {
   }
 
   fun startMonitoring() {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      message = "Started GPS monitoring"
+    })
     Logger.d(TAG, "Starting GPS monitoring")
+
     context.registerReceiver(gpsReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
   }
 
   fun stopMonitoring() {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      message = "Stopping GPS monitoring"
+    })
     Logger.d(TAG, "Stopping GPS monitoring")
+
     context.unregisterReceiver(gpsReceiver)
   }
 

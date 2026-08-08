@@ -9,6 +9,8 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.AuthState
 import com.freyza.employee.domain.repository.AuthenticationRepository
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -27,6 +29,10 @@ class SessionViewModel(
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AuthState.Loading)
 
   fun checkAuth() {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "SessionViewModel.checkAuth triggered"
+    })
     Logger.d(TAG, "Checking Auth session")
     viewModelScope.launch {
       serverTime.syncTime()
@@ -39,6 +45,10 @@ class SessionViewModel(
   }
 
   fun logout() {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "SessionViewModel.logout triggered"
+    })
     Logger.d(TAG, "Logging out...")
     viewModelScope.launch {
       authRepository.logout()
