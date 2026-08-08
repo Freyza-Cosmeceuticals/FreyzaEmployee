@@ -64,7 +64,7 @@ fun DailyReportCard(
 ) {
   val latestVisits = remember(dailyReport?.visits) {
     derivedStateOf {
-      dailyReport?.visits?.take(Constants.NUM_VISITS_DAILY_REPORT_CARD)?.reversed() ?: listOf()
+      dailyReport?.visits?.take(Constants.NUM_VISITS_DAILY_REPORT_CARD) ?: listOf()
     }
   }
 

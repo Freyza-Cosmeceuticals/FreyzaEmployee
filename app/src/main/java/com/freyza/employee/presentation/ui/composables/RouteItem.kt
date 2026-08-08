@@ -1,6 +1,5 @@
 package com.freyza.employee.presentation.ui.composables
 
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
@@ -46,25 +46,21 @@ fun RouteItem(
         text = route.srcLoc.name,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.basicMarquee(
-          iterations = Int.MAX_VALUE,
-          repeatDelayMillis = 1000
-        )
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
       )
       Icon(
         painter = painterResource(R.drawable.arrow_right_24px),
         contentDescription = "to",
-        modifier = Modifier.size(16.dp),
+        modifier = Modifier.size(14.dp),
         tint = MaterialTheme.colorScheme.onSurfaceVariant
       )
       Text(
         text = route.destLoc.name,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.basicMarquee(
-          iterations = Int.MAX_VALUE,
-          repeatDelayMillis = 1000
-        )
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
       )
     } else {
       Text(

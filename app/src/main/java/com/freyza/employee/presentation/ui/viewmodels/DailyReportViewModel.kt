@@ -116,9 +116,6 @@ class DailyReportViewModel(
           _uiState.update {
             it.copy(routes = result.data)
           }
-          Logger.d(
-            TAG, "All routes fetched successfully: ${result.data.size} routes"
-          )
         }
 
         is Result.Error -> {
