@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-08-09
+
+### Added
+- **Travelling With**: Option to select accompanying colleagues during daily report creation.
+- **POI Architecture**: Dynamic visit name auto-complete and robust backend synchronization.
+- **Offline Resilience**: Network state detection, offline warning banner, and auto-recovery for data fetching.
+- **Performance Tracing**: Sentry instrumentation for network calls, UI interactions, and GPS acquisition.
+- **Validation UX**: Form fields now instantly highlight specific API validation errors.
+
 ## [0.1.0] - 2026-07-23
 
 ### Added
