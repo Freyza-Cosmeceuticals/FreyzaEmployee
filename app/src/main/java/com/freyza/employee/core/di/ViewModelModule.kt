@@ -2,6 +2,7 @@ package com.freyza.employee.core.di
 
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.presentation.ui.viewmodels.AddVisitViewModel
+import com.freyza.employee.presentation.ui.viewmodels.AppUpdateViewModel
 import com.freyza.employee.presentation.ui.viewmodels.DailyReportViewModel
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
@@ -57,4 +58,5 @@ val viewModelModule = module {
     )
   }
   viewModelOf(::ProfileViewModel)
+  viewModelOf(::AppUpdateViewModel)
 }
