@@ -12,6 +12,8 @@ import com.freyza.employee.domain.repository.LocationRepository
 import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.repository.TravelPlanRepository
 import com.freyza.employee.domain.repository.UserRepository
+import com.freyza.employee.data.repository.AppUpdateRepositoryImpl
+import com.freyza.employee.domain.repository.AppUpdateRepository
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -23,4 +25,5 @@ val repositoryModule = module {
   singleOf(::UserRepositoryImpl) bind UserRepository::class
   singleOf(::LocationRepositoryImpl) bind LocationRepository::class
   singleOf(::RouteRepositoryImpl) bind RouteRepository::class
+  singleOf(::AppUpdateRepositoryImpl) bind AppUpdateRepository::class
 }
