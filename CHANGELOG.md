@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - 2026-08-09
+## [0.2.0-3] - 2026-08-22
+
+### Added
+- **In-App Updates**: Fully remote in-app updates for faster iterations.
+- **Clearer POI names**: Location name is shown next to POI name in Create Visit and Visit Detail screens.
+- **Accessible Samples field**: Sample is accepted if field has some text and focus is lost.
+
+### Changed
+- All employees are listed for travelling with for now.
+
+## [0.1.1-2] - 2026-08-09
 
 ### Added
 - **Travelling With**: Option to select accompanying colleagues during daily report creation.
@@ -14,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Performance Tracing**: Sentry instrumentation for network calls, UI interactions, and GPS acquisition.
 - **Validation UX**: Form fields now instantly highlight specific API validation errors.
 
-## [0.1.0] - 2026-07-23
+## [0.1.0-1] - 2026-07-23
 
 ### Added
 - **Authentication**: Secure login and session management.
