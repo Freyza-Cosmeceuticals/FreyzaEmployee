@@ -237,7 +237,7 @@ private fun WorkStatusContent(
 
         val name = pois.find { it.id == visit.poiId }?.name
 
-        if (visit.poiId != null && pois.none { it.id == visit.poiId }) {
+        if (pois.none { it.id == visit.poiId }) {
           Skeleton(
             modifier = Modifier
               .width(80.dp)

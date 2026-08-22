@@ -270,19 +270,29 @@ private fun VisitDetailHeader(visit: Visit, poi: PointOfInterest? = null) {
       )
     }
 
-    if (visit.poiId != null && poi == null) {
+    if (poi == null) {
       Skeleton(
         modifier = Modifier
           .width(80.dp)
           .height(14.dp)
       )
     } else {
-      Text(
-        text = poi?.name ?: "???",
-        style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.onSurface
-      )
+      Column {
+        Text(
+          text = poi.name,
+          style = MaterialTheme.typography.headlineMedium,
+          fontWeight = FontWeight.ExtraBold,
+          color = MaterialTheme.colorScheme.onSurface
+        )
+        poi.locationName?.let {
+          Text(
+            text = poi.locationName,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+        }
+      }
     }
 
     HorizontalDivider(modifier = Modifier.padding(top = 8.dp), thickness = 0.5.dp)

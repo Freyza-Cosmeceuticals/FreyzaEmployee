@@ -68,8 +68,24 @@ fun NavGraphBuilder.authenticatedGraph(
   navigation<NavRoutes.Authenticated.NavigationRoute>(
     startDestination = NavRoutes.Authenticated.Home
   ) {
-    composable<NavRoutes.Authenticated.Home> {
+    composable<NavRoutes.Authenticated.Home> {navBackStackEntry ->
+      val visitCreated by navBackStackEntry.savedStateHandle.getStateFlow<Boolean?>("created", null)
+        .collectAsStateWithLifecycle()
+
+      LaunchedEffect(visitCreated) {
+        if (visitCreated != null) {
+          Logger.d(
+            TAG, "Got `created` from AddVisit's backstack entry: ${visitCreated.toString()}"
+          )
+        }
+      }
+
       HomeScreenRoute(
+        visitCreated = visitCreated,
+        onVisitCreatedConsumed = {
+          // The child screen calls this AFTER it has shown the UI change
+          navBackStackEntry.savedStateHandle["created"] = null
+        },
         onNavigateToUnauthenticated = {
           onLogout()
           navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {

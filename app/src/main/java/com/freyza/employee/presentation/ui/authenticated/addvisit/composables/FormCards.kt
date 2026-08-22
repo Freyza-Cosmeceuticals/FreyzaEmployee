@@ -81,7 +81,10 @@ fun ClientInfoCard(
         onItemSelect = onPoiSelect,
         onQueryChange = onNameChange,
         query = name.value,
-        itemLabeler = { it.name },
+        itemLabeler = { poi ->
+          if (poi.locationName != null) "${poi.name} (${poi.locationName})"
+          else poi.name
+        },
         modifier = Modifier.fillMaxWidth(),
         placeholder = "Search or enter name",
         leadingIcon = { Icon(painterResource(R.drawable.account_circle_24px), null) },

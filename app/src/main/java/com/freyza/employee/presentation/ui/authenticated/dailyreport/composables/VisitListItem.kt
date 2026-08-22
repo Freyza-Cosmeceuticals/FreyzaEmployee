@@ -78,7 +78,7 @@ fun VisitListItem(
       Text(visit.visitType.name.uppercase())
     },
     headlineContent = {
-      if (visit.poiId != null && poi == null) {
+      if (poi == null) {
         Skeleton(
           modifier = Modifier
             .width(120.dp)
