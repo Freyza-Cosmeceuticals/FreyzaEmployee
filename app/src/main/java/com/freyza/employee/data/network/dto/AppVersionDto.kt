@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AppVersionResponseDto(
   val success: Boolean,
-  val data: AppVersionDataDto
+  val data: AppVersionDataDto?
 )
 
 @Serializable

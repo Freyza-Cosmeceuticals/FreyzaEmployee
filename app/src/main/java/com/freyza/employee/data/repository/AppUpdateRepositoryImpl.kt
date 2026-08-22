@@ -67,7 +67,7 @@ class AppUpdateRepositoryImpl(
 
         if (response.status.isSuccess()) {
           val updateResponse = response.body<AppVersionResponseDto>()
-          if (updateResponse.success) {
+          if (updateResponse.success && updateResponse.data != null) {
             val localBuildNumber = BuildConfig.VERSION_CODE
             val hasUpdate = updateResponse.data.buildNumber > localBuildNumber
 

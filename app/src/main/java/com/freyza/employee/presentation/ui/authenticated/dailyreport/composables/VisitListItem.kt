@@ -86,7 +86,7 @@ fun VisitListItem(
         )
       } else {
         Text(
-          text = poi?.name ?: "???",
+          text = poi.name,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
           style = MaterialTheme.typography.bodyLarge,

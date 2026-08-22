@@ -62,7 +62,7 @@ data class PoiResponse(
   @SerialName("success")
   val success: Boolean,
   @SerialName("data")
-  val data: PointOfInterestDto,
+  val data: PointOfInterestDto?,
 )
 
 
@@ -374,7 +374,7 @@ class DailyReportRepositoryImpl(
 
         if (response.status.isSuccess()) {
           val poiResponse = response.body<PoiResponse>()
-          if (poiResponse.success) {
+          if (poiResponse.success && poiResponse.data != null) {
             val poi = poiResponse.data.toDomain()
 
             poiCache[poi.locationId]?.let { cachedList ->
