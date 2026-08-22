@@ -271,7 +271,7 @@ class HomeViewModel(
     val user = sessionManager.currentEmployee.value
     val hqId = user?.hqId ?: return
 
-    when (val result = userRepository.getEmployeesByHq(hqId = hqId, forceRefresh = forceRefresh)) {
+    when (val result = userRepository.getAllEmployees(hqId = hqId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         val employees = result.data.filter { it.id != employeeId }
         _uiState.update { it.copy(employees = employees) }
