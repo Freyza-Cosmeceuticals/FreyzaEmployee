@@ -26,4 +26,15 @@ data class PointOfInterestDto(
   val createdAt: String,
   @SerialName("updatedAt")
   val updatedAt: String?,
+
+  @SerialName("location")
+  val location: PoiLocationDto? = null,
+)
+
+@Serializable
+data class PoiLocationDto(
+  @SerialName("id")
+  val id: String,
+  @SerialName("name")
+  val name: String,
 )

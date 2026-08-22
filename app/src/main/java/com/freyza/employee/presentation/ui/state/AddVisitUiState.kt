@@ -76,7 +76,8 @@ data class AddVisitUiState(
 )
 
 fun dummyAddVisitFormDoctor(): AddVisitFormState = AddVisitFormState(
-  name = FormField("Dr. X"),
+  name = FormField("Dr. Mario Mario"),
+  poiId = "8f8a31e5-d5b4-453e-8a31-e5d5b4d53e4b",
   notes = FormField("Very Nice Doctor"),
   orderTaken = true,
   productEntries = listOf(
@@ -100,7 +101,8 @@ fun dummyAddVisitFormDoctor(): AddVisitFormState = AddVisitFormState(
 )
 
 fun dummyAddVisitFormStockist(): AddVisitFormState = AddVisitFormState(
-  name = FormField("Senku"),
+  name = FormField("Peach's Supplies"),
+  poiId = "9e54e0bd-0bb7-4a49-94e0-bd0bb72a49cc",
   notes = FormField("Genius level Chemist"),
   samplesGiven = listOf("Sulfa Drugs", "GPS", "Medusa"),
   orderTaken = true,
@@ -113,7 +115,8 @@ fun dummyAddVisitFormStockist(): AddVisitFormState = AddVisitFormState(
 )
 
 fun dummyAddVisitFormChemist(): AddVisitFormState = AddVisitFormState(
-  name = FormField("Chemistry Man"),
+  name = FormField("Toad's Pharmacy"),
+  poiId = "91367409-f38a-4023-b674-09f38a80236f",
   notes = FormField("Very Nice Chemist"),
   // should not show up
   samplesGiven = listOf("Detonator", "Nuclear Weapons", "TNT"),

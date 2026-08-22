@@ -24,6 +24,7 @@ import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitType
+import com.freyza.employee.domain.model.dummyPois
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.addvisit.composables.BillingDetailsCard
 import com.freyza.employee.presentation.ui.authenticated.addvisit.composables.BottomStatusBar
@@ -232,6 +233,7 @@ private fun AddVisitScreenPreviewDoctor() {
     AddVisitScreen(
       uiState = AddVisitUiState(
         today = ServerTime().nowLocalDateTime(),
+        availablePois = UIState.Ready(dummyPois()),
         visitType = VisitType.DOCTOR,
         form = dummyAddVisitFormDoctor()
       ),
@@ -263,6 +265,7 @@ private fun AddVisitScreenPreviewStockist() {
     AddVisitScreen(
       uiState = AddVisitUiState(
         today = ServerTime().nowLocalDateTime(),
+        availablePois = UIState.Ready(dummyPois()),
         visitType = VisitType.STOCKIST,
         form = dummyAddVisitFormStockist()
       ),
@@ -294,6 +297,7 @@ private fun AddVisitScreenPreviewChemist() {
     AddVisitScreen(
       uiState = AddVisitUiState(
         today = ServerTime().nowLocalDateTime(),
+        availablePois = UIState.Ready(dummyPois()),
         visitType = VisitType.CHEMIST,
         form = dummyAddVisitFormChemist()
       ),
@@ -324,7 +328,9 @@ private fun AddVisitScreenPreviewNull() {
   FreyzaEmployeeTheme {
     AddVisitScreen(
       uiState = AddVisitUiState(
-        today = ServerTime().nowLocalDateTime(), visitType = null
+        today = ServerTime().nowLocalDateTime(),
+        availablePois = UIState.Ready(dummyPois()),
+        visitType = null
       ),
       user = dummyUserEmployee(),
       onNavigateUp = { _, _ -> },

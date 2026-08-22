@@ -10,6 +10,7 @@ import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyDailyReportWork
+import com.freyza.employee.domain.model.dummyPois
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
@@ -46,6 +47,7 @@ fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
   todayPlanEntryRoute = dummyRouteWithLocation(),
   currentDailyReport = dummyDailyReportWork(),
   routes = listOf(dummyRouteWithLocation()),
+  pois = dummyPois(),
   todayReportDayType = DayType.WORK,
   todayReportRoute = dummyRouteWithLocation(),
 )

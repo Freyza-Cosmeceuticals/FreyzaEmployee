@@ -30,6 +30,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -77,6 +78,8 @@ import org.koin.androidx.compose.koinViewModel
 fun HomeScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = koinViewModel(),
+  visitCreated: Boolean? = null,
+  onVisitCreatedConsumed: () -> Unit,
   onNavigateToUnauthenticated: () -> Unit,
   onNavigateToReport: (reportId: String) -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
@@ -93,6 +96,8 @@ fun HomeScreenRoute(
       uiState = uiState,
       user = currentUser!!,
       modifier = modifier,
+      visitCreated = visitCreated,
+      onVisitCreatedConsumed = onVisitCreatedConsumed,
       onRefresh = { viewModel.refresh(true) },
       onLogout = onNavigateToUnauthenticated,
       onExit = onExit,
@@ -110,6 +115,8 @@ private fun HomeScreen(
   uiState: HomeScreenUiState,
   user: User,
   modifier: Modifier = Modifier,
+  visitCreated: Boolean? = null,
+  onVisitCreatedConsumed: () -> Unit = {},
   onRefresh: () -> Unit,
   onLogout: () -> Unit,
   onExit: () -> Unit,
@@ -157,6 +164,13 @@ private fun HomeScreen(
     },
     modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
   ) {
+    LaunchedEffect(visitCreated) {
+      if (visitCreated != null) {
+        onVisitCreatedConsumed()
+        onRefresh()
+      }
+    }
+
     if (uiState.showCreateReportSheet) {
       ModalBottomSheet(
         onDismissRequest = onDismissSheet,

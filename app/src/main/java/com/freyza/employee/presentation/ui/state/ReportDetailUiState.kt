@@ -7,6 +7,7 @@ import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyDailyReportWork
+import com.freyza.employee.domain.model.dummyPois
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.domain.model.dummyUserEmployeeAlt
@@ -31,5 +32,6 @@ fun dummyReportDetailUiState(
   reportId = "fdc8b26f-9a2c-4789-88b2-6f9a2cf789b8",
   report = UIState.Ready(dummyDailyReportWork(dateNow = dateNow, noVisits = noVisits)),
   employees = listOf(dummyUserEmployee(), dummyUserEmployeeAlt()),
-  routes = listOf(dummyRouteWithLocation())
+  routes = listOf(dummyRouteWithLocation()),
+  pois = dummyPois()
 )
