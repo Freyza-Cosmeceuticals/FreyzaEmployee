@@ -35,8 +35,17 @@ class SessionViewModel(
     })
     Logger.d(TAG, "Checking Auth session")
     viewModelScope.launch {
-      serverTime.syncTime()
       authRepository.checkSession()
+    }
+  }
+
+  fun syncTime() {
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "SessionViewModel.syncTime triggered"
+    })
+    viewModelScope.launch {
+      serverTime.syncTime()
     }
   }
 

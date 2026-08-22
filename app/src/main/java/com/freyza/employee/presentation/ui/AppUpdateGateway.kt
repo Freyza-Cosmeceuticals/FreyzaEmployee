@@ -39,6 +39,7 @@ import com.freyza.employee.domain.model.dummyAppUpdateInfoAvailable
 import com.freyza.employee.presentation.ui.state.AppUpdateState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.AppUpdateViewModel
+import java.util.Locale
 
 @Composable
 fun AppUpdateGateway(
@@ -61,7 +62,7 @@ fun AppUpdateGateway(
       AppUpdateScreen(
         updateInfo = state.updateInfo,
         state = state,
-        onPrimaryAction = { viewModel.startDownload() },
+        onPrimaryAction = {},
         onDismiss = { viewModel.dismissUpdate() }
       )
     }
@@ -166,7 +167,7 @@ private fun AppUpdateScreen(
 
           updateInfo.fileSizeMb?.let { size ->
             Text(
-              text = "Size: %.1f MB".format(size),
+              text = "Size: %.1f MB".format(Locale.US, size),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -260,7 +261,7 @@ private fun AppUpdateScreen(
                 .fillMaxWidth()
                 .height(48.dp)
             ) {
-              Text(if (state !is AppUpdateState.Error) "Close" else "Later")
+              Text(if (state is AppUpdateState.Error) "Close" else "Later")
             }
           }
         }

@@ -86,6 +86,8 @@ fun FreyzaEmployeeApp(
   // load auth and setup snackbar consumer
   LaunchedEffect(Unit) {
     sessionViewModel.checkAuth()
+    sessionViewModel.syncTime()
+
     snackbarManager.messages.collect { message ->
       val result = snackbarHostState.showTypedSnackbar(
         message = message.message,
@@ -103,19 +105,19 @@ fun FreyzaEmployeeApp(
   LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
     if (authState is AuthState.Authenticated) {
       appUpdateViewModel.checkForUpdate()
-    }
-  }
-
-  LaunchedEffect(authState) {
-    if (authState is AuthState.Authenticated) {
-      appUpdateViewModel.checkForUpdate()
+      sessionViewModel.syncTime()
     }
   }
 
   CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
     Box(modifier = Modifier.fillMaxSize()) {
       Column(modifier = Modifier.fillMaxSize()) {
-        OfflineBanner(isOnline = isOnline, onRefresh = { sessionViewModel.checkAuth() })
+        OfflineBanner(
+          isOnline = isOnline,
+          onRefresh = {
+            sessionViewModel.checkAuth()
+            sessionViewModel.syncTime()
+          })
 
         AppUpdateGateway(viewModel = appUpdateViewModel) {
           Box(

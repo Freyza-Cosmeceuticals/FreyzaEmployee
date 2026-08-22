@@ -7,6 +7,9 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.repository.AppUpdateRepository
 import com.freyza.employee.domain.repository.DownloadProgress
 import com.freyza.employee.presentation.ui.state.AppUpdateState
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
+import io.sentry.SpanStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +38,8 @@ class AppUpdateViewModel(
     Logger.d(TAG, "Checking for app update")
     _uiState.value = AppUpdateState.Checking
 
+    val transaction = Sentry.startTransaction("checkForUpdate", "app.update.check")
+
     viewModelScope.launch {
       when (val result = repository.checkForUpdate()) {
         is Result.Success -> {
@@ -45,11 +50,15 @@ class AppUpdateViewModel(
             Logger.d(TAG, "Already up to date")
             _uiState.value = AppUpdateState.Idle
           }
+          transaction.status = SpanStatus.OK
+          transaction.finish()
         }
 
         is Result.Error -> {
           Logger.e(TAG, "Update check failed: ${result.message}")
           _uiState.value = AppUpdateState.Idle
+          transaction.status = SpanStatus.INTERNAL_ERROR
+          transaction.finish()
         }
 
         else -> {}
@@ -65,24 +74,43 @@ class AppUpdateViewModel(
 
     val updateInfo = currentState.updateInfo
 
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "User initiated update download"
+      setData("version", updateInfo.versionName)
+      setData("buildNumber", updateInfo.buildNumber)
+      setData("isMandatory", updateInfo.isMandatory)
+    })
+
+    val transaction = Sentry.startTransaction("downloadAppUpdate", "app.update.flow")
+
     viewModelScope.launch {
-      repository.downloadUpdate(updateInfo.downloadUrl).collect { progress ->
-        when (progress) {
-          is DownloadProgress.Progress -> {
-            Logger.d(TAG, "Download progress: ${progress.percentage}")
-            _uiState.value = AppUpdateState.Downloading(updateInfo, progress.percentage)
-          }
+      try {
+        repository.downloadUpdate(updateInfo.downloadUrl).collect { progress ->
+          when (progress) {
+            is DownloadProgress.Progress -> {
+              Logger.d(TAG, "Download progress: ${progress.percentage}")
+              _uiState.value = AppUpdateState.Downloading(updateInfo, progress.percentage)
+            }
 
-          is DownloadProgress.Finished -> {
-            Logger.d(TAG, "Download finished")
-            _uiState.value = AppUpdateState.ReadyToInstall(updateInfo)
-          }
+            is DownloadProgress.Finished -> {
+              Logger.d(TAG, "Download finished")
+              _uiState.value = AppUpdateState.ReadyToInstall(updateInfo)
+              transaction.status = SpanStatus.OK
+            }
 
-          is DownloadProgress.Error -> {
-            Logger.e(TAG, "Download error: ${progress.message}")
-            _uiState.value = AppUpdateState.Error(progress.message)
+            is DownloadProgress.Error -> {
+              Logger.e(TAG, "Download error: ${progress.message}")
+              _uiState.value = AppUpdateState.Error(progress.message)
+              transaction.status = SpanStatus.INTERNAL_ERROR
+            }
           }
         }
+      } catch (e: Exception) {
+        transaction.status = SpanStatus.INTERNAL_ERROR
+        transaction.throwable = e
+      } finally {
+        transaction.finish()
       }
     }
   }
@@ -93,17 +121,29 @@ class AppUpdateViewModel(
 
     Logger.d(TAG, "Installing update")
 
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "User confirmed APK installation"
+      setData("version", currentState.updateInfo.versionName)
+    })
+
     when (val result = repository.installUpdate()) {
       is Result.Error -> {
         _uiState.value = AppUpdateState.Error(result.message)
       }
-      else -> {
-        // Installation intent launched successfully or redirected to settings
-      }
+
+      else -> {}
     }
   }
 
   fun dismissUpdate() {
+    val current = _uiState.value
+    Sentry.addBreadcrumb(Breadcrumb().apply {
+      category = "ui.action"
+      message = "User dismissed app update"
+      setData("stateAtDismiss", current.javaClass.simpleName)
+    })
+
     Logger.d(TAG, "Dismissing update")
     _uiState.value = AppUpdateState.Idle
   }
