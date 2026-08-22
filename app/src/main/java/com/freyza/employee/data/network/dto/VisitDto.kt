@@ -27,14 +27,7 @@ data class VisitDto(
   val distanceMetersFromPOI: Int,
 
   @SerialName("poiId")
-  val poiId: String?,
-
-  @SerialName("doctorName")
-  val doctorName: String?,
-  @SerialName("chemistName")
-  val chemistName: String?,
-  @SerialName("stockistName")
-  val stockistName: String?,
+  val poiId: String,
 
   @SerialName("productDetails")
   val productDetails: List<ProductDetail>,
