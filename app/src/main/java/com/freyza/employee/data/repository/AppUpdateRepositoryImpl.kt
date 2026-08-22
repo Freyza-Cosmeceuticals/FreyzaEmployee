@@ -23,6 +23,9 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import io.ktor.utils.io.readAvailable
+import io.sentry.Breadcrumb
+import io.sentry.Sentry
+import io.sentry.SpanStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -48,6 +51,8 @@ class AppUpdateRepositoryImpl(
   override suspend fun checkForUpdate(): Result<AppUpdateInfo> {
     return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Checking for app updates")
+
         val token = auth.currentAccessTokenOrNull() ?: run {
           Logger.d(TAG, "Token not found immediately, waiting for session status...")
           auth.sessionStatus
@@ -65,6 +70,15 @@ class AppUpdateRepositoryImpl(
           if (updateResponse.success) {
             val localBuildNumber = BuildConfig.VERSION_CODE
             val hasUpdate = updateResponse.data.buildNumber > localBuildNumber
+
+            Sentry.addBreadcrumb(Breadcrumb().apply {
+              category = "app.update"
+              message = "Version check completed"
+              setData("localBuildNumber", localBuildNumber)
+              setData("serverBuildNumber", updateResponse.data.buildNumber)
+              setData("hasUpdate", hasUpdate)
+              setData("isMandatory", updateResponse.data.isMandatory)
+            })
 
             updateResponse.data.toDomain(hasUpdate = hasUpdate)
           } else {
@@ -85,13 +99,23 @@ class AppUpdateRepositoryImpl(
 
   override fun downloadUpdate(downloadUrl: String): Flow<DownloadProgress> =
     flow {
+      val downloadSpan = Sentry.getSpan()?.startChild("app.update.download", "Download Update APK")
+
       try {
         val targetFile = File(context.cacheDir, APK_NAME)
         if (targetFile.exists()) {
           targetFile.delete()
         }
 
-        httpClient.prepareGet(downloadUrl).execute { response ->
+        Sentry.addBreadcrumb(Breadcrumb().apply {
+          category = "app.update"
+          message = "Starting APK download"
+          setData("targetPath", targetFile.absoluteFile)
+        })
+
+        httpClient.prepareGet(downloadUrl) {
+          headers.clear()
+        }.execute { response ->
           val channel = response.bodyAsChannel()
           val contentLength = response.contentLength() ?: -1L
           var totalBytesRead = 0L
@@ -116,20 +140,38 @@ class AppUpdateRepositoryImpl(
             }
           }
         }
+
+        downloadSpan?.status = SpanStatus.OK
+        Sentry.addBreadcrumb(Breadcrumb().apply {
+          category = "app.update"
+          message = "APK download completed"
+        })
         emit(DownloadProgress.Finished)
       } catch (e: Exception) {
+        downloadSpan?.status = SpanStatus.INTERNAL_ERROR
+        downloadSpan?.throwable = e
+        Sentry.captureException(e)
         Logger.e(TAG, "Download failed", e)
         emit(DownloadProgress.Error(e.message ?: "Unknown error occurred during download"))
+      } finally {
+        downloadSpan?.finish()
       }
     }.flowOn(Dispatchers.IO)
 
   override fun installUpdate(): Result<Unit> {
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
       if (!context.packageManager.canRequestPackageInstalls()) {
-        val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-          data = "package:${context.packageName}".toUri()
-          addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
+        Sentry.addBreadcrumb(Breadcrumb().apply {
+          category = "app.update"
+          message = "Redirecting user to unknown app sources permission setting"
+        })
+
+        val intent =
+          android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+            .apply {
+              data = "package:${context.packageName}".toUri()
+              addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
         context.startActivity(intent)
         return Result.Error("Permission required to install unknown apps")
       }
@@ -137,6 +179,8 @@ class AppUpdateRepositoryImpl(
 
     val apkFile = File(context.cacheDir, APK_NAME)
     if (!apkFile.exists()) {
+      val errorMsg = "APK file not found at ${apkFile.absolutePath}"
+      Sentry.captureMessage(errorMsg)
       return Result.Error("APK file not found")
     }
 
@@ -152,10 +196,19 @@ class AppUpdateRepositoryImpl(
         addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
       }
+
+      Sentry.addBreadcrumb(Breadcrumb().apply {
+        category = "app.update"
+        message = "Launching Android Package Installer intent"
+        setData("uri", contentUri.toString())
+      })
+
       context.startActivity(intent)
       Result.Success(Unit)
     } catch (e: Exception) {
       Logger.e(TAG, "Installation failed", e)
+
+      Sentry.captureException(e)
       Result.Error("Failed to start installer: ${e.message}")
     }
   }
