@@ -98,6 +98,18 @@ fun ClientInfoCard(
             }
           }
         },
+        statusIcon = {
+          if (selectedPoiId == null && name.isNotBlank) {
+            Icon(
+              painter = painterResource(R.drawable.add_24px),
+              contentDescription = "New POI",
+              tint = androidx.compose.ui.graphics.Color(0xFF4CAF50),
+              modifier = Modifier
+                .padding(end = 4.dp)
+                .size(20.dp)
+            )
+          }
+        },
         modifier = Modifier.fillMaxWidth(),
         placeholder = "Search or enter name",
         leadingIcon = { Icon(painterResource(R.drawable.account_circle_24px), null) },
