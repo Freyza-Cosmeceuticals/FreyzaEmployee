@@ -186,7 +186,11 @@ class AddVisitViewModel(
     _uiState.update { state ->
       state.copy(
         form = state.form.copy(
-          name = state.form.name.copy(value = poi?.name ?: "", error = null), poiId = poi?.id
+          name = if (poi != null) state.form.name.copy(
+            value = poi.name,
+            error = null
+          ) else state.form.name,
+          poiId = poi?.id
         )
       )
     }

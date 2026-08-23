@@ -28,3 +28,5 @@ x 2026-08-22 2026-08-10 list all employees in travelling with. use the new emplo
 (A) 2026-08-10 show a chart for target for per travel plan with a total of all doctor and stockist order amounts
 x 2026-08-22 2026-08-21 remove doctor, stockist and chemist name fields
 x 2026-08-23 2026-08-23 fix the POI selection dropdown. Show location as a badge, not in the text
+(A) 2026-08-23 Typing a new POI which has a prefix to existing POI in full, clears the input
+(A) 2026-08-23 list both src and dest POIs in add visit form
