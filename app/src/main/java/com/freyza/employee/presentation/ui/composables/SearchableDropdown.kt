@@ -72,8 +72,10 @@ fun <T> SearchableDropdown(
       onValueChange = {
         onQueryChange(it)
         expanded = true
-        val matchedItem = items.find { item -> itemLabeler(item).equals(it, ignoreCase = true) }
-        if (matchedItem != selectedItem) {
+        val matchedItem = items.find { item ->
+          itemLabeler(item).trim().equals(it.trim(), ignoreCase = true)
+        }
+        if (matchedItem != null && matchedItem != selectedItem) {
           onItemSelect(matchedItem)
         }
       },
