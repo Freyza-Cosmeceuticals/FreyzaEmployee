@@ -92,13 +92,14 @@ class AddVisitViewModel(
       if (reportResult is Result.Success) {
         val routeId = reportResult.data?.routeId
         if (routeId != null) {
-          // 2. Get Route to find destLocId
+          // 2. Get Route to find srcLocId and destLocId
           val routeResult = routeRepository.getRoute(routeId)
           if (routeResult is Result.Success) {
-            val destLocId = routeResult.data?.destLocId
-            if (destLocId != null) {
-              // 3. Fetch POIs for this location and visit type
-              val poisResult = dailyReportRepository.getPois(destLocId, visitType)
+            val route = routeResult.data
+            if (route != null) {
+              // 3. Fetch POIs for both locations and visit type
+              val locationIds = listOfNotNull(route.srcLocId, route.destLocId).distinct()
+              val poisResult = dailyReportRepository.getPois(locationIds, visitType)
               if (poisResult is Result.Success) {
                 _uiState.update { it.copy(availablePois = UIState.Ready(poisResult.data)) }
                 return@launch
