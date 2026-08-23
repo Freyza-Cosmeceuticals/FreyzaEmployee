@@ -87,28 +87,29 @@ class AddVisitViewModel(
   private fun loadAvailablePois() {
     _uiState.update { it.copy(availablePois = UIState.Loading()) }
     viewModelScope.launch {
-      // 1. Get Daily Report to find routeId
       val reportResult = dailyReportRepository.getDailyReport(reportId)
-      if (reportResult is Result.Success) {
-        val routeId = reportResult.data?.routeId
-        if (routeId != null) {
-          // 2. Get Route to find srcLocId and destLocId
-          val routeResult = routeRepository.getRoute(routeId)
-          if (routeResult is Result.Success) {
-            val route = routeResult.data
-            if (route != null) {
-              // 3. Fetch POIs for both locations and visit type
-              val locationIds = listOfNotNull(route.srcLocId, route.destLocId).distinct()
-              val poisResult = dailyReportRepository.getPois(locationIds, visitType)
-              if (poisResult is Result.Success) {
-                _uiState.update { it.copy(availablePois = UIState.Ready(poisResult.data)) }
-                return@launch
-              }
-            }
-          }
-        }
+      if (reportResult !is Result.Success) {
+        _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
+        return@launch
       }
-      _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
+
+      val routeId = reportResult.data?.routeId ?: run {
+        _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
+        return@launch
+      }
+
+      val routeResult = routeRepository.getRoute(routeId)
+      if (routeResult !is Result.Success || (routeResult.data == null)) {
+        _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
+        return@launch
+      }
+
+      val route = routeResult.data
+      val locationIds = listOf(route.srcLocId, route.destLocId).distinct()
+      val poisResult = dailyReportRepository.getPois(locationIds, visitType)
+
+      val pois = (poisResult as? Result.Success)?.data ?: emptyList()
+      _uiState.update { it.copy(availablePois = UIState.Ready(pois)) }
     }
   }
 

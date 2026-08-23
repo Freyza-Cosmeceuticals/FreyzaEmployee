@@ -1,6 +1,7 @@
 package com.freyza.employee.presentation.ui.composables
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.DropdownMenuItem
@@ -17,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,6 +38,7 @@ fun <T> SearchableDropdown(
   modifier: Modifier = Modifier,
   itemSearchLabeler: (T) -> String = itemLabeler,
   menuItemContent: @Composable (T) -> Unit = { Text(itemLabeler(it)) },
+  statusIcon: @Composable (() -> Unit)? = null,
   placeholder: String = "Select option",
   leadingIcon: @Composable (() -> Unit)? = null,
   isError: Boolean = false,
@@ -89,14 +92,17 @@ fun <T> SearchableDropdown(
         ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
       },
       suffix = {
-        Icon(
-          painter = painterResource(R.drawable.close_small_24px),
-          contentDescription = "Clear",
-          modifier = Modifier.clickable {
-            onItemSelect(null)
-            onQueryChange("")
-            expanded = true
-          })
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          statusIcon?.invoke()
+          Icon(
+            painter = painterResource(R.drawable.close_small_24px),
+            contentDescription = "Clear",
+            modifier = Modifier.clickable {
+              onItemSelect(null)
+              onQueryChange("")
+              expanded = true
+            })
+        }
       },
       colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
       modifier = Modifier
