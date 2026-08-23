@@ -35,7 +35,7 @@ class AppUpdateViewModel(
       return
     }
 
-    Logger.d(TAG, "Checking for app update")
+    Logger.d(TAG, "Checking for updates")
     _uiState.value = AppUpdateState.Checking
 
     val transaction = Sentry.startTransaction("checkForUpdate", "app.update.check")
