@@ -81,9 +81,22 @@ fun ClientInfoCard(
         onItemSelect = onPoiSelect,
         onQueryChange = onNameChange,
         query = name.value,
-        itemLabeler = { poi ->
-          if (poi.locationName != null) "${poi.name} (${poi.locationName})"
+        itemLabeler = { it.name },
+        itemSearchLabeler = { poi ->
+          if (poi.locationName != null) "${poi.name} ${poi.locationName}"
           else poi.name
+        },
+        menuItemContent = { poi ->
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+          ) {
+            Text(poi.name)
+            poi.locationName?.let {
+              LocationBadge(name = it)
+            }
+          }
         },
         modifier = Modifier.fillMaxWidth(),
         placeholder = "Search or enter name",
@@ -502,5 +515,21 @@ fun NotesCard(
         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
       )
     }
+  }
+}
+
+@Composable
+private fun LocationBadge(name: String, modifier: Modifier = Modifier) {
+  Surface(
+    color = MaterialTheme.colorScheme.secondaryContainer,
+    shape = RoundedCornerShape(4.dp),
+    modifier = modifier
+  ) {
+    Text(
+      text = name,
+      style = MaterialTheme.typography.labelSmall,
+      modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+      color = MaterialTheme.colorScheme.onSecondaryContainer
+    )
   }
 }

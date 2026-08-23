@@ -16,7 +16,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -35,6 +34,8 @@ fun <T> SearchableDropdown(
   query: String,
   onQueryChange: (String) -> Unit,
   modifier: Modifier = Modifier,
+  itemSearchLabeler: (T) -> String = itemLabeler,
+  menuItemContent: @Composable (T) -> Unit = { Text(itemLabeler(it)) },
   placeholder: String = "Select option",
   leadingIcon: @Composable (() -> Unit)? = null,
   isError: Boolean = false,
@@ -57,7 +58,7 @@ fun <T> SearchableDropdown(
     if (query.isEmpty()) {
       items
     } else {
-      items.filter { itemLabeler(it).contains(query, ignoreCase = true) }
+      items.filter { itemSearchLabeler(it).contains(query, ignoreCase = true) }
     }
   }
 
@@ -108,7 +109,7 @@ fun <T> SearchableDropdown(
         expanded = expanded, scrollState = scrollState, onDismissRequest = { expanded = false }) {
         filteredItems.forEach { item ->
           DropdownMenuItem(
-            text = { Text(itemLabeler(item)) }, onClick = {
+            text = { menuItemContent(item) }, onClick = {
               onItemSelect(item)
               onQueryChange(itemLabeler(item))
               expanded = false
