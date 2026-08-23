@@ -51,7 +51,7 @@ class AppUpdateRepositoryImpl(
   override suspend fun checkForUpdate(): Result<AppUpdateInfo> {
     return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Checking for app updates")
+        Logger.d(TAG, "Fetching latest app version from server")
 
         val token = auth.currentAccessTokenOrNull() ?: run {
           Logger.d(TAG, "Token not found immediately, waiting for session status...")

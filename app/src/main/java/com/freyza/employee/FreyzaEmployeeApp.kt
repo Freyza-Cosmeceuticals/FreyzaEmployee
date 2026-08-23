@@ -109,6 +109,13 @@ fun FreyzaEmployeeApp(
     }
   }
 
+  LaunchedEffect(authState) {
+    if (authState is AuthState.Authenticated) {
+      appUpdateViewModel.checkForUpdate()
+      sessionViewModel.syncTime()
+    }
+  }
+
   CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
     Box(modifier = Modifier.fillMaxSize()) {
       Column(modifier = Modifier.fillMaxSize()) {
