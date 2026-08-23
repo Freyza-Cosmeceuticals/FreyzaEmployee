@@ -34,14 +34,13 @@ interface DailyReportRepository {
 
   suspend fun getVisit(id: String, forceRefresh: Boolean = false): Result<Visit?>
   suspend fun getPois(
-
-    locationId: String,
+    locationIds: List<String>,
     visitType: VisitType,
     forceRefresh: Boolean = false,
   ): Result<List<PointOfInterest>>
 
   suspend fun getPoisByLocation(
-    locationId: String,
+    locationIds: List<String>,
     forceRefresh: Boolean = false,
   ): Result<List<PointOfInterest>>
 

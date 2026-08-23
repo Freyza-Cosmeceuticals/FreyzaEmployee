@@ -237,29 +237,31 @@ class DailyReportRepositoryImpl(
   }
 
   override suspend fun getPois(
-    locationId: String,
+    locationIds: List<String>,
     visitType: VisitType,
     forceRefresh: Boolean,
   ): Result<List<PointOfInterest>> {
+    val cacheKey = locationIds.sorted().joinToString(",")
+
     // 1. Read from cache if available and not force refreshing
     if (!forceRefresh) {
-      val cached = poiCache[locationId]?.filter { it.type == visitType }
+      val cached = poiCache[cacheKey]?.filter { it.type == visitType }
       if (!cached.isNullOrEmpty()) {
-        Logger.d(TAG, "Cache hit for POIs (Type: $visitType) at location: $locationId")
+        Logger.d(TAG, "Cache hit for POIs (Type: $visitType) at locations: $cacheKey")
         return Result.Success(cached)
       }
     }
 
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Fetching POIs for locationId: $locationId, visitType: $visitType")
+        Logger.d(TAG, "Fetching POIs for locationIds: $cacheKey, visitType: $visitType")
 
         val token = auth.currentAccessTokenOrNull()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
           header(HttpHeaders.Authorization, "Bearer $token")
-          parameter("locationId", locationId)
+          parameter("locationIds", cacheKey)
           parameter("visitType", visitType.name)
         }
 
@@ -271,12 +273,12 @@ class DailyReportRepositoryImpl(
             }
 
             // NOTE: We do not store the result in cache here because this fetch only 
-            // returns POIs for a specific visitType. We want the locationId entry in 
-            // cache to always be complete (containing all POIs for that location).
+            // returns POIs for a specific visitType. We want the cache entry 
+            // to always be complete (containing all POIs for those locations).
 
             Logger.d(
               TAG,
-              "Fetched ${pois.size} POIs for locationId: $locationId, visitType: $visitType"
+              "Fetched ${pois.size} POIs for locationIds: $cacheKey, visitType: $visitType"
             )
             Result.Success(pois)
           } else {
@@ -299,28 +301,30 @@ class DailyReportRepositoryImpl(
   }
 
   override suspend fun getPoisByLocation(
-    locationId: String,
+    locationIds: List<String>,
     forceRefresh: Boolean,
   ): Result<List<PointOfInterest>> {
+    val cacheKey = locationIds.sorted().joinToString(",")
+
     // 1. Read from cache if available and not force refreshing
     if (!forceRefresh) {
-      val cached = poiCache[locationId]
+      val cached = poiCache[cacheKey]
       if (cached != null) {
-        Logger.d(TAG, "Cache hit for all POIs at location: $locationId")
+        Logger.d(TAG, "Cache hit for all POIs at locations: $cacheKey")
         return Result.Success(cached)
       }
     }
 
     return try {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Fetching all POIs for locationId: $locationId")
+        Logger.d(TAG, "Fetching all POIs for locationIds: $cacheKey")
 
         val token = auth.currentAccessTokenOrNull()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
           header(HttpHeaders.Authorization, "Bearer $token")
-          parameter("locationId", locationId)
+          parameter("locationIds", cacheKey)
         }
 
         if (response.status.isSuccess()) {
@@ -330,10 +334,10 @@ class DailyReportRepositoryImpl(
               dto.toDomain()
             }
 
-            // 2. Assured that this entry contains all POIs for the location
-            poiCache[locationId] = pois
+            // 2. Assured that this entry contains all POIs for the locations
+            poiCache[cacheKey] = pois
 
-            Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationId: $locationId")
+            Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationIds: $cacheKey")
             Result.Success(pois)
           } else {
             Result.Error("Unable to fetch POIs")

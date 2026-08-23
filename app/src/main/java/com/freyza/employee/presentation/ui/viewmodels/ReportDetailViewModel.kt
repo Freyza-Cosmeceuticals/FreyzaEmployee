@@ -141,9 +141,10 @@ class ReportDetailViewModel(
     viewModelScope.launch {
       when (val result = routeRepository.getRoute(routeId, forceRefresh)) {
         is Result.Success -> {
-          val destLocId = result.data?.destLocId
-          if (destLocId != null) {
-            loadPois(destLocId, forceRefresh)
+          val route = result.data
+          if (route != null) {
+            val locationIds = listOfNotNull(route.srcLocId, route.destLocId).distinct()
+            loadPois(locationIds, forceRefresh)
           }
         }
 
@@ -153,9 +154,9 @@ class ReportDetailViewModel(
     }
   }
 
-  private fun loadPois(locationId: String, forceRefresh: Boolean) {
+  private fun loadPois(locationIds: List<String>, forceRefresh: Boolean) {
     viewModelScope.launch {
-      when (val result = dailyReportRepository.getPoisByLocation(locationId, forceRefresh)) {
+      when (val result = dailyReportRepository.getPoisByLocation(locationIds, forceRefresh)) {
         is Result.Success -> {
           _uiState.update { it.copy(pois = result.data) }
         }

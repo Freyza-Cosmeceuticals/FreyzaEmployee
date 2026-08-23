@@ -157,10 +157,10 @@ class HomeViewModel(
   }
 
   private suspend fun loadReportPois(routeId: String, forceRefresh: Boolean) {
-    val route = _uiState.value.routes.find { it.id == routeId }
-    val destLocId = route?.destLoc?.id ?: return
+    val route = _uiState.value.routes.find { it.id == routeId } ?: return
+    val locationIds = listOfNotNull(route.srcLoc.id, route.destLoc.id).distinct()
 
-    when (val result = dailyReportRepository.getPoisByLocation(destLocId, forceRefresh)) {
+    when (val result = dailyReportRepository.getPoisByLocation(locationIds, forceRefresh)) {
       is Result.Success -> {
         _uiState.update { it.copy(pois = result.data) }
       }
