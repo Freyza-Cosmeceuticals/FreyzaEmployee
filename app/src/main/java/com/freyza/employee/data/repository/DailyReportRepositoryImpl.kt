@@ -2,7 +2,9 @@ package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.ApiException
 import com.freyza.employee.core.network.ApiErrorResponse
+import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
@@ -92,7 +94,7 @@ class DailyReportRepositoryImpl(
     withVisits: Boolean,
     forceRefresh: Boolean
   ): Result<DailyReport?> {
-    return try {
+    return safeApiCall(TAG) {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
       val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
@@ -115,11 +117,8 @@ class DailyReportRepositoryImpl(
         if (dailyReport != null) {
           reportCache[dailyReport.id] = dailyReport
         }
-        Result.Success(dailyReport)
+        dailyReport
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -130,7 +129,7 @@ class DailyReportRepositoryImpl(
   ): Result<List<DailyReport>> {
     val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying recent daily reports withVisits=${withVisits}")
 
@@ -146,15 +145,13 @@ class DailyReportRepositoryImpl(
 
         val reports = reportsDto.map { it.toDomain() }
         reports.forEach { reportCache[it.id] = it }
-        Result.Success(reports)
+        reports
       }
-    } catch (e: Exception) {
-      Result.Error(e.message.toString())
     }
   }
 
   override suspend fun getVisits(dailyReportId: String): Result<List<Visit>> {
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying visits for current employee and dailyReportId: $dailyReportId")
 
@@ -165,12 +162,8 @@ class DailyReportRepositoryImpl(
           order(VisitDto::createdAt.name, Order.DESCENDING)
         }.decodeList<VisitDto>()
 
-        val visits = visitsDto.map { it.toDomain() }
-        Result.Success(visits)
+        visitsDto.map { it.toDomain() }
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -192,7 +185,7 @@ class DailyReportRepositoryImpl(
 
     val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying dailyReport with id: $id withVisits=$withVisits from network")
 
@@ -208,16 +201,13 @@ class DailyReportRepositoryImpl(
         if (dailyReport != null) {
           reportCache[id] = dailyReport
         }
-        Result.Success(dailyReport)
+        dailyReport
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
   override suspend fun getVisit(id: String, forceRefresh: Boolean): Result<Visit?> {
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying visit with id: $id")
 
@@ -227,12 +217,8 @@ class DailyReportRepositoryImpl(
           }
         }.decodeSingleOrNull<VisitDto>()
 
-        val visit = visitDto?.toDomain()
-        Result.Success(visit)
+        visitDto?.toDomain()
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -252,7 +238,7 @@ class DailyReportRepositoryImpl(
       }
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching POIs for locationIds: $cacheKey, visitType: $visitType")
 
@@ -280,9 +266,9 @@ class DailyReportRepositoryImpl(
               TAG,
               "Fetched ${pois.size} POIs for locationIds: $cacheKey, visitType: $visitType"
             )
-            Result.Success(pois)
+            pois
           } else {
-            Result.Error("Unable to fetch POIs")
+            throw Exception("Unable to fetch POIs")
           }
         } else {
           val error = try {
@@ -291,12 +277,9 @@ class DailyReportRepositoryImpl(
             ApiErrorResponse(message = response.status.description)
           }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error(message = error.message, errorBody = error)
+          throw ApiException(response.status.value, error, error.message)
         }
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -315,7 +298,7 @@ class DailyReportRepositoryImpl(
       }
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching all POIs for locationIds: $cacheKey")
 
@@ -338,9 +321,9 @@ class DailyReportRepositoryImpl(
             poiCache[cacheKey] = pois
 
             Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationIds: $cacheKey")
-            Result.Success(pois)
+            pois
           } else {
-            Result.Error("Unable to fetch POIs")
+            throw Exception("Unable to fetch POIs")
           }
         } else {
           val error = try {
@@ -349,12 +332,9 @@ class DailyReportRepositoryImpl(
             ApiErrorResponse(message = response.status.description)
           }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error(message = error.message, errorBody = error)
+          throw ApiException(response.status.value, error, error.message)
         }
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -365,7 +345,7 @@ class DailyReportRepositoryImpl(
       return Result.Success(it)
     }
 
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching POI with id: $id")
 
@@ -389,12 +369,12 @@ class DailyReportRepositoryImpl(
               )
             }
 
-            Result.Success(poi)
+            poi
           } else {
-            Result.Error("Unable to fetch POI")
+            throw Exception("Unable to fetch POI")
           }
         } else if (response.status.value == 404) {
-          Result.Success(null)
+          null
         } else {
           val error = try {
             response.body<ApiErrorResponse>()
@@ -402,12 +382,9 @@ class DailyReportRepositoryImpl(
             ApiErrorResponse(message = response.status.description)
           }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error(message = error.message, errorBody = error)
+          throw ApiException(response.status.value, error, error.message)
         }
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -418,7 +395,7 @@ class DailyReportRepositoryImpl(
     routeId: String?,
     travellingWithId: String?,
   ): Result<DailyReport> {
-    return try {
+    return safeApiCall(TAG) {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
       withContext(Dispatchers.IO) {
@@ -446,10 +423,10 @@ class DailyReportRepositoryImpl(
             Logger.d(TAG, "Daily report created successfully")
             val report = beginResponse.data.toDomain()
             reportCache[report.id] = report
-            Result.Success(report)
+            report
           } else {
             Logger.e(TAG, "Unable to create daily report. ${response.status.description}")
-            Result.Error("Unable to create daily report")
+            throw Exception("Unable to create daily report")
           }
         } else {
           val error = try {
@@ -458,12 +435,9 @@ class DailyReportRepositoryImpl(
             ApiErrorResponse(message = response.status.description)
           }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error(message = error.message, errorBody = error)
+          throw ApiException(response.status.value, error, error.message)
         }
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -473,7 +447,7 @@ class DailyReportRepositoryImpl(
     dailyReportId: String,
     visitCreateDto: VisitCreateDto,
   ): Result<Visit> {
-    return try {
+    return safeApiCall(TAG) {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
       withContext(Dispatchers.IO) {
@@ -497,9 +471,9 @@ class DailyReportRepositoryImpl(
             val visit = createResponse.data.toDomain()
             // Invalidate associated report cache as visits changed
             reportCache.remove(dailyReportId)
-            Result.Success(visit)
+            visit
           } else {
-            Result.Error("Unable to create visit")
+            throw Exception("Unable to create visit")
           }
         } else {
           val error = try {
@@ -508,17 +482,14 @@ class DailyReportRepositoryImpl(
             ApiErrorResponse(message = response.status.description)
           }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error(message = error.message, errorBody = error)
+          throw ApiException(response.status.value, error, error.message)
         }
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
   override suspend fun lockReport(reportId: String): Result<Boolean> {
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Locking report:$reportId")
 
@@ -533,16 +504,13 @@ class DailyReportRepositoryImpl(
         }
 
         reportCache.clear()
-        Result.Success(true)
+        true
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
   override suspend fun deleteVisit(visitId: String): Result<Boolean> {
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Deleting visit:$visitId")
 
@@ -553,11 +521,8 @@ class DailyReportRepositoryImpl(
         }
 
         reportCache.clear()
-        Result.Success(true)
+        true
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 
@@ -565,7 +530,7 @@ class DailyReportRepositoryImpl(
     visitId: String,
     visitUpdateDto: VisitUpdateDto,
   ): Result<Visit> {
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Updating visit via API visit:$visitId")
 
@@ -584,9 +549,9 @@ class DailyReportRepositoryImpl(
             val visit = updateResponse.data.toDomain()
             // Invalidate associated report cache
             reportCache.remove(visit.reportId)
-            Result.Success(visit)
+            visit
           } else {
-            Result.Error("Unable to update visit")
+            throw Exception("Unable to update visit")
           }
         } else {
           val error = try {
@@ -595,12 +560,9 @@ class DailyReportRepositoryImpl(
             ApiErrorResponse(message = response.status.description)
           }
           Logger.e(TAG, "API Error: ${response.status} - $error")
-          Result.Error(message = error.message, errorBody = error)
+          throw ApiException(response.status.value, error, error.message)
         }
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, e.message.toString())
-      Result.Error(e.message.toString())
     }
   }
 }

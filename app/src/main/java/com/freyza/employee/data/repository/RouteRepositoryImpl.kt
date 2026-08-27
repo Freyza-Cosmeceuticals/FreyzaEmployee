@@ -110,7 +110,7 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
   }
 
   override suspend fun getOrCreateRoute(srcLocId: String, destLocId: String): Result<Route> {
-    return try {
+    return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Calling RPC get_or_create_route for $srcLocId -> $destLocId")
 
@@ -129,11 +129,8 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
 
         Logger.d(TAG, "Caches invalidated after creating new route")
 
-        Result.Success(route)
+        route
       }
-    } catch (e: Exception) {
-      Logger.e(TAG, "RPC get_or_create_route failed: ${e.message}")
-      Result.Error(e.message.toString())
     }
   }
 }
