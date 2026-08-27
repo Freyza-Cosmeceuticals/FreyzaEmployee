@@ -27,6 +27,7 @@ import com.freyza.employee.presentation.ui.state.AddVisitUiState
 import com.freyza.employee.presentation.ui.state.ProductEntry
 import io.sentry.Breadcrumb
 import io.sentry.Sentry
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -52,6 +53,7 @@ class AddVisitViewModel(
   }
 
   val isEditMode = visitId != null
+  private var submitJob: Job? = null
 
   private val _uiState = MutableStateFlow(
     AddVisitUiState(
@@ -432,6 +434,11 @@ class AddVisitViewModel(
       message = "submitVisit called (visitType=${_uiState.value.visitType}, isEditMode=$isEditMode)"
     })
 
+    if (_uiState.value.creationState is UIState.Loading || submitJob?.isActive == true) {
+      Logger.w(TAG, "submitVisit already in progress, ignoring duplicate call")
+      return
+    }
+
     if (!validateForm()) {
       snackbarManager.showError("Please fix errors in the form")
       return
@@ -463,7 +470,7 @@ class AddVisitViewModel(
     }
     Logger.d(TAG, "Submitting visit with data $form")
 
-    viewModelScope.launch {
+    submitJob = viewModelScope.launch {
       if (isEditMode && visitId != null) {
         val updateDto = form.toUpdateDto(visitType, updatedAt = serverTime.now().toString())
 

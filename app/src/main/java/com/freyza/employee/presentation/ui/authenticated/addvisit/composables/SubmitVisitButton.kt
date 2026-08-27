@@ -27,12 +27,13 @@ fun SubmitVisitButton(
   text: String = "Save Visit",
 ) {
   var showConfirmDialog by rememberSaveable { mutableStateOf(false) }
-  val canSubmit = creationState.data == true
+  val canSubmit = creationState.data == true && creationState !is UIState.Loading
 
   if (showConfirmDialog) {
     ConfirmSubmitReportDialog(
       title = "Save Visit",
       message = "Are you sure want to save this visit?",
+      enabled = canSubmit,
       onCancel = { showConfirmDialog = false },
       onConfirm = {
         showConfirmDialog = false
@@ -60,6 +61,7 @@ fun ConfirmSubmitReportDialog(
   onConfirm: () -> Unit,
   onCancel: () -> Unit,
   modifier: Modifier = Modifier,
+  enabled: Boolean = true,
 ) {
   AlertDialog(
     onDismissRequest = onCancel,
@@ -70,6 +72,7 @@ fun ConfirmSubmitReportDialog(
     confirmButton = {
       TextButton(
         onClick = onConfirm,
+        enabled = enabled,
         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
       ) { Text("Save") }
     },
