@@ -2,6 +2,7 @@ package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.NetworkMonitor
+import com.freyza.employee.core.network.isConnectivityOrDnsException
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.domain.model.AuthState
@@ -151,7 +152,7 @@ class AuthenticationRepositoryImpl(
         _authState.value = AuthState.Unauthenticated
       }
     } catch (e: Exception) {
-      if (!networkMonitor.isCurrentlyConnected || isNetworkException(e.message ?: "")) {
+      if (!networkMonitor.isCurrentlyConnected || e.isConnectivityOrDnsException() || isNetworkException(e.message ?: "")) {
         Logger.w(TAG, "checkSession: Connectivity issue occurred, showing friendly error")
         _authState.value = AuthState.Error("Please check your internet connection.")
         return
@@ -262,15 +263,12 @@ class AuthenticationRepositoryImpl(
   }
 
   private fun isNetworkException(message: String): Boolean {
-    return message.contains(
-      "unable to resolve host",
-      ignoreCase = true
-    ) || message.contains(
-      "failed to connect",
-      ignoreCase = true
-    ) || message.contains("connecttimeout", ignoreCase = true) || message.contains(
-      "unknownhost",
-      ignoreCase = true
-    )
+    return message.contains("unable to resolve host", ignoreCase = true) ||
+      message.contains("failed to connect", ignoreCase = true) ||
+      message.contains("connecttimeout", ignoreCase = true) ||
+      message.contains("unknownhost", ignoreCase = true) ||
+      message.contains("EAI_NODATA", ignoreCase = true) ||
+      message.contains("No address associated with hostname", ignoreCase = true) ||
+      message.contains("check your internet connection", ignoreCase = true)
   }
 }

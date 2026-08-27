@@ -8,6 +8,7 @@ import android.net.NetworkRequest
 import androidx.core.content.getSystemService
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.Logger
+import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import io.sentry.SpanStatus
 import kotlinx.coroutines.CoroutineScope
@@ -93,6 +94,44 @@ class ConnectivityManagerNetworkMonitor(
       ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) ?: false
 }
 
+class ApiException(
+  val statusCode: Int,
+  val errorBody: Any? = null,
+  message: String = "API request failed with status $statusCode",
+) : Exception(message)
+
+fun Throwable.isConnectivityOrDnsException(): Boolean {
+  var current: Throwable? = this
+  while (current != null) {
+    val className = current.javaClass.name
+    if (current is OfflineException ||
+      className.contains("UnknownHostException") ||
+      className.contains("UnresolvedAddressException") ||
+      className.contains("SocketTimeoutException") ||
+      className.contains("ConnectTimeoutException") ||
+      className.contains("ConnectException") ||
+      className.contains("GaiException")
+    ) {
+      return true
+    }
+
+    val msg = current.message
+    if (msg != null && (
+        msg.contains("unable to resolve host", ignoreCase = true) ||
+        msg.contains("unknownhost", ignoreCase = true) ||
+        msg.contains("failed to connect", ignoreCase = true) ||
+        msg.contains("connecttimeout", ignoreCase = true) ||
+        msg.contains("EAI_NODATA", ignoreCase = true) ||
+        msg.contains("No address associated with hostname", ignoreCase = true)
+      )
+    ) {
+      return true
+    }
+    current = current.cause
+  }
+  return false
+}
+
 suspend fun <T> safeApiCall(TAG: String = "safeApiCall", apiCall: suspend () -> T): Result<T> {
   val span = Sentry.getSpan()?.startChild("http.client", TAG)
 
@@ -101,20 +140,29 @@ suspend fun <T> safeApiCall(TAG: String = "safeApiCall", apiCall: suspend () -> 
     span?.status = SpanStatus.OK
 
     Result.Success(result)
-  } catch (e: OfflineException) {
-    span?.status = SpanStatus.UNAVAILABLE
-    Sentry.addBreadcrumb("${TAG}: OfflineException")
-
-    Logger.d(TAG, "OfflineException: ${e.message.toString()}")
-    Result.Error("Please check your internet connection.")
-  } catch (e: Exception) {
+  } catch (e: ApiException) {
     span?.status = SpanStatus.INTERNAL_ERROR
-    span?.throwable = e
+    Logger.w(TAG, "ApiException: ${e.statusCode} - ${e.message}")
+    Result.Error(message = e.message ?: "Request failed", errorBody = e.errorBody)
+  } catch (e: Exception) {
+    if (e is OfflineException || e.isConnectivityOrDnsException()) {
+      span?.status = SpanStatus.UNAVAILABLE
+      Sentry.addBreadcrumb(Breadcrumb().apply {
+        category = "network"
+        message = "$TAG: Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}"
+      })
 
-    Sentry.captureException(e)
+      Logger.d(TAG, "Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}")
+      Result.Error("Please check your internet connection.", errorBody = e)
+    } else {
+      span?.status = SpanStatus.INTERNAL_ERROR
+      span?.throwable = e
 
-    Logger.e(TAG, e.message.toString())
-    Result.Error(e.message ?: "An unknown error occurred")
+      Sentry.captureException(e)
+
+      Logger.e(TAG, e.message.toString())
+      Result.Error(e.message ?: "An unknown error occurred")
+    }
   } finally {
     span?.finish()
   }

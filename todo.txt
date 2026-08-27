@@ -30,3 +30,4 @@ x 2026-08-22 2026-08-21 remove doctor, stockist and chemist name fields
 x 2026-08-23 2026-08-23 fix the POI selection dropdown. Show location as a badge, not in the text
 x 2026-08-23 2026-08-23 Typing a new POI which has a prefix to existing POI in full, clears the input
 x 2026-08-23 2026-08-23 list both src and dest POIs in add visit form
+(A) 2026-08-27 Improve bad connection experience. Handle logouts and errors
