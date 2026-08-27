@@ -95,10 +95,22 @@ class AuthenticationRepositoryImpl(
           }
 
           is SessionStatus.RefreshFailure -> {
-            Logger.e(TAG, "RefreshFailure")
-            sessionManager.clearSession()
-            _authState.value =
-              AuthState.Error("Session refresh failed. Please check your connection.")
+            Logger.w(TAG, "RefreshFailure: ${status.cause.message}")
+            val currentSession = auth.currentSessionOrNull()
+            if (currentSession != null) {
+              Logger.d(TAG, "RefreshFailure: Local session exists, preserving session")
+              val cachedUser = sessionManager.currentEmployee.value
+              if (cachedUser != null) {
+                _authState.value = AuthState.Authenticated
+              } else {
+                val userId = currentSession.user?.id ?: ""
+                validateAndFetchProfile(userId)
+              }
+            } else {
+              Logger.w(TAG, "RefreshFailure: No local session, setting Unauthenticated")
+              sessionManager.clearSession()
+              _authState.value = AuthState.Unauthenticated
+            }
           }
         }
       }
@@ -141,18 +153,37 @@ class AuthenticationRepositoryImpl(
   override suspend fun checkSession() {
     try {
       auth.awaitInitialization()
-      if (auth.currentUserOrNull() != null) {
+      val localSession = auth.currentSessionOrNull()
+      if (localSession != null || auth.currentUserOrNull() != null) {
         if (networkMonitor.isCurrentlyConnected) {
           auth.refreshCurrentSession()
         } else {
-          Logger.d(TAG, "checkSession: Device is offline, skipping refresh")
+          Logger.d(TAG, "checkSession: Device is offline, preserving session")
+          val cachedUser = sessionManager.currentEmployee.value
+          if (cachedUser != null) {
+            _authState.value = AuthState.Authenticated
+          } else {
+            val userId = auth.currentUserOrNull()?.id ?: localSession?.user?.id ?: ""
+            validateAndFetchProfile(userId)
+          }
         }
       } else {
         Logger.d(TAG, "checkSession: No current user found, setting to Unauthenticated")
         _authState.value = AuthState.Unauthenticated
       }
     } catch (e: Exception) {
-      if (!networkMonitor.isCurrentlyConnected || e.isConnectivityOrDnsException() || isNetworkException(e.message ?: "")) {
+      val isNetworkErr = !networkMonitor.isCurrentlyConnected ||
+        e.isConnectivityOrDnsException() ||
+        isNetworkException(e.message ?: "")
+
+      if (isNetworkErr) {
+        val localSession = auth.currentSessionOrNull()
+        val cachedUser = sessionManager.currentEmployee.value
+        if (localSession != null || cachedUser != null) {
+          Logger.w(TAG, "checkSession: Connectivity issue, preserving Authenticated state")
+          _authState.value = AuthState.Authenticated
+          return
+        }
         Logger.w(TAG, "checkSession: Connectivity issue occurred, showing friendly error")
         _authState.value = AuthState.Error("Please check your internet connection.")
         return
@@ -163,8 +194,13 @@ class AuthenticationRepositoryImpl(
         _authState.value = AuthState.Unauthenticated
       } else {
         Logger.e(TAG, "checkSession error: ${e.message}")
-        sessionManager.clearSession()
-        _authState.value = AuthState.Error("Failed to initialize session: ${e.message}")
+        val localSession = auth.currentSessionOrNull()
+        if (localSession != null && sessionManager.currentEmployee.value != null) {
+          _authState.value = AuthState.Authenticated
+        } else {
+          sessionManager.clearSession()
+          _authState.value = AuthState.Error("Failed to initialize session: ${e.message}")
+        }
       }
     }
   }
@@ -193,7 +229,11 @@ class AuthenticationRepositoryImpl(
       }
 
       is Result.Error -> {
-        if (!networkMonitor.isCurrentlyConnected || isNetworkException(result.message)) {
+        val cachedUser = sessionManager.currentEmployee.value
+        if (cachedUser != null && cachedUser.id == userId) {
+          Logger.d(TAG, "Profile fetch failed due to network, retaining cached profile")
+          _authState.value = AuthState.Authenticated
+        } else if (!networkMonitor.isCurrentlyConnected || isNetworkException(result.message)) {
           _authState.value = AuthState.Error("Please check your internet connection.")
         } else {
           Logger.e(TAG, "Error fetching user profile: ${result.message}")

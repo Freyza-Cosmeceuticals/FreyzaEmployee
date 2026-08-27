@@ -9,6 +9,7 @@ import com.freyza.employee.core.network.ConnectivityPlugin
 import com.freyza.employee.core.network.NetworkMonitor
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.ServerTime
+import com.freyza.employee.core.util.SharedPreferencesHelper
 import com.freyza.employee.core.util.SnackbarManager
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
@@ -53,6 +54,7 @@ val appModule = module {
   }
 
   singleOf(::ServerTime)
+  singleOf(::SharedPreferencesHelper)
   singleOf(::SessionManager)
   singleOf(::SnackbarManager)
   singleOf(::GPSMonitor)
