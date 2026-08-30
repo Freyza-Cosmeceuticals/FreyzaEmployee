@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2-5] - 2026-08-30
+
+### Fixed
+- **Session Stability**: Fixed unexpected logouts caused by poor or dropping internet connections.
+- **Offline Home Screen**: The home screen now loads instantly from the cached session instead of showing a frozen loading skeleton when offline.
+- **Connectivity UX**: "Check your internet" messages now appear correctly during slow network timeouts for a better user experience.
+- **Duplicate Prevention**: Implemented double-tap protection on the "Save Visit" button to prevent duplicate entry errors.
+
+### Changed
+- **UI Performance**: Significantly improved screen loading and tab switching for a smoother experience.
+
 ## [0.2.1-4] - 2026-08-23
 
 ### Added
