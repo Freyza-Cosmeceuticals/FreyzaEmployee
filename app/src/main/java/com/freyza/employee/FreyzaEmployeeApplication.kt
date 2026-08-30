@@ -37,7 +37,7 @@ class FreyzaEmployeeApplication : Application() {
       Timber.plant(HyperlinkedDebugTree())
     } else {
       SentryAndroid.init(this) { options ->
-        options.environment = BuildConfig.FLAVOR.ifEmpty { "production" }
+        options.environment = BuildConfig.FLAVOR
 
         options.dsn = BuildConfig.SENTRY_DSN
         options.tracesSampleRate = 1.0
@@ -47,6 +47,9 @@ class FreyzaEmployeeApplication : Application() {
         options.isSendDefaultPii = true
 
         options.logs.isEnabled = true
+
+        options.sessionReplay.sessionSampleRate = 0.1
+        options.sessionReplay.onErrorSampleRate = 1.0
 
         options.addIntegration(
           SentryTimberIntegration(
