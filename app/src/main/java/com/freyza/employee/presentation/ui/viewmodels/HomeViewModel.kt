@@ -16,8 +16,10 @@ import com.freyza.employee.domain.repository.UserRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -39,9 +41,11 @@ class HomeViewModel(
     const val TAG = "HomeViewModel"
   }
 
+  private var refreshJob: Job? = null
+
   private val _uiState = MutableStateFlow(HomeScreenUiState(today = serverTime.nowLocalDateTime()))
   val uiState = _uiState.onStart {
-    initializeData()
+    refresh()
   }.stateIn(
     viewModelScope,
     SharingStarted.WhileSubscribed(5_000),
@@ -51,20 +55,28 @@ class HomeViewModel(
   val currentUser = sessionManager.currentEmployee
 
   init {
-    Logger.d(TAG, "Init")
+    Logger.i(TAG, "Init")
+    observeCurrentUser()
   }
 
-  private fun initializeData() {
-    val user = sessionManager.currentEmployee.value
-    _uiState.update { it.copy(greetingName = user?.name ?: "") }
-    refresh()
+  private fun observeCurrentUser() {
+    viewModelScope.launch {
+      currentUser.collectLatest { user ->
+        if (user != null) {
+          Logger.i(TAG, "User profile updated, initializing data for ${user.id}")
+          _uiState.update { it.copy(greetingName = user.name, errorMessage = null) }
+          refresh()
+        }
+      }
+    }
   }
 
   fun refresh(forceRefresh: Boolean = false) {
-    Logger.d(TAG, "Refreshing data, forceRefresh:$forceRefresh")
+    Logger.i(TAG, "Refreshing data, forceRefresh:$forceRefresh")
     val employeeId = sessionManager.currentEmployee.value?.id ?: return
 
-    viewModelScope.launch {
+    refreshJob?.cancel()
+    refreshJob = viewModelScope.launch {
       _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
 
       // fetch routes and locations first

@@ -86,14 +86,6 @@ fun NavGraphBuilder.authenticatedGraph(
           // The child screen calls this AFTER it has shown the UI change
           navBackStackEntry.savedStateHandle["created"] = null
         },
-        onNavigateToUnauthenticated = {
-          onLogout()
-          navController.navigate(route = NavRoutes.Unauthenticated.NavigationRoute) {
-            popUpTo(route = NavRoutes.Authenticated.NavigationRoute) {
-              inclusive = true
-            }
-          }
-        },
         onNavigateToReport = { reportId: String ->
           navController.navigate(
             route = NavRoutes.Authenticated.ReportDetail(

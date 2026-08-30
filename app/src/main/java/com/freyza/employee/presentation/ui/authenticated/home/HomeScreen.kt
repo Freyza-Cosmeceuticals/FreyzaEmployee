@@ -1,6 +1,7 @@
 package com.freyza.employee.presentation.ui.authenticated.home
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,7 +47,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
-import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.timedGreeting
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.User
@@ -74,13 +74,13 @@ import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.HomeViewModel
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenRoute(
   modifier: Modifier = Modifier,
   viewModel: HomeViewModel = koinViewModel(),
   visitCreated: Boolean? = null,
   onVisitCreatedConsumed: () -> Unit,
-  onNavigateToUnauthenticated: () -> Unit,
   onNavigateToReport: (reportId: String) -> Unit,
   onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
   onExit: () -> Unit,
@@ -88,24 +88,74 @@ fun HomeScreenRoute(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
-  if (currentUser == null) {
-    Logger.e("HomeScreenRoute", "Invalid User/Session on home screen")
-    HomeScreenSkeleton(modifier = modifier.padding(dimensionResource(R.dimen.screen_padding)))
-  } else {
-    HomeScreen(
-      uiState = uiState,
-      user = currentUser!!,
-      modifier = modifier,
-      visitCreated = visitCreated,
-      onVisitCreatedConsumed = onVisitCreatedConsumed,
-      onRefresh = { viewModel.refresh(true) },
-      onLogout = onNavigateToUnauthenticated,
-      onExit = onExit,
-      onDailyReportBegin = viewModel::createCurrentDailyReport,
-      onNavigateToReport = onNavigateToReport,
-      onNavigateToAddVisit = onNavigateToAddVisit,
-      onDismissSheet = viewModel::dismissCreateReportSheet
+  val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+
+  val fabOptions = remember(uiState.currentDailyReport, onNavigateToAddVisit) {
+    listOf(
+      FabActionItem(
+        "Doctor Visit", VisitType.DOCTOR.iconResource()
+      ) {
+        val report = uiState.currentDailyReport
+        if (report != null) onNavigateToAddVisit(
+          VisitType.DOCTOR, report.id, report.employeeId
+        )
+      },
+      FabActionItem(
+        "Stockist Visit", VisitType.STOCKIST.iconResource()
+      ) {
+        val report = uiState.currentDailyReport
+        if (report != null) onNavigateToAddVisit(
+          VisitType.STOCKIST, report.id, report.employeeId
+        )
+      },
+      FabActionItem(
+        "Chemist Visit", VisitType.CHEMIST.iconResource()
+      ) {
+        val report = uiState.currentDailyReport
+        if (report != null) onNavigateToAddVisit(
+          VisitType.CHEMIST, report.id, report.employeeId
+        )
+      },
     )
+  }
+
+  Scaffold(
+    topBar = { FreyzaHomeAppBar(today = uiState.today, scrollBehavior = scrollBehavior) },
+    floatingActionButton = {
+      if (uiState.currentDailyReport != null && !uiState.currentDailyReport!!.locked && uiState.todayReportDayType == DayType.WORK) {
+        AddVisitFloatingActionButton(options = fabOptions)
+      }
+    },
+    // children scaffold or their children should apply their scaffold's paddingValues
+    // and are responsible any ime paddings
+    //
+    // they don't need to handle any system bar padding if the outer one does,
+    // but here we let the TopAppBar fill the status bar.
+    modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+  ) { paddingValues ->
+    Crossfade(
+      targetState = currentUser,
+      label = "HomeContentTransition",
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(paddingValues)
+    ) { user ->
+      if (user == null) {
+        HomeScreenSkeleton(modifier = Modifier.padding(dimensionResource(R.dimen.screen_padding)))
+      } else {
+        HomeScreen(
+          uiState = uiState,
+          user = user,
+          visitCreated = visitCreated,
+          onVisitCreatedConsumed = onVisitCreatedConsumed,
+          onRefresh = { viewModel.refresh(true) },
+          onExit = onExit,
+          onDailyReportBegin = viewModel::createCurrentDailyReport,
+          onNavigateToReport = onNavigateToReport,
+          onDismissSheet = viewModel::dismissCreateReportSheet
+        )
+      }
+    }
   }
 }
 
@@ -114,56 +164,19 @@ fun HomeScreenRoute(
 private fun HomeScreen(
   uiState: HomeScreenUiState,
   user: User,
-  modifier: Modifier = Modifier,
   visitCreated: Boolean? = null,
   onVisitCreatedConsumed: () -> Unit = {},
   onRefresh: () -> Unit,
-  onLogout: () -> Unit,
   onExit: () -> Unit,
   onDailyReportBegin: (dayType: DayType, srcLocId: String?, destLocId: String?, travellingWithId: String?) -> Unit,
   onNavigateToReport: (reportId: String) -> Unit,
-  onNavigateToAddVisit: (type: VisitType, reportId: String, employeeId: String) -> Unit,
   onDismissSheet: () -> Unit,
 ) {
-  val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
-
   val reportCreationSheetState = rememberModalBottomSheetState(
     confirmValueChange = { newValue -> newValue != SheetValue.Hidden }, skipPartiallyExpanded = true
   )
 
-  val fabOptions = listOf(
-    FabActionItem(
-      "Doctor Visit", VisitType.DOCTOR.iconResource()
-    ) {
-      if (uiState.currentDailyReport != null) onNavigateToAddVisit(
-        VisitType.DOCTOR, uiState.currentDailyReport.id, uiState.currentDailyReport.employeeId
-      )
-    },
-    FabActionItem(
-      "Stockist Visit", VisitType.STOCKIST.iconResource()
-    ) {
-      if (uiState.currentDailyReport != null) onNavigateToAddVisit(
-        VisitType.STOCKIST, uiState.currentDailyReport.id, uiState.currentDailyReport.employeeId
-      )
-    },
-    FabActionItem(
-      "Chemist Visit", VisitType.CHEMIST.iconResource()
-    ) {
-      if (uiState.currentDailyReport != null) onNavigateToAddVisit(
-        VisitType.CHEMIST, uiState.currentDailyReport.id, uiState.currentDailyReport.employeeId
-      )
-    },
-  )
-
-  Scaffold(
-    topBar = { FreyzaHomeAppBar(today = uiState.today, scrollBehavior = scrollBehavior) },
-    floatingActionButton = {
-      if (uiState.currentDailyReport != null && !uiState.currentDailyReport.locked && uiState.todayReportDayType == DayType.WORK) AddVisitFloatingActionButton(
-        options = fabOptions
-      )
-    },
-    modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-  ) {
+  Box(modifier = Modifier.fillMaxSize()) {
     LaunchedEffect(visitCreated) {
       if (visitCreated != null) {
         onVisitCreatedConsumed()
@@ -225,7 +238,6 @@ private fun HomeScreen(
     PullToRefreshBox(
       isRefreshing = uiState.isRefreshing,
       onRefresh = onRefresh,
-      modifier = Modifier.padding(it)
     ) {
       LazyColumn(
         // inner screen padding to content
@@ -397,11 +409,9 @@ private fun HomeScreenPreview() {
       uiState = dummyHomeScreenUiState(),
       user = dummyUserEmployee(),
       onRefresh = {},
-      onLogout = {},
       onExit = {},
       onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
-      onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
   }
 }
@@ -414,11 +424,9 @@ private fun HomeScreenNoPlanPreview() {
       uiState = dummyHomeScreenNoPlanUiState(),
       user = dummyUserEmployee(),
       onRefresh = {},
-      onLogout = {},
       onExit = {},
       onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
-      onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
   }
 }
@@ -431,11 +439,9 @@ private fun HomeScreenNoReportPreview() {
       uiState = dummyHomeScreenNoReportUiState(),
       user = dummyUserEmployee(),
       onRefresh = {},
-      onLogout = {},
       onExit = {},
       onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
-      onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
   }
 }
@@ -448,11 +454,9 @@ private fun HomeScreenReportErrorPreview() {
       uiState = dummyHomeScreenUiStateDailyReportError(),
       user = dummyUserEmployee(),
       onRefresh = {},
-      onLogout = {},
       onExit = {},
       onDailyReportBegin = { _, _, _, _ -> },
       onNavigateToReport = {},
-      onNavigateToAddVisit = { _, _, _ -> },
       onDismissSheet = {})
   }
 }
