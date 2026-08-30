@@ -112,7 +112,6 @@ fun FreyzaEmployeeApp(
   LaunchedEffect(authState) {
     if (authState is AuthState.Authenticated) {
       appUpdateViewModel.checkForUpdate()
-      sessionViewModel.syncTime()
     }
   }
 

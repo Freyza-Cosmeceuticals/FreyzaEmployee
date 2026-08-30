@@ -33,7 +33,7 @@ class SessionViewModel(
       category = "ui.action"
       message = "SessionViewModel.checkAuth triggered"
     })
-    Logger.d(TAG, "Checking Auth session")
+    Logger.i(TAG, "Checking Auth session")
     viewModelScope.launch {
       authRepository.checkSession()
     }
@@ -58,14 +58,14 @@ class SessionViewModel(
       category = "ui.action"
       message = "SessionViewModel.logout triggered"
     })
-    Logger.d(TAG, "Logging out...")
+    Logger.i(TAG, "Logging out...")
     viewModelScope.launch {
       authRepository.logout()
     }
   }
 
   fun exit(context: Context) {
-    Logger.d(TAG, "Exiting...")
+    Logger.i(TAG, "Exiting...")
     (context as? Activity)?.finishAffinity()
   }
 }

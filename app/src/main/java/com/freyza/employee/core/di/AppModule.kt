@@ -50,7 +50,9 @@ val appModule = module {
   }
 
   single<NetworkMonitor> {
-    ConnectivityManagerNetworkMonitor(get())
+    ConnectivityManagerNetworkMonitor(get()).also {
+      NetworkMonitor.register(it)
+    }
   }
 
   singleOf(::ServerTime)

@@ -51,7 +51,7 @@ class SessionManager(
 
   fun clearSession() {
     _currentEmployee.value = null
-    Logger.d(TAG, "Session was cleared")
+    Logger.i(TAG, "Session was cleared")
 
     sharedPreferencesHelper.removeStringData(KEY_CACHED_USER)
 

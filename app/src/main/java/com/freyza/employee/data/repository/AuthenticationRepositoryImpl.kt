@@ -10,8 +10,10 @@ import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.model.UserStatus
 import com.freyza.employee.domain.repository.AuthenticationRepository
 import com.freyza.employee.domain.repository.UserRepository
+import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.SignOutScope
+import io.github.jan.supabase.auth.event.AuthEvent
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -20,6 +22,7 @@ import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,112 +43,120 @@ class AuthenticationRepositoryImpl(
   }
 
   private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+  private var fetchProfileJob: Job? = null
 
-  private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
+  private val _authState = MutableStateFlow<AuthState>(
+    if (sessionManager.currentEmployee.value != null) AuthState.Authenticated else AuthState.Loading
+  )
   override val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
   init {
-    listenToAuthStatus()
+    listenToSessionStatus()
+    listenToAuthEvents()
     logAuthState()
     observeNetworkForAutoRefresh()
   }
 
+  @OptIn(SupabaseExperimental::class)
+  private fun listenToAuthEvents() {
+    auth.events.onEach { event ->
+      when (event) {
+        is AuthEvent.RefreshFailure -> {
+          Logger.w(TAG, "Refresh Failure: ${event.cause}. Checking local session...")
+          Sentry.addBreadcrumb(Breadcrumb().apply {
+            category = "auth"
+            message = "AuthEvent: RefreshFailure (${event.cause})"
+            level = io.sentry.SentryLevel.WARNING
+          })
+          resolveAuthenticatedState()
+        }
+
+        else -> Logger.d(TAG, "AuthEvent: ${event.javaClass.simpleName}")
+      }
+    }.launchIn(repositoryScope)
+  }
+
   private fun observeNetworkForAutoRefresh() {
     var wasOffline = !networkMonitor.isCurrentlyConnected
-
     networkMonitor.isOnline.onEach { isOnline ->
       if (wasOffline && isOnline) {
-        Sentry.addBreadcrumb(Breadcrumb.info("${TAG}: Network back online, triggering auto-refresh"))
-        Logger.d(TAG, "Network back online, triggering auto-refresh")
+        Logger.d(TAG, "Connectivity restored, syncing session...")
         checkSession()
       }
       wasOffline = !isOnline
     }.launchIn(repositoryScope)
   }
 
-  private fun listenToAuthStatus() {
+  private fun listenToSessionStatus() {
     repositoryScope.launch {
       auth.sessionStatus.collect { status ->
-        val breadcrumb = Breadcrumb().apply {
+        Sentry.addBreadcrumb(Breadcrumb().apply {
           category = "auth"
-          message = when (status) {
-            is SessionStatus.Authenticated -> "SessionStatus: Authenticated"
-            is SessionStatus.NotAuthenticated -> "SessionStatus: NotAuthenticated"
-            SessionStatus.Initializing -> "SessionStatus: Initializing"
-            is SessionStatus.RefreshFailure -> "SessionStatus: RefreshFailure"
-          }
-        }
-        Sentry.addBreadcrumb(breadcrumb)
+          message = "SessionStatus: ${status.javaClass.simpleName}"
+        })
 
         when (status) {
           is SessionStatus.Authenticated -> {
-            Logger.d(TAG, "Authenticated: fetching profile")
-            validateAndFetchProfile(status.session.user?.id ?: "")
+            Logger.d(TAG, "SessionStatus: Authenticated. Syncing profile...")
+            resolveAuthenticatedState(status.session.user?.id)
           }
 
           is SessionStatus.NotAuthenticated -> {
-            Logger.d(TAG, "NotAuthenticated")
-            sessionManager.clearSession()
-            _authState.value = AuthState.Unauthenticated
+            val cachedUser = sessionManager.currentEmployee.value
+            if (cachedUser != null) {
+              Logger.w(
+                TAG,
+                "Session not found but offline with cache. Preserving Authenticated state."
+              )
+              _authState.value = AuthState.Authenticated
+            } else {
+              Logger.i(TAG, "Session cleared: Not authenticated (online or no cache)")
+              sessionManager.clearSession()
+              _authState.value = AuthState.Unauthenticated
+            }
           }
 
           SessionStatus.Initializing -> {
-            Logger.d(TAG, "Initializing")
+            Logger.d(TAG, "SessionStatus: Initializing")
             _authState.value = AuthState.Loading
           }
 
           is SessionStatus.RefreshFailure -> {
-            Logger.w(TAG, "RefreshFailure: ${status.cause.message}")
-            val currentSession = auth.currentSessionOrNull()
-            if (currentSession != null) {
-              Logger.d(TAG, "RefreshFailure: Local session exists, preserving session")
-              val cachedUser = sessionManager.currentEmployee.value
-              if (cachedUser != null) {
-                _authState.value = AuthState.Authenticated
-              } else {
-                val userId = currentSession.user?.id ?: ""
-                validateAndFetchProfile(userId)
-              }
-            } else {
-              Logger.w(TAG, "RefreshFailure: No local session, setting Unauthenticated")
-              sessionManager.clearSession()
-              _authState.value = AuthState.Unauthenticated
-            }
+            Logger.w(TAG, "SessionStatus: Refresh failure. Resolving resilient state...")
+            resolveAuthenticatedState()
           }
         }
       }
     }
   }
 
+  private fun resolveAuthenticatedState(userId: String? = null) {
+    val cachedUser = sessionManager.currentEmployee.value
+    val targetId = userId ?: auth.currentUserOrNull()?.id ?: auth.currentSessionOrNull()?.user?.id
+
+    if (cachedUser != null) {
+      _authState.value = AuthState.Authenticated
+    } else if (!targetId.isNullOrBlank()) {
+      repositoryScope.launch {
+        validateAndFetchProfile(targetId)
+      }
+    } else {
+      _authState.value = AuthState.Unauthenticated
+    }
+  }
+
   private fun logAuthState() {
     authState.onEach { state ->
-      val breadcrumb = Breadcrumb().apply {
+      Sentry.addBreadcrumb(Breadcrumb().apply {
         category = "auth"
-        message = when (state) {
-          is AuthState.Authenticated -> "AuthState: User logged in"
-          is AuthState.Error -> "AuthState: Error (${state.message})"
-          is AuthState.Loading -> "AuthState: Auth state changed to Loading"
-          is AuthState.Unauthenticated -> "AuthState: Session expired or Unauthenticated"
-        }
-      }
-      Sentry.addBreadcrumb(breadcrumb)
+        message = "AuthState: ${state.javaClass.simpleName}"
+      })
 
       when (state) {
-        is AuthState.Authenticated -> {
-          Logger.d(TAG, "AuthState: Authenticated")
-        }
-
-        is AuthState.Error -> {
-          Logger.e(TAG, "AuthState: Error. ${state.message}")
-        }
-
-        is AuthState.Loading -> {
-          Logger.d(TAG, "AuthState: Loading")
-        }
-
-        is AuthState.Unauthenticated -> {
-          Logger.d(TAG, "AuthState: Unauthenticated")
-        }
+        is AuthState.Authenticated -> Logger.i(TAG, "AuthState: Authenticated")
+        is AuthState.Error -> Logger.e(TAG, "AuthState: Error. ${state.message}")
+        is AuthState.Loading -> Logger.d(TAG, "AuthState: Loading")
+        is AuthState.Unauthenticated -> Logger.i(TAG, "AuthState: Unauthenticated")
       }
     }.launchIn(repositoryScope)
   }
@@ -153,53 +164,39 @@ class AuthenticationRepositoryImpl(
   override suspend fun checkSession() {
     try {
       auth.awaitInitialization()
-      val localSession = auth.currentSessionOrNull()
-      if (localSession != null || auth.currentUserOrNull() != null) {
-        if (networkMonitor.isCurrentlyConnected) {
+      if (networkMonitor.isCurrentlyConnected && auth.currentSessionOrNull() != null) {
+        try {
           auth.refreshCurrentSession()
-        } else {
-          Logger.d(TAG, "checkSession: Device is offline, preserving session")
-          val cachedUser = sessionManager.currentEmployee.value
-          if (cachedUser != null) {
-            _authState.value = AuthState.Authenticated
-          } else {
-            val userId = auth.currentUserOrNull()?.id ?: localSession?.user?.id ?: ""
-            validateAndFetchProfile(userId)
+        } catch (e: Exception) {
+          if (e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected) {
+            Logger.d(TAG, "Silent refresh failed (network). Preserving current state.")
+          } else if (e.message?.contains("invalid_grant", ignoreCase = true) == true) {
+            Logger.w(TAG, "Refresh token revoked. Logging out.")
+            sessionManager.clearSession()
+            _authState.value = AuthState.Unauthenticated
+            return
           }
         }
-      } else {
-        Logger.d(TAG, "checkSession: No current user found, setting to Unauthenticated")
-        _authState.value = AuthState.Unauthenticated
       }
+      resolveAuthenticatedState()
     } catch (e: Exception) {
-      val isNetworkErr = !networkMonitor.isCurrentlyConnected ||
-        e.isConnectivityOrDnsException() ||
-        isNetworkException(e.message ?: "")
-
+      val isNetworkErr = e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected
       if (isNetworkErr) {
-        val localSession = auth.currentSessionOrNull()
-        val cachedUser = sessionManager.currentEmployee.value
-        if (localSession != null || cachedUser != null) {
-          Logger.w(TAG, "checkSession: Connectivity issue, preserving Authenticated state")
+        if (sessionManager.currentEmployee.value != null) {
+          Logger.w(TAG, "Offline/Flaky network. Preserving current session.")
           _authState.value = AuthState.Authenticated
-          return
+        } else {
+          _authState.value = AuthState.Error("Please check your internet connection.")
         }
-        Logger.w(TAG, "checkSession: Connectivity issue occurred, showing friendly error")
-        _authState.value = AuthState.Error("Please check your internet connection.")
-        return
-      }
-
-      if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
-        Logger.w(TAG, "checkSession: No refresh token found, setting to Unauthenticated")
+      } else if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
         _authState.value = AuthState.Unauthenticated
       } else {
-        Logger.e(TAG, "checkSession error: ${e.message}")
-        val localSession = auth.currentSessionOrNull()
-        if (localSession != null && sessionManager.currentEmployee.value != null) {
+        Logger.e(TAG, "Critical session check failure: ${e.message}")
+        if (sessionManager.currentEmployee.value != null) {
           _authState.value = AuthState.Authenticated
         } else {
           sessionManager.clearSession()
-          _authState.value = AuthState.Error("Failed to initialize session: ${e.message}")
+          _authState.value = AuthState.Error("Failed to initialize session.")
         }
       }
     }
@@ -211,104 +208,94 @@ class AuthenticationRepositoryImpl(
       return
     }
 
-    when (val result = userRepository.getUserById(userId)) {
-      is Result.Success -> {
-        val user = result.data
-        if (user != null && user.role == UserRole.EMPLOYEE && user.status == UserStatus.ACTIVE) {
-          val supabaseUser = auth.currentUserOrNull()
-          val finalUser = user.copy(userInfo = supabaseUser)
-          sessionManager.setCurrentEmployee(finalUser)
-          _authState.value = AuthState.Authenticated
-        } else {
-          Logger.e(
-            TAG, "Invalid role or inactive status. Role: ${user?.role}, Status: ${user?.status}"
-          )
-          logout()
-          _authState.value = AuthState.Unauthenticated
+    if (sessionManager.currentEmployee.value?.id == userId) {
+      _authState.value = AuthState.Authenticated
+      return
+    }
+
+    if (fetchProfileJob?.isActive == true) {
+      fetchProfileJob?.join()
+      return
+    }
+
+    fetchProfileJob = repositoryScope.launch {
+      when (val result = userRepository.getUserById(userId)) {
+        is Result.Success -> {
+          val user = result.data
+          if (user != null && user.role == UserRole.EMPLOYEE && user.status == UserStatus.ACTIVE) {
+            sessionManager.setCurrentEmployee(user.copy(userInfo = auth.currentUserOrNull()))
+            _authState.value = AuthState.Authenticated
+          } else {
+            Logger.e(
+              TAG,
+              "Account issue: User is not an active employee (Role: ${user?.role}, Status: ${user?.status})"
+            )
+            logout()
+            _authState.value = AuthState.Unauthenticated
+          }
         }
-      }
 
-      is Result.Error -> {
-        val cachedUser = sessionManager.currentEmployee.value
-        if (cachedUser != null && cachedUser.id == userId) {
-          Logger.d(TAG, "Profile fetch failed due to network, retaining cached profile")
-          _authState.value = AuthState.Authenticated
-        } else if (!networkMonitor.isCurrentlyConnected || isNetworkException(result.message)) {
-          _authState.value = AuthState.Error("Please check your internet connection.")
-        } else {
-          Logger.e(TAG, "Error fetching user profile: ${result.message}")
-          _authState.value = AuthState.Error("Unable to fetch your profile: ${result.message}")
+        is Result.Error -> {
+          val isNetworkIssue =
+            (result.errorBody as? Throwable)?.isConnectivityOrDnsException() == true ||
+                    !networkMonitor.isCurrentlyConnected
+
+          if (isNetworkIssue && sessionManager.currentEmployee.value != null) {
+            Logger.d(TAG, "Profile fetch failed (network). Using cached profile.")
+            _authState.value = AuthState.Authenticated
+          } else if (isNetworkIssue) {
+            _authState.value = AuthState.Error("Please check your internet connection.")
+          } else {
+            Logger.e(TAG, "Profile fetch failed: ${result.message}")
+            _authState.value = AuthState.Error("Unable to fetch your profile.")
+          }
         }
-      }
 
-      is Result.Loading -> {
-        _authState.value = AuthState.Loading
+        is Result.Loading -> _authState.value = AuthState.Loading
       }
     }
+    fetchProfileJob?.join()
   }
 
-  override suspend fun login(email: String, password: String): Result<UserInfo> {
-    return try {
-      auth.signInWith(Email) {
-        this.email = email
-        this.password = password
-      }
-
-      val user = auth.currentUserOrNull()
-      if (user === null) {
-        Logger.e(TAG, "Login Error: $email, Current user is null")
-        return Result.Error("Unable to login")
-      }
-
-      // Role check happens via the sessionStatus listener calling validateAndFetchProfile
-      Result.Success(user)
-
-    } catch (e: Exception) {
-      val cause = e.message?.lines()?.first().toString().trim()
-      Logger.e(TAG, "Login Error: $email ${e.message.toString()}")
-      Result.Error(cause)
+  override suspend fun login(email: String, password: String): Result<UserInfo> = try {
+    auth.signInWith(Email) {
+      this.email = email
+      this.password = password
     }
+    auth.currentUserOrNull()?.let {
+      Logger.i(TAG, "Login successful: $email")
+      Result.Success(it)
+    } ?: Result.Error("Login returned empty user")
+  } catch (e: Exception) {
+    val cause = e.message?.lines()?.firstOrNull()?.trim() ?: "Login failed"
+    Logger.w(TAG, "Login failed: $email ($cause)")
+    Result.Error(cause)
   }
 
-  override suspend fun register(name: String, email: String, password: String): Result<UserInfo> {
-    return Result.Error("Registration not implemented in app")
+  override suspend fun register(name: String, email: String, password: String): Result<UserInfo> =
+    Result.Error("Registration not implemented in app")
+
+  override suspend fun loginWithGoogle(): Result<UserInfo> = try {
+    auth.signInWith(Google)
+    auth.currentUserOrNull()?.let {
+      Logger.i(TAG, "Google login successful")
+      Result.Success(it)
+    } ?: Result.Error("Google login returned empty user")
+  } catch (e: Exception) {
+    Logger.w(TAG, "Google login failed: ${e.message}")
+    Result.Error(e.message ?: "Google login failed")
   }
 
-  override suspend fun loginWithGoogle(): Result<UserInfo> {
-    return try {
-      auth.signInWith(Google)
-      val user = auth.currentUserOrNull()
-      if (user === null) {
-        Logger.e(TAG, "Login Error: Google, Current user is null")
-        return Result.Error("Unable to login")
-      }
-
-      Result.Success(user)
-    } catch (e: Exception) {
-      Result.Error(e.message.toString())
-    }
-  }
-
-  override suspend fun logout(): Result<Unit> {
-    return try {
-      auth.signOut(SignOutScope.LOCAL)
-      sessionManager.clearSession()
-      Logger.i(TAG, "Logout Success")
-      Result.Success(Unit)
-    } catch (e: Exception) {
-      val cause = e.message?.lines()?.first().toString().trim()
-      Logger.e(TAG, "Logout Error: ${e.message.toString()}")
-      Result.Error(cause)
-    }
-  }
-
-  private fun isNetworkException(message: String): Boolean {
-    return message.contains("unable to resolve host", ignoreCase = true) ||
-      message.contains("failed to connect", ignoreCase = true) ||
-      message.contains("connecttimeout", ignoreCase = true) ||
-      message.contains("unknownhost", ignoreCase = true) ||
-      message.contains("EAI_NODATA", ignoreCase = true) ||
-      message.contains("No address associated with hostname", ignoreCase = true) ||
-      message.contains("check your internet connection", ignoreCase = true)
+  override suspend fun logout(): Result<Unit> = try {
+    auth.signOut(SignOutScope.LOCAL)
+    Logger.i(TAG, "Logout successful")
+    Result.Success(Unit)
+  } catch (e: Exception) {
+    val cause = e.message?.lines()?.firstOrNull()?.trim() ?: "Logout failed"
+    Logger.w(TAG, "Logout warning: $cause")
+    Result.Success(Unit) // Still return success as we clear local state anyway
+  } finally {
+    sessionManager.clearSession()
+    _authState.value = AuthState.Unauthenticated
   }
 }

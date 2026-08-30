@@ -20,6 +20,7 @@ The project follows a specific versioning scheme in `app/build.gradle.kts`:
 2.  **Version Bump**: Increment `versionCode` and update `versionName` in `app/build.gradle.kts`.
 3.  **Changelog**: Document the changes in `CHANGELOG.md` under the new version header with the current date.
 4.  **Merge**: Perform a fast-forward merge from `preview` to `main` as described in the [Development](#development) section.
+5. 	**Tag**: Tag the latest commit with the desired version and push the tags.
 5.  **Build**: Generate the release build using:
     ```bash
     ./gradlew prodReleaseBuild
@@ -30,9 +31,9 @@ The project follows a specific versioning scheme in `app/build.gradle.kts`:
 The repo has 2 fixed branches - `main` and `preview`. The `main` branch is protected, and no code should be directly pushed to it, `preview` is branched off from `main`.
 
 To develop any feature, branch off from `preview`, say `feature-1`. Work on it and open a PR `feature-1` -> `preview` first.
-After completion, either _squash_ or _rebase_ (from github UI preferably) depending on the number/type of commits made.
+After completion, either _squash_ or _rebase_ (from GitHub UI preferably) depending on the number/type of commits made.
 
-Once in a while, after testing everything, do a fast-forward merge from `preview` -> `main` (open a PR on GitHub, but merge and push from local, since GitHub doesn'r allow ff merges).
+Once in a while, after testing everything, do a fast-forward merge from `preview` -> `main` (open a PR on GitHub, but merge and push from local, since GitHub doesn't allow ff merges).
 Since `main` is never updated independently, the ff merge will always succeed.
 
 ```

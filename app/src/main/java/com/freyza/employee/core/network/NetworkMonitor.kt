@@ -14,9 +14,11 @@ import io.sentry.SpanStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.io.IOException
@@ -24,14 +26,44 @@ import kotlinx.io.IOException
 class OfflineException(message: String = "No internet connection") : IOException(message)
 
 interface NetworkMonitor {
+  /**
+   * Combined flow of system connectivity and server reachability.
+   */
   val isOnline: StateFlow<Boolean>
   val isCurrentlyConnected: Boolean
+
+  /**
+   * Signal that an API call failed due to connectivity/DNS.
+   */
+  fun reportFailure()
+
+  /**
+   * Signal that an API call succeeded, confirming reachability.
+   */
+  fun reportSuccess()
+
+  companion object {
+    private var _instance: NetworkMonitor? = null
+
+    /**
+     * Internal: Sets the global instance for safeApiCall usage.
+     */
+    fun register(monitor: NetworkMonitor) {
+      _instance = monitor
+    }
+
+    /**
+     * Internal: Provides the global monitor.
+     */
+    val instance: NetworkMonitor? get() = _instance
+  }
 }
 
 class ConnectivityManagerNetworkMonitor(
   private val context: Context,
 ) : NetworkMonitor {
   private val connectivityManager = context.getSystemService<ConnectivityManager>()
+  private val isServerReachable = MutableStateFlow(true)
 
   override val isCurrentlyConnected: Boolean
     get() = connectivityManager?.isCurrentlyConnected() ?: false
@@ -49,6 +81,8 @@ class ConnectivityManagerNetworkMonitor(
 
       override fun onAvailable(network: Network) {
         networks += network
+        // Reset reachability on a fresh system connection
+        isServerReachable.value = true
         channel.trySend(true)
       }
 
@@ -58,6 +92,8 @@ class ConnectivityManagerNetworkMonitor(
       ) {
         if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
           networks += network
+          // System validated a connection, give reachability another chance
+          isServerReachable.value = true
         } else {
           networks -= network
         }
@@ -75,19 +111,26 @@ class ConnectivityManagerNetworkMonitor(
         .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED).build()
     connectivityManager.registerNetworkCallback(request, callback)
 
-    /**
-     * Sends the initial connectivity state to the block.
-     */
     channel.trySend(connectivityManager.isCurrentlyConnected())
 
     awaitClose {
       connectivityManager.unregisterNetworkCallback(callback)
     }
+  }.combine(isServerReachable) { systemOnline, reachable ->
+    systemOnline && reachable
   }.distinctUntilChanged().stateIn(
     scope = CoroutineScope(Dispatchers.Default),
     started = SharingStarted.WhileSubscribed(5_000),
-    initialValue = connectivityManager?.isCurrentlyConnected() ?: false
+    initialValue = (connectivityManager?.isCurrentlyConnected() ?: false)
   )
+
+  override fun reportFailure() {
+    isServerReachable.value = false
+  }
+
+  override fun reportSuccess() {
+    isServerReachable.value = true
+  }
 
   private fun ConnectivityManager.isCurrentlyConnected() =
     activeNetwork?.let(::getNetworkCapabilities)
@@ -132,27 +175,34 @@ fun Throwable.isConnectivityOrDnsException(): Boolean {
   return false
 }
 
-suspend fun <T> safeApiCall(TAG: String = "safeApiCall", apiCall: suspend () -> T): Result<T> {
-  val span = Sentry.getSpan()?.startChild("http.client", TAG)
+suspend fun <T> safeApiCall(
+  tag: String = "safeApiCall",
+  apiCall: suspend () -> T
+): Result<T> {
+  val span = Sentry.getSpan()?.startChild("http.client", tag)
+  val monitor = NetworkMonitor.instance
 
   return try {
     val result = apiCall()
     span?.status = SpanStatus.OK
+    monitor?.reportSuccess()
 
     Result.Success(result)
   } catch (e: ApiException) {
     span?.status = SpanStatus.INTERNAL_ERROR
-    Logger.w(TAG, "ApiException: ${e.statusCode} - ${e.message}")
+    Logger.w(tag, "ApiException: ${e.statusCode} - ${e.message}")
     Result.Error(message = e.message ?: "Request failed", errorBody = e.errorBody)
   } catch (e: Exception) {
     if (e is OfflineException || e.isConnectivityOrDnsException()) {
       span?.status = SpanStatus.UNAVAILABLE
+      monitor?.reportFailure()
+
       Sentry.addBreadcrumb(Breadcrumb().apply {
         category = "network"
-        message = "$TAG: Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}"
+        message = "$tag: Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}"
       })
 
-      Logger.d(TAG, "Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}")
+      Logger.d(tag, "Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}")
       Result.Error("Please check your internet connection.", errorBody = e)
     } else {
       span?.status = SpanStatus.INTERNAL_ERROR
@@ -160,7 +210,7 @@ suspend fun <T> safeApiCall(TAG: String = "safeApiCall", apiCall: suspend () -> 
 
       Sentry.captureException(e)
 
-      Logger.e(TAG, e.message.toString())
+      Logger.e(tag, e.message.toString())
       Result.Error(e.message ?: "An unknown error occurred")
     }
   } finally {
