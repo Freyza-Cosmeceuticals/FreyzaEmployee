@@ -11,6 +11,7 @@ import com.freyza.employee.core.util.Logger
 import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import io.sentry.SpanStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -177,7 +178,7 @@ fun Throwable.isConnectivityOrDnsException(): Boolean {
 
 suspend fun <T> safeApiCall(
   tag: String = "safeApiCall",
-  apiCall: suspend () -> T
+  apiCall: suspend () -> T,
 ): Result<T> {
   val span = Sentry.getSpan()?.startChild("http.client", tag)
   val monitor = NetworkMonitor.instance
@@ -192,6 +193,11 @@ suspend fun <T> safeApiCall(
     span?.status = SpanStatus.INTERNAL_ERROR
     Logger.w(tag, "ApiException: ${e.statusCode} - ${e.message}")
     Result.Error(message = e.message ?: "Request failed", errorBody = e.errorBody)
+  } catch (e: CancellationException) {
+    span?.status = SpanStatus.CANCELLED
+    Logger.d(tag, "Coroutine was cancelled.")
+    // MUST rethrow so Kotlin can safely destroy the coroutine
+    throw e
   } catch (e: Exception) {
     if (e is OfflineException || e.isConnectivityOrDnsException()) {
       span?.status = SpanStatus.UNAVAILABLE
