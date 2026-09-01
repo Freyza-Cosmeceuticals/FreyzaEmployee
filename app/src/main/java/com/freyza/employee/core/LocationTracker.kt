@@ -12,6 +12,8 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import io.sentry.Sentry
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
@@ -22,13 +24,14 @@ class LocationTracker(private val context: Context) {
   }
 
   private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+  private val locationMutex = Mutex()
 
   private var cachedLocation: Location? = null
   private var lastFetchTime: Long = 0L
-  private val CACHE_DURATION_MS = 60.seconds.inWholeMilliseconds
+  private val CACHE_DURATION_MS = 120.seconds.inWholeMilliseconds
   private val LOCATION_REQUEST_TIMEOUT = 10.seconds
 
-  suspend fun getCurrentLocation(): Location? {
+  suspend fun getCurrentLocation(): Location? = locationMutex.withLock {
     val span = Sentry.getSpan()?.startChild("location.gps", "Acquire GPS Location")
     val now = System.currentTimeMillis()
 
@@ -36,7 +39,7 @@ class LocationTracker(private val context: Context) {
     if (cachedLocation != null && (now - lastFetchTime) < CACHE_DURATION_MS) {
       Logger.d(TAG, "cache still fresh, reusing $cachedLocation")
       span?.finish()
-      return cachedLocation
+      return@withLock cachedLocation
     }
 
     // 2. Check permission
@@ -59,11 +62,11 @@ class LocationTracker(private val context: Context) {
       Logger.w(TAG, "Location permissions not granted or GPS is not enabled")
       span?.status = io.sentry.SpanStatus.PERMISSION_DENIED
       span?.finish()
-      return null
+      return@withLock null
     }
 
-    // 2. Fetch fresh with 3-second timeout
-    return try {
+    // 2. Fetch fresh with timeout
+    try {
       Logger.d(TAG, "Fetching fresh location")
 
       val freshLocation = withTimeoutOrNull<Location>(LOCATION_REQUEST_TIMEOUT) {

@@ -42,6 +42,7 @@ class GPSMonitor(private val context: Context) {
     })
     Logger.d(TAG, "Starting GPS monitoring")
 
+    _isGpsEnabled.value = checkGpsState()
     context.registerReceiver(gpsReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
   }
 
