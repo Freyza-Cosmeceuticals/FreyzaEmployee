@@ -23,7 +23,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -40,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -47,6 +47,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
+import com.freyza.employee.core.util.numDaysLeftInMonth
 import com.freyza.employee.core.util.timedGreeting
 import com.freyza.employee.core.util.toTitleCase
 import com.freyza.employee.domain.model.DayType
@@ -62,6 +63,7 @@ import com.freyza.employee.presentation.ui.authenticated.home.composables.DailyR
 import com.freyza.employee.presentation.ui.authenticated.home.composables.HomeScreenSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayPlanCard
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanCardSkeleton
+import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanMetricsCard
 import com.freyza.employee.presentation.ui.composables.FreyzaHomeAppBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
@@ -245,7 +247,7 @@ private fun HomeScreen(
         // inner screen padding to content
         contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
         verticalArrangement = Arrangement.spacedBy(
-          dimensionResource(R.dimen.default_spacing), Alignment.Top
+          dimensionResource(R.dimen.default_spacing).times(2), Alignment.Top
         ),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -258,64 +260,75 @@ private fun HomeScreen(
             uiState.today.timedGreeting(user.name),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-              .fillMaxWidth()
-              .padding(vertical = dimensionResource(R.dimen.default_spacing).times(2))
+            modifier = Modifier.fillMaxWidth()
           )
         }
 
         // show travel plan entry only when report is null
         item("travelplan") {
           AnimatedVisibility(uiState.currentDailyReport == null, label = "travelplan") {
-            if (uiState.todayTravelPlanEntry != null) {
-              TodayPlanCard(
-                planEntry = uiState.todayTravelPlanEntry,
-                route = uiState.todayPlanEntryRoute,
-                reportDayType = uiState.todayReportDayType,
-                reportRoute = uiState.todayReportRoute,
-                modifier = Modifier.fillMaxSize()
+            Column {
+              Text(
+                "Assigned Plan",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(
+                    top = dimensionResource(R.dimen.default_spacing).times(2),
+                    bottom = dimensionResource(R.dimen.default_spacing)
+                  )
               )
-            } else if (uiState.isLoading || uiState.isRefreshing) {
-              TravelPlanCardSkeleton(
-                modifier = Modifier.fillMaxSize()
-              )
-            } else {
-              TodayPlanCard(
-                planEntry = null, route = null,
-                modifier = Modifier.fillMaxSize()
-              )
+
+              if (uiState.todayTravelPlanEntry != null) {
+                TodayPlanCard(
+                  planEntry = uiState.todayTravelPlanEntry,
+                  route = uiState.todayPlanEntryRoute,
+                  reportDayType = uiState.todayReportDayType,
+                  reportRoute = uiState.todayReportRoute,
+                  modifier = Modifier.fillMaxSize()
+                )
+              } else if (uiState.isLoading || uiState.isRefreshing) {
+                TravelPlanCardSkeleton(
+                  modifier = Modifier.fillMaxSize()
+                )
+              } else {
+                TodayPlanCard(
+                  planEntry = null, route = null, modifier = Modifier.fillMaxSize()
+                )
+              }
             }
           }
-
-          Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing)))
         }
 
-        item("report_text") {
+        item("daily_report") {
           Text(
             stringResource(R.string.today_report_header),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier
               .fillMaxWidth()
-              .padding(vertical = dimensionResource(R.dimen.default_spacing))
-              .padding(top = dimensionResource(R.dimen.default_spacing))
+              .padding(
+                top = dimensionResource(R.dimen.default_spacing).times(2),
+                bottom = dimensionResource(R.dimen.default_spacing)
+              )
           )
-        }
 
-        item("daily_report") {
           if (uiState.currentDailyReport != null) {
-
             val travellingWith =
               remember(uiState.currentDailyReport.travellingWithId, uiState.employees) {
                 uiState.employees.find { it.id == uiState.currentDailyReport.travellingWithId }
               }
+
             DailyReportCard(
               dailyReport = uiState.currentDailyReport,
               travellingWith = travellingWith,
               route = uiState.todayReportRoute,
               pois = uiState.pois,
+              onClick = { onNavigateToReport(uiState.currentDailyReport.id) },
               modifier = Modifier.fillMaxSize(),
-              onClick = { onNavigateToReport(uiState.currentDailyReport.id) }
             )
           } else if (uiState.isLoading || uiState.isRefreshing) {
             DailyReportCardSkeleton(
@@ -338,6 +351,29 @@ private fun HomeScreen(
               modifier = Modifier.fillMaxWidth()
             )
           }
+        }
+
+        item("metrics") {
+          Text(
+            "Month's Target",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+              .fillMaxWidth()
+              .padding(
+                top = dimensionResource(R.dimen.default_spacing).times(2),
+                bottom = dimensionResource(R.dimen.default_spacing)
+              )
+          )
+
+          TravelPlanMetricsCard(
+            metrics = uiState.travelPlanMetrics,
+            monthName = uiState.today.month.name.toTitleCase(),
+            daysLeft = uiState.today.numDaysLeftInMonth,
+            isLoading = uiState.isMetricsLoading,
+            modifier = Modifier.fillMaxWidth()
+          )
         }
 
         if (BuildConfig.DEBUG) {
@@ -387,18 +423,26 @@ private fun DebugUiState(uiState: HomeScreenUiState, modifier: Modifier = Modifi
     Column(modifier = modifier.padding(8.dp)) {
       Text("isLoading: ${uiState.isLoading}")
       Text("isRefreshing: ${uiState.isRefreshing}")
+      Text("isMetricsLoading: ${uiState.isMetricsLoading}")
       Text("errorMsg: ${uiState.errorMessage}")
 
       Text("travelPlan: ${uiState.currentTravelPlan?.id}")
+      uiState.travelPlanMetrics?.let {
+        Text("travelPlanMetrics: ${it.currentAmount} / ${it.targetAmount} (${it.percentage})")
+      }
       Text("planEntry: ${uiState.todayTravelPlanEntry?.id}")
       Text("planRoute: ${uiState.todayPlanEntryRoute?.id}")
 
       Text("dailyReport: ${uiState.currentDailyReport?.id}")
+      Text("routes.size: ${uiState.routes.size}")
+      Text("locations.size: ${uiState.locations.size}")
+      Text("pois.size: ${uiState.pois.size}")
+
       Text("reportType: ${uiState.todayReportDayType}")
       Text("reportRoute: ${uiState.todayReportRoute?.id}")
 
-      Text("routes.size: ${uiState.routes.size}")
       Text("showCreateReport: ${uiState.showCreateReportSheet}")
+      Text("employees.size: ${uiState.employees.size}")
     }
   }
 }

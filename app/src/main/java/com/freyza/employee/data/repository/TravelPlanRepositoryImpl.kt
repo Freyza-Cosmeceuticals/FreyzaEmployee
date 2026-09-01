@@ -187,4 +187,39 @@ class TravelPlanRepositoryImpl(
       }
     }
   }
+
+  override suspend fun getTravelPlanMetrics(id: String): Result<TravelPlanMetrics> {
+    return safeApiCall(TAG, auth) { token ->
+      withContext(Dispatchers.IO) {
+        Logger.d(TAG, "Fetching metrics for travel plan: $id")
+
+        val response = httpClient.get("${appConfig.apiUrl}/api/plans/$id/metrics") {
+          header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        if (response.status.isSuccess()) {
+          val metricsResponse = response.body<TravelPlanMetricsResponse>()
+
+          if (metricsResponse.success) {
+            Logger.d(
+              TAG,
+              "Fetched plan metrics ${metricsResponse} for planId:$id"
+            )
+
+            metricsResponse.data.toDomain()
+          } else {
+            throw Exception("Failed to fetch metrics")
+          }
+        } else {
+          val error = try {
+            response.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = response.status.description)
+          }
+          Logger.e(TAG, "API Error: ${response.status} - $error")
+          throw ApiException(response.status.value, error, error.message)
+        }
+      }
+    }
+  }
 }

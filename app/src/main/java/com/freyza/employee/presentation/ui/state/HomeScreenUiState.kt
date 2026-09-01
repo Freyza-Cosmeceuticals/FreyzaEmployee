@@ -8,22 +8,26 @@ import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.RouteWithLocation
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
+import com.freyza.employee.domain.model.TravelPlanMetrics
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyPois
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyTravelPlanEntryWork
+import com.freyza.employee.domain.model.dummyTravelPlanMetrics
 import kotlinx.datetime.LocalDateTime
 
 data class HomeScreenUiState(
   val isLoading: Boolean = false,
   val isRefreshing: Boolean = false,
+  val isMetricsLoading: Boolean = false,
   val errorMessage: String? = null,
 
   val today: LocalDateTime,
 
   val currentTravelPlan: TravelPlan? = null,
+  val travelPlanMetrics: TravelPlanMetrics? = null,
   val todayTravelPlanEntry: TravelPlanEntry? = null,
   val todayPlanEntryRoute: RouteWithLocation? = null,
 
@@ -42,6 +46,7 @@ data class HomeScreenUiState(
 fun dummyHomeScreenUiState(): HomeScreenUiState = HomeScreenUiState(
   today = ServerTime().nowLocalDateTime(),
   currentTravelPlan = dummyTravelPlan(),
+  travelPlanMetrics = dummyTravelPlanMetrics(),
   todayTravelPlanEntry = dummyTravelPlanEntryWork(),
   todayPlanEntryRoute = dummyRouteWithLocation(),
   currentDailyReport = dummyDailyReportWork(),
@@ -60,6 +65,7 @@ fun dummyHomeScreenNoPlanUiState(): HomeScreenUiState = HomeScreenUiState(
 fun dummyHomeScreenNoReportUiState(): HomeScreenUiState = HomeScreenUiState(
   today = ServerTime().nowLocalDateTime(),
   currentTravelPlan = dummyTravelPlan(),
+  travelPlanMetrics = dummyTravelPlanMetrics(),
   todayTravelPlanEntry = dummyTravelPlanEntryWork(),
   todayPlanEntryRoute = dummyRouteWithLocation(),
   currentDailyReport = null,

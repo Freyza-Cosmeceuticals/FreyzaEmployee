@@ -26,5 +26,10 @@ interface TravelPlanRepository {
     id: String,
     forceRefresh: Boolean = false,
   ): Result<TravelPlan?>
+
+  suspend fun getTravelPlanMetrics(
+    id: String,
+  ): Result<TravelPlanMetrics>
+
   fun clearCache()
 }

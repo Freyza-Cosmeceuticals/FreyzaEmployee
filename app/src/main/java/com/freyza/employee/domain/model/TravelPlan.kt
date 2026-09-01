@@ -17,6 +17,19 @@ data class TravelPlan(
   val updatedAt: Instant?,
 )
 
+data class TravelPlanMetrics(
+  val targetAmount: Double,
+  val employeeId: String,
+  val totalOrderAmount: Double,
+  val totalAmountWithoutGST: Double,
+) {
+  val currentAmount: Double
+    get() = totalOrderAmount + totalAmountWithoutGST
+
+  val percentage: Float
+    get() = if (targetAmount > 0) (currentAmount.toFloat() / targetAmount.toFloat()) * 100f else 0f
+}
+
 data class TravelPlanEntry(
   val id: String,
   val tpId: String,
@@ -73,6 +86,13 @@ fun dummyTravelPlan(): TravelPlan = TravelPlan(
   ),
   createdAt = Instant.parse("2026-01-10T08:05:02.681+00:00"),
   updatedAt = Instant.parse("2026-01-10T08:05:02.681+00:00")
+)
+
+fun dummyTravelPlanMetrics(): TravelPlanMetrics = TravelPlanMetrics(
+  targetAmount = 15000.0,
+  employeeId = "a79ae89b-af0f-4f0f-9ae8-9baf0f4f0f59",
+  totalOrderAmount = 8000.0,
+  totalAmountWithoutGST = 4500.0
 )
 
 fun dummyTravelPlanEntryWork() = TravelPlanEntry(

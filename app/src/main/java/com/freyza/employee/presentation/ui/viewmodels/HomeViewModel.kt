@@ -105,12 +105,31 @@ class HomeViewModel(
       travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         _uiState.update { it.copy(currentTravelPlan = result.data) }
-        result.data?.id?.let { loadTodayTravelPlanEntry(it, forceRefresh) }
+        result.data?.id?.let {
+          loadTodayTravelPlanEntry(it, forceRefresh)
+          loadTravelPlanMetrics(it)
+        }
       }
 
       is Result.Error -> {
         _uiState.update { it.copy(errorMessage = "Unable to fetch travel plan") }
         Logger.e(TAG, "Fetch travel plan failed: ${result.message}")
+      }
+
+      else -> {}
+    }
+  }
+
+  private suspend fun loadTravelPlanMetrics(tpId: String) {
+    _uiState.update { it.copy(isMetricsLoading = true) }
+    when (val result = travelPlanRepository.getTravelPlanMetrics(tpId)) {
+      is Result.Success -> {
+        _uiState.update { it.copy(travelPlanMetrics = result.data, isMetricsLoading = false) }
+      }
+
+      is Result.Error -> {
+        _uiState.update { it.copy(isMetricsLoading = false) }
+        Logger.e(TAG, "Fetch travel plan metrics failed: ${result.message}")
       }
 
       else -> {}
