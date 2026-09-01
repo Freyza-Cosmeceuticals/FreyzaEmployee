@@ -2,9 +2,8 @@ package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
-import com.freyza.employee.core.network.ApiException
 import com.freyza.employee.core.network.ApiErrorResponse
-import com.freyza.employee.core.network.getAccessToken
+import com.freyza.employee.core.network.ApiException
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
@@ -239,12 +238,9 @@ class DailyReportRepositoryImpl(
       }
     }
 
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching POIs for locationIds: $cacheKey, visitType: $visitType")
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
           header(HttpHeaders.Authorization, "Bearer $token")
@@ -299,12 +295,9 @@ class DailyReportRepositoryImpl(
       }
     }
 
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching all POIs for locationIds: $cacheKey")
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
           header(HttpHeaders.Authorization, "Bearer $token")
@@ -346,12 +339,9 @@ class DailyReportRepositoryImpl(
       return Result.Success(it)
     }
 
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching POI with id: $id")
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois/$id") {
           header(HttpHeaders.Authorization, "Bearer $token")
@@ -396,7 +386,7 @@ class DailyReportRepositoryImpl(
     routeId: String?,
     travellingWithId: String?,
   ): Result<DailyReport> {
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
       withContext(Dispatchers.IO) {
@@ -408,9 +398,6 @@ class DailyReportRepositoryImpl(
           routeId = routeId,
           travellingWithId = travellingWithId
         )
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.post("${appConfig.apiUrl}/api/reports/begin") {
           contentType(ContentType.Application.Json)
@@ -448,7 +435,7 @@ class DailyReportRepositoryImpl(
     dailyReportId: String,
     visitCreateDto: VisitCreateDto,
   ): Result<Visit> {
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
 
       withContext(Dispatchers.IO) {
@@ -456,9 +443,6 @@ class DailyReportRepositoryImpl(
           TAG,
           "Creating visit via API for dailyReportId: $dailyReportId and date: $thisDate"
         )
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.post("${appConfig.apiUrl}/api/visits/create") {
           contentType(ContentType.Application.Json)
@@ -531,12 +515,9 @@ class DailyReportRepositoryImpl(
     visitId: String,
     visitUpdateDto: VisitUpdateDto,
   ): Result<Visit> {
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Updating visit via API visit:$visitId")
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.put("${appConfig.apiUrl}/api/visits/${visitId}") {
           contentType(ContentType.Application.Json)

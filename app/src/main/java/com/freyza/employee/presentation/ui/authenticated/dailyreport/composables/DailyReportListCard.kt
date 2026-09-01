@@ -41,7 +41,6 @@ import com.freyza.employee.domain.model.dummyDailyReportLeave
 import com.freyza.employee.domain.model.dummyDailyReportWork
 import com.freyza.employee.domain.model.dummyRouteWithLocation
 import com.freyza.employee.domain.model.dummyUserEmployee
-import com.freyza.employee.domain.model.dummyUserEmployeeAlt
 import com.freyza.employee.presentation.ui.composables.ReportLockedBadge
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.Skeleton
@@ -141,7 +140,7 @@ fun DailyReportListCard(
       if (report.dayType == DayType.WORK) {
         RouteItem(route)
 
-        if (travellingWith != null) {
+        if (report.travellingWithId != null) {
           Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.default_spacing))
@@ -153,10 +152,13 @@ fun DailyReportListCard(
               modifier = Modifier.size(16.dp)
             )
             Text(
-              text = "Travelling with ${travellingWith.name}",
+              text = "Travelling with ${travellingWith?.name?: ""}",
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (travellingWith == null) {
+              Skeleton(modifier = Modifier.height(16.dp).width(32.dp))
+            }
           }
         }
 
@@ -300,7 +302,7 @@ private fun DailyReportListCardWorkPreview() {
       )
       DailyReportListCard(
         dummyDailyReportWork(true),
-        travellingWith = dummyUserEmployeeAlt(),
+        travellingWith = null,
         route = null
       )
     }

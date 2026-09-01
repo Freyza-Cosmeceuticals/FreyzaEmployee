@@ -1,6 +1,9 @@
 package com.freyza.employee.data.repository
 
+import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
+import com.freyza.employee.core.network.ApiErrorResponse
+import com.freyza.employee.core.network.ApiException
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
@@ -8,10 +11,20 @@ import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.TravelPlanDto
 import com.freyza.employee.data.network.dto.TravelPlanEntryDto
+import com.freyza.employee.data.network.dto.TravelPlanMetricsResponse
+import com.freyza.employee.data.network.dto.toDomain
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
+import com.freyza.employee.domain.model.TravelPlanMetrics
 import com.freyza.employee.domain.repository.TravelPlanRepository
+import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
@@ -19,6 +32,9 @@ import kotlinx.datetime.LocalDate
 class TravelPlanRepositoryImpl(
   private val postgrest: Postgrest,
   private val serverTime: ServerTime,
+  private val httpClient: HttpClient,
+  private val appConfig: AppConfig,
+  private val auth: Auth,
 ) : TravelPlanRepository {
 
   // Cache for the most recently fetched current travel plan
@@ -91,8 +107,7 @@ class TravelPlanRepositoryImpl(
     return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(
-          TAG,
-          "Querying travelPlanEntry for current employee and day: $thisDay from network"
+          TAG, "Querying travelPlanEntry for current employee and day: $thisDay from network"
         )
 
         val travelPlanEntryDto = postgrest.from("travelPlanEntry").select {
@@ -122,8 +137,7 @@ class TravelPlanRepositoryImpl(
     return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(
-          TAG,
-          "Querying travelPlanEntries for current employee and tpId: $tpId from network"
+          TAG, "Querying travelPlanEntries for current employee and tpId: $tpId from network"
         )
 
         val travelPlanEntriesDto = postgrest.from("travelPlanEntry").select {

@@ -5,7 +5,6 @@ import com.freyza.employee.BuildConfig
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.ApiErrorResponse
-import com.freyza.employee.core.network.getAccessToken
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
@@ -46,12 +45,9 @@ class AppUpdateRepositoryImpl(
   }
 
   override suspend fun checkForUpdate(): Result<AppUpdateInfo> {
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching latest app version from server")
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/app/version/latest") {
           header(HttpHeaders.Authorization, "Bearer $token")

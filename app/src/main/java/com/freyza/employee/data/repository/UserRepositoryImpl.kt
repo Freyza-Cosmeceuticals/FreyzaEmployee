@@ -3,7 +3,6 @@ package com.freyza.employee.data.repository
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.ApiErrorResponse
-import com.freyza.employee.core.network.getAccessToken
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
@@ -73,12 +72,9 @@ class UserRepositoryImpl(
       return Result.Success(cachedHqEmployees[hqId]!!)
     }
 
-    return safeApiCall(TAG) {
+    return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching employees from server API")
-
-        val token = auth.getAccessToken()
-          ?: throw IllegalStateException("No authentication token found")
 
         // The API accepts an optional 'hqId' query parameter to filter employees.
         // For now, we are fetching all employees.

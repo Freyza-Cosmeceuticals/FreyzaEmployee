@@ -8,6 +8,7 @@ import android.net.NetworkRequest
 import androidx.core.content.getSystemService
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.util.Logger
+import io.github.jan.supabase.auth.Auth
 import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import io.sentry.SpanStatus
@@ -176,8 +177,33 @@ fun Throwable.isConnectivityOrDnsException(): Boolean {
   return false
 }
 
+/**
+ * Executes a network/API call safely, wrapping errors into [Result] and reporting spans to Sentry.
+ */
 suspend fun <T> safeApiCall(
   tag: String = "safeApiCall",
+  apiCall: suspend () -> T,
+): Result<T> {
+  return safeApiCallInternal(tag, apiCall)
+}
+
+/**
+ * Executes an authenticated network/API call safely, retrieving the Supabase access token,
+ * wrapping errors into [Result], and reporting spans to Sentry.
+ */
+suspend fun <T> safeApiCall(
+  tag: String = "safeApiCall",
+  auth: Auth,
+  apiCall: suspend (token: String) -> T,
+): Result<T> {
+  return safeApiCallInternal(tag) {
+    val token = auth.getAccessToken() ?: throw IllegalStateException("No authentication token found")
+    apiCall(token)
+  }
+}
+
+private suspend fun <T> safeApiCallInternal(
+  tag: String,
   apiCall: suspend () -> T,
 ): Result<T> {
   val span = Sentry.getSpan()?.startChild("http.client", tag)
