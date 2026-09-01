@@ -9,6 +9,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -27,8 +29,8 @@ class ServerTime(
   @Volatile
   private var serverOffset: Long = 0L
 
-  @Volatile
-  private var isSynced: Boolean = false
+  private val _isSynced = MutableStateFlow(false)
+  val isSynced = _isSynced.asStateFlow()
 
   companion object {
     private const val TAG = "ServerTime"
@@ -62,14 +64,14 @@ class ServerTime(
 
   private fun setServerOffset(offset: Long) {
     serverOffset = offset
-    isSynced = true
+    _isSynced.value = true
   }
 
   /**
    * Returns current time Instant
    */
   fun now(): Instant {
-    if (!isSynced) {
+    if (!_isSynced.value) {
       return Clock.System.now()
     }
     val currentTimeMillis = SystemClock.elapsedRealtime() + serverOffset

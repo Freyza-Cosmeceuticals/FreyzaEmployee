@@ -20,6 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -57,15 +58,26 @@ class HomeViewModel(
   init {
     Logger.i(TAG, "Init")
     observeCurrentUser()
+    observeServerTime()
+  }
+
+  private fun observeServerTime() {
+    viewModelScope.launch {
+      serverTime.isSynced.collect { synced ->
+        if (synced) {
+          val nowTime = serverTime.nowLocalDateTime()
+          _uiState.update { it.copy(today = nowTime) }
+        }
+      }
+    }
   }
 
   private fun observeCurrentUser() {
     viewModelScope.launch {
-      currentUser.collectLatest { user ->
+      currentUser.distinctUntilChangedBy { it?.id }.collectLatest { user ->
         if (user != null) {
-          Logger.i(TAG, "User profile updated, initializing data for ${user.id}")
+          Logger.i(TAG, "User profile updated: ${user.id}")
           _uiState.update { it.copy(greetingName = user.name, errorMessage = null) }
-          refresh()
         }
       }
     }
@@ -75,7 +87,11 @@ class HomeViewModel(
     Logger.i(TAG, "Refreshing data, forceRefresh:$forceRefresh")
     val employeeId = sessionManager.currentEmployee.value?.id ?: return
 
-    refreshJob?.cancel()
+    if (refreshJob?.isActive == true) {
+      Logger.d(TAG, "Refresh already in progress, skipping duplicate request")
+      return
+    }
+
     refreshJob = viewModelScope.launch {
       _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
 
@@ -283,7 +299,7 @@ class HomeViewModel(
     val user = sessionManager.currentEmployee.value
     val hqId = user?.hqId ?: return
 
-    when (val result = userRepository.getAllEmployees(hqId = hqId, forceRefresh = forceRefresh)) {
+    when (val result = userRepository.getAllEmployees(forceRefresh = forceRefresh)) {
       is Result.Success -> {
         val employees = result.data.filter { it.id != employeeId }
         _uiState.update { it.copy(employees = employees) }

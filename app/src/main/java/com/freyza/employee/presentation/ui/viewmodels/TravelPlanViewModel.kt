@@ -25,7 +25,7 @@ class TravelPlanViewModel(
   private val routeRepository: RouteRepository,
   private val travelPlanRepository: TravelPlanRepository,
   private val snackbarManager: SnackbarManager,
-  serverTime: ServerTime,
+  private val serverTime: ServerTime,
 ) : ViewModel() {
 
   companion object {
@@ -45,6 +45,18 @@ class TravelPlanViewModel(
 
   init {
     Logger.d(TAG, "Init")
+    observeServerTime()
+  }
+
+  private fun observeServerTime() {
+    viewModelScope.launch {
+      serverTime.isSynced.collect { synced ->
+        if (synced) {
+          val nowTime = serverTime.nowLocalDateTime()
+          _uiState.update { it.copy(today = nowTime) }
+        }
+      }
+    }
   }
 
   fun refresh(forceRefresh: Boolean = false) {

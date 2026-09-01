@@ -196,7 +196,7 @@ class ReportDetailViewModel(
     val hqId = user?.hqId ?: return
 
     viewModelScope.launch {
-      when (val result = userRepository.getAllEmployees(hqId, forceRefresh)) {
+      when (val result = userRepository.getAllEmployees(forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(employees = result.data)

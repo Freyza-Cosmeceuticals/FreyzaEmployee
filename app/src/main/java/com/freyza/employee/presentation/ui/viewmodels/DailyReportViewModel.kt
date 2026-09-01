@@ -25,7 +25,7 @@ class DailyReportViewModel(
   private val getAllDailyReportUseCase: GetRecentDailyReportsUseCase,
   private val routeRepository: RouteRepository,
   private val userRepository: UserRepository,
-  serverTime: ServerTime,
+  private val serverTime: ServerTime,
 ) : ViewModel() {
 
   companion object {
@@ -45,6 +45,18 @@ class DailyReportViewModel(
 
   init {
     Logger.d(TAG, "Init")
+    observeServerTime()
+  }
+
+  private fun observeServerTime() {
+    viewModelScope.launch {
+      serverTime.isSynced.collect { synced ->
+        if (synced) {
+          val nowTime = serverTime.nowLocalDateTime()
+          _uiState.update { it.copy(today = nowTime) }
+        }
+      }
+    }
   }
 
   fun refresh(forceRefresh: Boolean = false) {
@@ -132,7 +144,7 @@ class DailyReportViewModel(
     val hqId = user?.hqId ?: return
 
     viewModelScope.launch {
-      when (val result = userRepository.getAllEmployees(hqId, forceRefresh)) {
+      when (val result = userRepository.getAllEmployees(forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(employees = result.data)

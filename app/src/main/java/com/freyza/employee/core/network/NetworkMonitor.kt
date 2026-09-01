@@ -113,6 +113,7 @@ class ConnectivityManagerNetworkMonitor(
         .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED).build()
     connectivityManager.registerNetworkCallback(request, callback)
 
+    isServerReachable.value = true
     channel.trySend(connectivityManager.isCurrentlyConnected())
 
     awaitClose {

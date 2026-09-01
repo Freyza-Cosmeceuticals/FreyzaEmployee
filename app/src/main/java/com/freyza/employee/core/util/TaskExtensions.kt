@@ -8,14 +8,20 @@ import kotlin.coroutines.resumeWithException
 
 suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { continuation ->
   addOnSuccessListener { result ->
-    continuation.resume(result)
+    if (continuation.isActive) {
+      continuation.resume(result)
+    }
   }
 
   addOnFailureListener { exception ->
-    continuation.resumeWithException(exception)
+    if (continuation.isActive) {
+      continuation.resumeWithException(exception)
+    }
   }
 
   addOnCanceledListener {
-    continuation.cancel(CancellationException("Task was cancelled"))
+    if (continuation.isActive) {
+      continuation.cancel(CancellationException("Task was cancelled"))
+    }
   }
 }
