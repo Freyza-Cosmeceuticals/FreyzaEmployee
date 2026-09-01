@@ -19,8 +19,6 @@ import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -57,7 +55,6 @@ class HomeViewModel(
 
   init {
     Logger.i(TAG, "Init")
-    observeCurrentUser()
     observeServerTime()
   }
 
@@ -67,17 +64,6 @@ class HomeViewModel(
         if (synced) {
           val nowTime = serverTime.nowLocalDateTime()
           _uiState.update { it.copy(today = nowTime) }
-        }
-      }
-    }
-  }
-
-  private fun observeCurrentUser() {
-    viewModelScope.launch {
-      currentUser.distinctUntilChangedBy { it?.id }.collectLatest { user ->
-        if (user != null) {
-          Logger.i(TAG, "User profile updated: ${user.id}")
-          _uiState.update { it.copy(greetingName = user.name, errorMessage = null) }
         }
       }
     }

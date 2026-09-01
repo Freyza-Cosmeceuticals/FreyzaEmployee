@@ -21,7 +21,6 @@ data class HomeScreenUiState(
   val isRefreshing: Boolean = false,
   val errorMessage: String? = null,
 
-  val greetingName: String = "",
   val today: LocalDateTime,
 
   val currentTravelPlan: TravelPlan? = null,
@@ -68,5 +67,6 @@ fun dummyHomeScreenNoReportUiState(): HomeScreenUiState = HomeScreenUiState(
 )
 
 fun dummyHomeScreenUiStateDailyReportError(): HomeScreenUiState = HomeScreenUiState(
-  today = ServerTime().nowLocalDateTime(), errorMessage = "Failed to have a daily report"
+  today = ServerTime().nowLocalDateTime(),
+  errorMessage = "Failed to have a daily report"
 )

@@ -27,9 +27,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class AuthenticationRepositoryImpl(
   private val auth: Auth,
@@ -43,6 +46,9 @@ class AuthenticationRepositoryImpl(
   }
 
   private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+  private val checkSessionMutex = Mutex()
+  private val profileFetchMutex = Mutex()
+  private var activeFetchUserId: String? = null
   private var fetchProfileJob: Job? = null
 
   private val _authState = MutableStateFlow<AuthState>(
@@ -78,7 +84,7 @@ class AuthenticationRepositoryImpl(
 
   private fun observeNetworkForAutoRefresh() {
     var wasOffline = !networkMonitor.isCurrentlyConnected
-    networkMonitor.isOnline.onEach { isOnline ->
+    networkMonitor.isOnline.drop(1).onEach { isOnline ->
       if (wasOffline && isOnline) {
         Logger.d(TAG, "Connectivity restored, syncing session...")
         checkSession()
@@ -118,7 +124,9 @@ class AuthenticationRepositoryImpl(
 
           SessionStatus.Initializing -> {
             Logger.d(TAG, "SessionStatus: Initializing")
-            _authState.value = AuthState.Loading
+            if (sessionManager.currentEmployee.value == null) {
+              _authState.value = AuthState.Loading
+            }
           }
 
           is SessionStatus.RefreshFailure -> {
@@ -162,41 +170,43 @@ class AuthenticationRepositoryImpl(
   }
 
   override suspend fun checkSession() {
-    try {
-      auth.awaitInitialization()
-      if (networkMonitor.isCurrentlyConnected && auth.currentSessionOrNull() != null) {
-        try {
-          auth.refreshCurrentSession()
-        } catch (e: Exception) {
-          if (e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected) {
-            Logger.d(TAG, "Silent refresh failed (network). Preserving current state.")
-          } else if (e.message?.contains("invalid_grant", ignoreCase = true) == true) {
-            Logger.w(TAG, "Refresh token revoked. Logging out.")
-            sessionManager.clearSession()
-            _authState.value = AuthState.Unauthenticated
-            return
+    checkSessionMutex.withLock {
+      try {
+        auth.awaitInitialization()
+        if (networkMonitor.isCurrentlyConnected && auth.currentSessionOrNull() != null) {
+          try {
+            auth.refreshCurrentSession()
+          } catch (e: Exception) {
+            if (e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected) {
+              Logger.d(TAG, "Silent refresh failed (network). Preserving current state.")
+            } else if (e.message?.contains("invalid_grant", ignoreCase = true) == true) {
+              Logger.w(TAG, "Refresh token revoked. Logging out.")
+              sessionManager.clearSession()
+              _authState.value = AuthState.Unauthenticated
+              return
+            }
           }
         }
-      }
-      resolveAuthenticatedState()
-    } catch (e: Exception) {
-      val isNetworkErr = e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected
-      if (isNetworkErr) {
-        if (sessionManager.currentEmployee.value != null) {
-          Logger.w(TAG, "Offline/Flaky network. Preserving current session.")
-          _authState.value = AuthState.Authenticated
+        resolveAuthenticatedState()
+      } catch (e: Exception) {
+        val isNetworkErr = e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected
+        if (isNetworkErr) {
+          if (sessionManager.currentEmployee.value != null) {
+            Logger.w(TAG, "Offline/Flaky network. Preserving current session.")
+            _authState.value = AuthState.Authenticated
+          } else {
+            _authState.value = AuthState.Error("Please check your internet connection.")
+          }
+        } else if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
+          _authState.value = AuthState.Unauthenticated
         } else {
-          _authState.value = AuthState.Error("Please check your internet connection.")
-        }
-      } else if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
-        _authState.value = AuthState.Unauthenticated
-      } else {
-        Logger.e(TAG, "Critical session check failure: ${e.message}")
-        if (sessionManager.currentEmployee.value != null) {
-          _authState.value = AuthState.Authenticated
-        } else {
-          sessionManager.clearSession()
-          _authState.value = AuthState.Error("Failed to initialize session.")
+          Logger.e(TAG, "Critical session check failure: ${e.message}")
+          if (sessionManager.currentEmployee.value != null) {
+            _authState.value = AuthState.Authenticated
+          } else {
+            sessionManager.clearSession()
+            _authState.value = AuthState.Error("Failed to initialize session.")
+          }
         }
       }
     }
@@ -213,48 +223,57 @@ class AuthenticationRepositoryImpl(
       return
     }
 
-    if (fetchProfileJob?.isActive == true) {
-      fetchProfileJob?.join()
-      return
-    }
+    var currentJob: Job? = null
+    profileFetchMutex.withLock {
+      if (fetchProfileJob?.isActive == true) {
+        if (activeFetchUserId == userId) {
+          currentJob = fetchProfileJob
+        } else {
+          fetchProfileJob?.cancel()
+        }
+      }
 
-    fetchProfileJob = repositoryScope.launch {
-      when (val result = userRepository.getUserById(userId)) {
-        is Result.Success -> {
-          val user = result.data
-          if (user != null && user.role == UserRole.EMPLOYEE && user.status == UserStatus.ACTIVE) {
-            sessionManager.setCurrentEmployee(user.copy(userInfo = auth.currentUserOrNull()))
-            _authState.value = AuthState.Authenticated
-          } else {
-            Logger.e(
-              TAG,
-              "Account issue: User is not an active employee (Role: ${user?.role}, Status: ${user?.status})"
-            )
-            logout()
-            _authState.value = AuthState.Unauthenticated
+      if (currentJob == null) {
+        activeFetchUserId = userId
+        fetchProfileJob = repositoryScope.launch {
+          when (val result = userRepository.getUserById(userId)) {
+            is Result.Success -> {
+              val user = result.data
+              if (user != null && user.role == UserRole.EMPLOYEE && user.status == UserStatus.ACTIVE) {
+                sessionManager.setCurrentEmployee(user.copy(userInfo = auth.currentUserOrNull()))
+                _authState.value = AuthState.Authenticated
+              } else {
+                Logger.e(
+                  TAG,
+                  "Account issue: User is not an active employee (Role: ${user?.role}, Status: ${user?.status})"
+                )
+                logout()
+              }
+            }
+
+            is Result.Error -> {
+              val isNetworkIssue =
+                (result.errorBody as? Throwable)?.isConnectivityOrDnsException() == true ||
+                        !networkMonitor.isCurrentlyConnected
+
+              if (isNetworkIssue && sessionManager.currentEmployee.value != null) {
+                Logger.d(TAG, "Profile fetch failed (network). Using cached profile.")
+                _authState.value = AuthState.Authenticated
+              } else if (isNetworkIssue) {
+                _authState.value = AuthState.Error("Please check your internet connection.")
+              } else {
+                Logger.e(TAG, "Profile fetch failed: ${result.message}")
+                _authState.value = AuthState.Error("Unable to fetch your profile.")
+              }
+            }
+
+            is Result.Loading -> _authState.value = AuthState.Loading
           }
         }
-
-        is Result.Error -> {
-          val isNetworkIssue =
-            (result.errorBody as? Throwable)?.isConnectivityOrDnsException() == true ||
-                    !networkMonitor.isCurrentlyConnected
-
-          if (isNetworkIssue && sessionManager.currentEmployee.value != null) {
-            Logger.d(TAG, "Profile fetch failed (network). Using cached profile.")
-            _authState.value = AuthState.Authenticated
-          } else if (isNetworkIssue) {
-            _authState.value = AuthState.Error("Please check your internet connection.")
-          } else {
-            Logger.e(TAG, "Profile fetch failed: ${result.message}")
-            _authState.value = AuthState.Error("Unable to fetch your profile.")
-          }
-        }
-
-        is Result.Loading -> _authState.value = AuthState.Loading
+        currentJob = fetchProfileJob
       }
     }
-    fetchProfileJob?.join()
+    currentJob?.join()
   }
 
   override suspend fun login(email: String, password: String): Result<UserInfo> = try {

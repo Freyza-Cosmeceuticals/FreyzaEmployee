@@ -48,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.util.timedGreeting
+import com.freyza.employee.core.util.toTitleCase
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.model.VisitType
@@ -173,7 +174,8 @@ private fun HomeScreen(
   onDismissSheet: () -> Unit,
 ) {
   val reportCreationSheetState = rememberModalBottomSheetState(
-    confirmValueChange = { newValue -> newValue != SheetValue.Hidden }, skipPartiallyExpanded = true
+//    confirmValueChange = { newValue -> newValue != SheetValue.Hidden },
+    skipPartiallyExpanded = true
   )
 
   Box(modifier = Modifier.fillMaxSize()) {
@@ -253,7 +255,7 @@ private fun HomeScreen(
       ) {
         item("greeting") {
           Text(
-            uiState.today.timedGreeting(uiState.greetingName.ifEmpty { user.name }),
+            uiState.today.timedGreeting(user.name),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier
