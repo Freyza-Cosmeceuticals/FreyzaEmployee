@@ -21,6 +21,13 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
     const val TAG: String = "RouteRepository"
   }
 
+  override fun clearCache() {
+    Logger.d(TAG, "Clearing route caches")
+    routeCache.clear()
+    routesCache = null
+    cachedRoutesWithLocation = null
+  }
+
   // Cache for individual routes keyed by route ID
   private var routeCache = mutableMapOf<String, Route>()
 

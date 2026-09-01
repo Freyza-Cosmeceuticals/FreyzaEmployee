@@ -88,6 +88,12 @@ class DailyReportRepositoryImpl(
     private const val SELECT_ALL = "*"
   }
 
+  override fun clearCache() {
+    Logger.d(TAG, "Clearing daily report caches")
+    poiCache.clear()
+    reportCache.clear()
+  }
+
   override suspend fun getTodayDailyReport(
     today: LocalDate,
     employeeId: String,

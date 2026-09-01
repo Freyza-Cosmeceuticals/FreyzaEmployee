@@ -8,4 +8,5 @@ interface UserRepository {
   suspend fun getUserById(id: String): Result<User?>
   suspend fun getCurrentUser(): Result<UserInfo?>
   suspend fun getAllEmployees(forceRefresh: Boolean = false): Result<List<User>>
+  fun clearCache()
 }

@@ -7,6 +7,11 @@ import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.mappers.toDto
 import com.freyza.employee.data.network.dto.UserDto
 import com.freyza.employee.domain.model.User
+import com.freyza.employee.domain.repository.DailyReportRepository
+import com.freyza.employee.domain.repository.LocationRepository
+import com.freyza.employee.domain.repository.RouteRepository
+import com.freyza.employee.domain.repository.TravelPlanRepository
+import com.freyza.employee.domain.repository.UserRepository
 import io.sentry.Sentry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +22,11 @@ import kotlinx.serialization.json.Json
  */
 class SessionManager(
   private val sharedPreferencesHelper: SharedPreferencesHelper,
+  private val travelPlanRepository: TravelPlanRepository,
+  private val dailyReportRepository: DailyReportRepository,
+  private val routeRepository: RouteRepository,
+  private val locationRepository: LocationRepository,
+  private val userRepository: UserRepository,
 ) {
 
   companion object {
@@ -54,6 +64,16 @@ class SessionManager(
     Logger.i(TAG, "Session was cleared")
 
     sharedPreferencesHelper.removeStringData(KEY_CACHED_USER)
+
+    try {
+      travelPlanRepository.clearCache()
+      dailyReportRepository.clearCache()
+      routeRepository.clearCache()
+      locationRepository.clearCache()
+      userRepository.clearCache()
+    } catch (e: Exception) {
+      Logger.e(TAG, "Failed to clear repository caches: ${e.message}")
+    }
 
     if (!BuildConfig.DEBUG) {
       sentryClearUser()

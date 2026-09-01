@@ -41,10 +41,16 @@ class UserRepositoryImpl(
     const val TAG: String = "UserRepository"
   }
 
-  // Cache for employee lists keyed by HQ ID
-  private val cachedHqEmployees = mutableMapOf<String, List<User>>()
+  override fun clearCache() {
+    Logger.d(TAG, "Clearing user caches")
+    cachedEmployees.clear()
+  }
+
+  // Cache for employee lists keyed by ID
+  private var cachedEmployees = mutableMapOf<String, User>()
 
   override suspend fun getUserById(id: String): Result<User?> {
+    // No cache here
     return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         val userDto = postgres.from("user").select {
@@ -65,11 +71,11 @@ class UserRepositoryImpl(
     }
   }
 
-  override suspend fun getAllEmployees(hqId: String, forceRefresh: Boolean): Result<List<User>> {
-    if (!forceRefresh && cachedHqEmployees.containsKey(hqId)) {
-      Logger.d(TAG, "Returning cached employees for HQ: $hqId")
+  override suspend fun getAllEmployees(forceRefresh: Boolean): Result<List<User>> {
+    if (!forceRefresh && cachedEmployees.values.isNotEmpty()) {
+      Logger.d(TAG, "Returning cached employees")
 
-      return Result.Success(cachedHqEmployees[hqId]!!)
+      return Result.Success(cachedEmployees.values.toList())
     }
 
     return safeApiCall(TAG, auth) { token ->
@@ -86,7 +92,9 @@ class UserRepositoryImpl(
           val employeesResponse = response.body<EmployeesResponse>()
           if (employeesResponse.success) {
             val employees = employeesResponse.data.map { it.toDomain() }
-            cachedHqEmployees[hqId] = employees
+            employees.forEach {
+              cachedEmployees[it.id] = it
+            }
             employees
           } else {
             throw Exception("Failed to fetch employees: success flag is false")

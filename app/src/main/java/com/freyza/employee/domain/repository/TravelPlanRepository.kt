@@ -3,6 +3,7 @@ package com.freyza.employee.domain.repository
 import com.freyza.employee.core.Result
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.TravelPlanEntry
+import com.freyza.employee.domain.model.TravelPlanMetrics
 
 interface TravelPlanRepository {
   suspend fun getCurrentTravelPlan(
@@ -25,4 +26,5 @@ interface TravelPlanRepository {
     id: String,
     forceRefresh: Boolean = false,
   ): Result<TravelPlan?>
+  fun clearCache()
 }

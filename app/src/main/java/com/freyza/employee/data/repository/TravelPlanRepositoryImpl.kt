@@ -53,6 +53,14 @@ class TravelPlanRepositoryImpl(
     const val TAG: String = "TravelPlanRepo"
   }
 
+  override fun clearCache() {
+    Logger.d(TAG, "Clearing travel plan caches")
+    currentPlanCache = null
+    planCache.clear()
+    todayEntryCache.clear()
+    entriesCache.clear()
+  }
+
   override suspend fun getCurrentTravelPlan(
     employeeId: String,
     withEntries: Boolean,

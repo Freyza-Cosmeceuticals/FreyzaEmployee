@@ -16,6 +16,12 @@ class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationReposit
     const val TAG: String = "LocationRepo"
   }
 
+  override fun clearCache() {
+    Logger.d(TAG, "Clearing location caches")
+    cachedLocations = null
+    cachedLocationsById.clear()
+  }
+
   // Cache for the complete list of locations
   private var cachedLocations: List<Location>? = null
 

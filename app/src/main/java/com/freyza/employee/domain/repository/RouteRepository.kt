@@ -9,4 +9,5 @@ interface RouteRepository {
   suspend fun getAllRoutes(forceRefresh: Boolean = false): Result<List<Route>>
   suspend fun getAllRoutesWithLocation(forceRefresh: Boolean = false): Result<List<RouteWithLocation>>
   suspend fun getOrCreateRoute(srcLocId: String, destLocId: String): Result<Route>
+  fun clearCache()
 }

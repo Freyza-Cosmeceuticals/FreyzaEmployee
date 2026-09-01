@@ -73,4 +73,6 @@ interface DailyReportRepository {
     visitId: String,
     visitUpdateDto: VisitUpdateDto,
   ): Result<Visit>
+
+  fun clearCache()
 }
