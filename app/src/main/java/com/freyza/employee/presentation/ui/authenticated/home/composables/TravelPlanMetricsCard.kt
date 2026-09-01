@@ -91,13 +91,24 @@ private fun MetricsContent(metrics: TravelPlanMetrics) {
     verticalAlignment = Alignment.CenterVertically
   ) {
     Column {
-      Text(
-        text = "${metrics.currentAmount.toMoney().toCurrencyString()} / ${
-          metrics.targetAmount.toMoney().toCurrencyString()
-        }",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold
-      )
+      Row {
+        Text(
+          text = metrics.currentAmount.toMoney().toCurrencyString(),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Bold
+        )
+        Text(
+          " / ",
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Bold
+        )
+        Text(
+          metrics.targetAmount.toMoney().toCurrencyString(),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Bold,
+          color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+      }
     }
 
     Text(

@@ -25,13 +25,12 @@ x 2026-08-08 2026-08-07 implement POIs and other tables
 x 2026-08-08 2026-08-07 create visit using new route
 x 2026-08-09 2026-08-08 initial transient caching in all repos
 x 2026-08-22 2026-08-10 list all employees in travelling with. use the new employee endpoint
-(A) 2026-08-10 show a chart for target for per travel plan with a total of all doctor and stockist order amounts
+x 2026-09-02 2026-08-10 show a chart for target for per travel plan with a total of all doctor and stockist order amounts
 x 2026-08-22 2026-08-21 remove doctor, stockist and chemist name fields
 x 2026-08-23 2026-08-23 fix the POI selection dropdown. Show location as a badge, not in the text
 x 2026-08-23 2026-08-23 Typing a new POI which has a prefix to existing POI in full, clears the input
 x 2026-08-23 2026-08-23 list both src and dest POIs in add visit form
 x 2026-08-30 2026-08-27 Improve bad connection experience. Handle logouts and errors
 (B) 2026-09-01 fuzzy search in all autocomplete fields
-(A) 2026-09-01 resolve odd timeout errors. Still throwing no token even when cached token. Wait for token init using common function
-(A) 2026-09-01 switch from INSERT to UPSERT when creating report +dailyreport
+x 2026-09-02 2026-09-01 resolve odd timeout errors. Still throwing no token even when cached token. Wait for token init using common function
 (A) 2026-09-01 Optimize visits fetch nested join query being slow. OR don't fetch all visits on home page (only metrics). Fetch individually and use cache +dailyreport

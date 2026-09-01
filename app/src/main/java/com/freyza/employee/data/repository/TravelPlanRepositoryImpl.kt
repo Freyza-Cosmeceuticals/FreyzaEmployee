@@ -49,6 +49,9 @@ class TravelPlanRepositoryImpl(
   // Cache for complete entry lists keyed by travel plan ID
   private val entriesCache = mutableMapOf<String, List<TravelPlanEntry>>()
 
+  // Cache for travel plan metrics keyed by travel plan ID
+  private val metricsCache = mutableMapOf<String, TravelPlanMetrics>()
+
   companion object {
     const val TAG: String = "TravelPlanRepo"
   }
@@ -59,6 +62,17 @@ class TravelPlanRepositoryImpl(
     planCache.clear()
     todayEntryCache.clear()
     entriesCache.clear()
+    metricsCache.clear()
+  }
+
+  override fun invalidateMetricsCache(id: String?) {
+    if (id != null) {
+      Logger.d(TAG, "Invalidating metrics cache for plan: $id")
+      metricsCache.remove(id)
+    } else {
+      Logger.d(TAG, "Invalidating all metrics cache")
+      metricsCache.clear()
+    }
   }
 
   override suspend fun getCurrentTravelPlan(
@@ -188,7 +202,15 @@ class TravelPlanRepositoryImpl(
     }
   }
 
-  override suspend fun getTravelPlanMetrics(id: String): Result<TravelPlanMetrics> {
+  override suspend fun getTravelPlanMetrics(
+    id: String,
+    forceRefresh: Boolean,
+  ): Result<TravelPlanMetrics> {
+    if (!forceRefresh && metricsCache.containsKey(id)) {
+      Logger.d(TAG, "Cache hit for travel plan metrics ID: $id")
+      return Result.Success(metricsCache[id]!!)
+    }
+
     return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching metrics for travel plan: $id")
@@ -206,7 +228,9 @@ class TravelPlanRepositoryImpl(
               "Fetched plan metrics ${metricsResponse} for planId:$id"
             )
 
-            metricsResponse.data.toDomain()
+            val metrics = metricsResponse.data.toDomain()
+            metricsCache[id] = metrics
+            metrics
           } else {
             throw Exception("Failed to fetch metrics")
           }

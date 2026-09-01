@@ -107,7 +107,7 @@ class HomeViewModel(
         _uiState.update { it.copy(currentTravelPlan = result.data) }
         result.data?.id?.let {
           loadTodayTravelPlanEntry(it, forceRefresh)
-          loadTravelPlanMetrics(it)
+          loadTravelPlanMetrics(it, forceRefresh)
         }
       }
 
@@ -120,9 +120,9 @@ class HomeViewModel(
     }
   }
 
-  private suspend fun loadTravelPlanMetrics(tpId: String) {
+  private suspend fun loadTravelPlanMetrics(tpId: String, forceRefresh: Boolean = false) {
     _uiState.update { it.copy(isMetricsLoading = true) }
-    when (val result = travelPlanRepository.getTravelPlanMetrics(tpId)) {
+    when (val result = travelPlanRepository.getTravelPlanMetrics(tpId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         _uiState.update { it.copy(travelPlanMetrics = result.data, isMetricsLoading = false) }
       }

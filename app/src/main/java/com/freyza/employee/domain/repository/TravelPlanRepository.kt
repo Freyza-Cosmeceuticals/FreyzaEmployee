@@ -29,7 +29,10 @@ interface TravelPlanRepository {
 
   suspend fun getTravelPlanMetrics(
     id: String,
+    forceRefresh: Boolean = false,
   ): Result<TravelPlanMetrics>
+
+  fun invalidateMetricsCache(id: String? = null)
 
   fun clearCache()
 }

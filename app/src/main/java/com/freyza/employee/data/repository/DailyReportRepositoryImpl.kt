@@ -21,6 +21,7 @@ import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
 import com.freyza.employee.domain.repository.DailyReportRepository
+import com.freyza.employee.domain.repository.TravelPlanRepository
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -73,6 +74,7 @@ class DailyReportRepositoryImpl(
   private val httpClient: HttpClient,
   private val appConfig: AppConfig,
   private val auth: Auth,
+  private val travelPlanRepository: TravelPlanRepository,
 ) : DailyReportRepository {
   // Cache for complete POI lists keyed by location ID
   private val poiCache = mutableMapOf<String, List<PointOfInterest>>()
@@ -460,8 +462,9 @@ class DailyReportRepositoryImpl(
           val createResponse = response.body<VisitCreateResponse>()
           if (createResponse.success) {
             val visit = createResponse.data.toDomain()
-            // Invalidate associated report cache as visits changed
+            // Invalidate associated report cache and travel plan metrics cache
             reportCache.remove(dailyReportId)
+            travelPlanRepository.invalidateMetricsCache()
             visit
           } else {
             throw Exception("Unable to create visit")
@@ -512,6 +515,7 @@ class DailyReportRepositoryImpl(
         }
 
         reportCache.clear()
+        travelPlanRepository.invalidateMetricsCache()
         true
       }
     }
@@ -537,6 +541,7 @@ class DailyReportRepositoryImpl(
             val visit = updateResponse.data.toDomain()
             // Invalidate associated report cache
             reportCache.remove(visit.reportId)
+            travelPlanRepository.invalidateMetricsCache()
             visit
           } else {
             throw Exception("Unable to update visit")
