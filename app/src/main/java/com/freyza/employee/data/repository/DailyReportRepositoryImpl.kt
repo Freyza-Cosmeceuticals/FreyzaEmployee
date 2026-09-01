@@ -4,6 +4,7 @@ import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.ApiException
 import com.freyza.employee.core.network.ApiErrorResponse
+import com.freyza.employee.core.network.getAccessToken
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
@@ -242,7 +243,7 @@ class DailyReportRepositoryImpl(
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching POIs for locationIds: $cacheKey, visitType: $visitType")
 
-        val token = auth.currentAccessTokenOrNull()
+        val token = auth.getAccessToken()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
@@ -302,7 +303,7 @@ class DailyReportRepositoryImpl(
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching all POIs for locationIds: $cacheKey")
 
-        val token = auth.currentAccessTokenOrNull()
+        val token = auth.getAccessToken()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
@@ -349,7 +350,7 @@ class DailyReportRepositoryImpl(
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching POI with id: $id")
 
-        val token = auth.currentAccessTokenOrNull()
+        val token = auth.getAccessToken()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois/$id") {
@@ -408,7 +409,7 @@ class DailyReportRepositoryImpl(
           travellingWithId = travellingWithId
         )
 
-        val token = auth.currentAccessTokenOrNull()
+        val token = auth.getAccessToken()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.post("${appConfig.apiUrl}/api/reports/begin") {
@@ -456,7 +457,7 @@ class DailyReportRepositoryImpl(
           "Creating visit via API for dailyReportId: $dailyReportId and date: $thisDate"
         )
 
-        val token = auth.currentAccessTokenOrNull()
+        val token = auth.getAccessToken()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.post("${appConfig.apiUrl}/api/visits/create") {
@@ -534,7 +535,7 @@ class DailyReportRepositoryImpl(
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Updating visit via API visit:$visitId")
 
-        val token = auth.currentAccessTokenOrNull()
+        val token = auth.getAccessToken()
           ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.put("${appConfig.apiUrl}/api/visits/${visitId}") {

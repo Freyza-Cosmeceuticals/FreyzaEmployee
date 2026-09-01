@@ -5,6 +5,7 @@ import com.freyza.employee.BuildConfig
 import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.ApiErrorResponse
+import com.freyza.employee.core.network.getAccessToken
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.mappers.toDomain
@@ -13,7 +14,6 @@ import com.freyza.employee.domain.model.AppUpdateInfo
 import com.freyza.employee.domain.repository.AppUpdateRepository
 import com.freyza.employee.domain.repository.DownloadProgress
 import io.github.jan.supabase.auth.Auth
-import io.github.jan.supabase.auth.status.SessionStatus
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -28,11 +28,8 @@ import io.sentry.Sentry
 import io.sentry.SpanStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -53,13 +50,8 @@ class AppUpdateRepositoryImpl(
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching latest app version from server")
 
-        val token = auth.currentAccessTokenOrNull() ?: run {
-          Logger.d(TAG, "Token not found immediately, waiting for session status...")
-          auth.sessionStatus
-            .filterIsInstance<SessionStatus.Authenticated>()
-            .map { it.session.accessToken }
-            .firstOrNull()
-        } ?: throw IllegalStateException("No authentication token found")
+        val token = auth.getAccessToken()
+          ?: throw IllegalStateException("No authentication token found")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/app/version/latest") {
           header(HttpHeaders.Authorization, "Bearer $token")
