@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.R
 import com.freyza.employee.core.UIState
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.LoginViewModel
@@ -73,19 +74,21 @@ fun LoginScreenRoute(
 ) {
 
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val currentEmployee by viewModel.currentEmployee.collectAsStateWithLifecycle()
 
   val onLoginWithEmailClicked = { email: String, password: String ->
     viewModel.loginWithEmail(email, password)
   }
 
   LoginScreen(
-    uiState, onLoginWithEmailClicked, onNavigateToAuthenticatedRoute, modifier
+    uiState, currentEmployee, onLoginWithEmailClicked, onNavigateToAuthenticatedRoute, modifier
   )
 }
 
 @Composable
 private fun LoginScreen(
   uiState: UIState<UserInfo>,
+  currentEmployee: User?,
   onLoginWithEmailClicked: (email: String, password: String) -> Unit,
   onNavigateToAuthenticatedRoute: () -> Unit,
   modifier: Modifier = Modifier,
@@ -118,10 +121,12 @@ private fun LoginScreen(
       ) {
 
         // handle screen transitions and error states
-        LaunchedEffect(uiState) {
+        LaunchedEffect(uiState, currentEmployee) {
           when (uiState) {
             is UIState.Ready -> {
-              onNavigateToAuthenticatedRoute()
+              if (currentEmployee != null) {
+                onNavigateToAuthenticatedRoute()
+              }
             }
 
             is UIState.Error -> {
@@ -297,7 +302,8 @@ private fun LoginScreen(
 private fun LoginScreenPreview() {
   FreyzaEmployeeTheme {
     LoginScreen(
-      uiState = UIState.Idle(),
+      uiState = UIState.Idle<UserInfo>(),
+      currentEmployee = null,
       onLoginWithEmailClicked = { _, _ -> },
       onNavigateToAuthenticatedRoute = {})
   }
@@ -308,7 +314,8 @@ private fun LoginScreenPreview() {
 private fun LoginScreenLoadingPreview() {
   FreyzaEmployeeTheme {
     LoginScreen(
-      uiState = UIState.Loading(),
+      uiState = UIState.Loading<UserInfo>(),
+      currentEmployee = null,
       onLoginWithEmailClicked = { _, _ -> },
       onNavigateToAuthenticatedRoute = {})
   }
@@ -319,8 +326,11 @@ private fun LoginScreenLoadingPreview() {
 private fun LoginScreenErrorPreview() {
   FreyzaEmployeeTheme {
     LoginScreen(
-      uiState = UIState.Error(
+      uiState = UIState.Error<UserInfo>(
         "This is a long error message, with any kind of error may happen. Be ready for that. " + "This is wholesome in it's own that this error has occurred. " + "We are happy to announce that this is an error."
-      ), onLoginWithEmailClicked = { _, _ -> }, onNavigateToAuthenticatedRoute = {})
+      ),
+      currentEmployee = null,
+      onLoginWithEmailClicked = { _, _ -> },
+      onNavigateToAuthenticatedRoute = {})
   }
 }

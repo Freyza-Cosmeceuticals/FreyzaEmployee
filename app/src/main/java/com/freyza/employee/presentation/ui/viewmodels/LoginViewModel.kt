@@ -37,6 +37,8 @@ class LoginViewModel(
     if (userInfo != null) tryLoginFromSession(userInfo)
   }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UIState.Idle())
 
+  val currentEmployee = sessionManager.currentEmployee
+
   init {
     Logger.d(TAG, "Init")
   }

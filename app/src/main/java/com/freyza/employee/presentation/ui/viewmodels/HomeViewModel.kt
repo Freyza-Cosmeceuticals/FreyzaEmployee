@@ -81,20 +81,38 @@ class HomeViewModel(
     refreshJob = viewModelScope.launch {
       _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
 
-      // fetch routes and locations first
+      // Fetch all data in parallel
       val routesJob = launch { loadAllRoutes(forceRefresh) }
       val locationsJob = launch { loadAllLocations(forceRefresh) }
       val employeesJob = launch { loadHqEmployees(employeeId, forceRefresh) }
+      val planJob = launch { loadCurrentTravelPlan(employeeId, forceRefresh) }
+      val reportJob = launch { loadCurrentDailyReport(employeeId, forceRefresh) }
 
       routesJob.join()
       locationsJob.join()
       employeesJob.join()
-
-      val planJob = launch { loadCurrentTravelPlan(employeeId, forceRefresh) }
-      val reportJob = launch { loadCurrentDailyReport(employeeId, forceRefresh) }
-
       planJob.join()
       reportJob.join()
+
+      // Resolve routes and POIs after all parallel network requests complete
+      val routes = _uiState.value.routes
+      val report = _uiState.value.currentDailyReport
+      val entry = _uiState.value.todayTravelPlanEntry
+
+      val updatedPlanRoute = routes.find { it.id == entry?.routeId }
+      val updatedReportRoute = routes.find { it.id == report?.routeId }
+
+      _uiState.update { state ->
+        state.copy(
+          todayPlanEntryRoute = updatedPlanRoute ?: state.todayPlanEntryRoute,
+          todayReportRoute = updatedReportRoute ?: state.todayReportRoute,
+        )
+      }
+
+      // Load POIs for the report route if available
+      report?.routeId?.let { routeId ->
+        loadReportPois(routeId, forceRefresh)
+      }
 
       _uiState.update { it.copy(isRefreshing = false, isLoading = false) }
     }
