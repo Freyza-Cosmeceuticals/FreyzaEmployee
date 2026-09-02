@@ -138,10 +138,18 @@ class AppUpdateViewModel(
 
   fun dismissUpdate() {
     val current = _uiState.value
+    val stateName = when (current) {
+      is AppUpdateState.Checking -> "Checking"
+      is AppUpdateState.Downloading -> "Downloading"
+      is AppUpdateState.Error -> "Error"
+      is AppUpdateState.Idle -> "Idle"
+      is AppUpdateState.ReadyToInstall -> "ReadyToInstall"
+      is AppUpdateState.UpdateAvailable -> "UpdateAvailable"
+    }
     Sentry.addBreadcrumb(Breadcrumb().apply {
       category = "ui.action"
       message = "User dismissed app update"
-      setData("stateAtDismiss", current.javaClass.simpleName)
+      setData("stateAtDismiss", stateName)
     })
 
     Logger.d(TAG, "Dismissing update")

@@ -10,10 +10,8 @@ import com.freyza.employee.domain.model.UserRole
 import com.freyza.employee.domain.model.UserStatus
 import com.freyza.employee.domain.repository.AuthenticationRepository
 import com.freyza.employee.domain.repository.UserRepository
-import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.SignOutScope
-import io.github.jan.supabase.auth.event.AuthEvent
 import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -58,28 +56,8 @@ class AuthenticationRepositoryImpl(
 
   init {
     listenToSessionStatus()
-    listenToAuthEvents()
     logAuthState()
     observeNetworkForAutoRefresh()
-  }
-
-  @OptIn(SupabaseExperimental::class)
-  private fun listenToAuthEvents() {
-    auth.events.onEach { event ->
-      when (event) {
-        is AuthEvent.RefreshFailure -> {
-          Logger.w(TAG, "Refresh Failure: ${event.cause}. Checking local session...")
-          Sentry.addBreadcrumb(Breadcrumb().apply {
-            category = "auth"
-            message = "AuthEvent: RefreshFailure (${event.cause})"
-            level = io.sentry.SentryLevel.WARNING
-          })
-          resolveAuthenticatedState()
-        }
-
-        else -> Logger.d(TAG, "AuthEvent: ${event.javaClass.simpleName}")
-      }
-    }.launchIn(repositoryScope)
   }
 
   private fun observeNetworkForAutoRefresh() {
@@ -96,15 +74,21 @@ class AuthenticationRepositoryImpl(
   private fun listenToSessionStatus() {
     repositoryScope.launch {
       auth.sessionStatus.collect { status ->
+        val statusName = when (status) {
+          is SessionStatus.Authenticated -> "Authenticated"
+          is SessionStatus.NotAuthenticated -> "NotAuthenticated"
+          SessionStatus.Initializing -> "Initializing"
+          is SessionStatus.RefreshFailure -> "RefreshFailure"
+        }
         Sentry.addBreadcrumb(Breadcrumb().apply {
           category = "auth"
-          message = "SessionStatus: ${status.javaClass.simpleName}"
+          message = "SessionStatus: $statusName"
         })
 
         when (status) {
           is SessionStatus.Authenticated -> {
             Logger.d(TAG, "SessionStatus: Authenticated. Syncing profile...")
-            resolveAuthenticatedState(status.session.user?.id)
+            syncProfileAndResolveState(status.session.user?.id)
           }
 
           is SessionStatus.NotAuthenticated -> {
@@ -131,14 +115,14 @@ class AuthenticationRepositoryImpl(
 
           is SessionStatus.RefreshFailure -> {
             Logger.w(TAG, "SessionStatus: Refresh failure. Resolving resilient state...")
-            resolveAuthenticatedState()
+            syncProfileAndResolveState()
           }
         }
       }
     }
   }
 
-  private fun resolveAuthenticatedState(userId: String? = null) {
+  private fun syncProfileAndResolveState(userId: String? = null) {
     val cachedUser = sessionManager.currentEmployee.value
     val targetId = userId ?: auth.currentUserOrNull()?.id ?: auth.currentSessionOrNull()?.user?.id
 
@@ -146,73 +130,14 @@ class AuthenticationRepositoryImpl(
       _authState.value = AuthState.Authenticated
     } else if (!targetId.isNullOrBlank()) {
       repositoryScope.launch {
-        validateAndFetchProfile(targetId)
+        fetchAndValidateProfile(targetId)
       }
     } else {
       _authState.value = AuthState.Unauthenticated
     }
   }
 
-  private fun logAuthState() {
-    authState.onEach { state ->
-      Sentry.addBreadcrumb(Breadcrumb().apply {
-        category = "auth"
-        message = "AuthState: ${state.javaClass.simpleName}"
-      })
-
-      when (state) {
-        is AuthState.Authenticated -> Logger.i(TAG, "AuthState: Authenticated")
-        is AuthState.Error -> Logger.e(TAG, "AuthState: Error. ${state.message}")
-        is AuthState.Loading -> Logger.d(TAG, "AuthState: Loading")
-        is AuthState.Unauthenticated -> Logger.i(TAG, "AuthState: Unauthenticated")
-      }
-    }.launchIn(repositoryScope)
-  }
-
-  override suspend fun checkSession() {
-    checkSessionMutex.withLock {
-      try {
-        auth.awaitInitialization()
-        if (networkMonitor.isCurrentlyConnected && auth.currentSessionOrNull() != null) {
-          try {
-            auth.refreshCurrentSession()
-          } catch (e: Exception) {
-            if (e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected) {
-              Logger.d(TAG, "Silent refresh failed (network). Preserving current state.")
-            } else if (e.message?.contains("invalid_grant", ignoreCase = true) == true) {
-              Logger.w(TAG, "Refresh token revoked. Logging out.")
-              sessionManager.clearSession()
-              _authState.value = AuthState.Unauthenticated
-              return
-            }
-          }
-        }
-        resolveAuthenticatedState()
-      } catch (e: Exception) {
-        val isNetworkErr = e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected
-        if (isNetworkErr) {
-          if (sessionManager.currentEmployee.value != null) {
-            Logger.w(TAG, "Offline/Flaky network. Preserving current session.")
-            _authState.value = AuthState.Authenticated
-          } else {
-            _authState.value = AuthState.Error("Please check your internet connection.")
-          }
-        } else if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
-          _authState.value = AuthState.Unauthenticated
-        } else {
-          Logger.e(TAG, "Critical session check failure: ${e.message}")
-          if (sessionManager.currentEmployee.value != null) {
-            _authState.value = AuthState.Authenticated
-          } else {
-            sessionManager.clearSession()
-            _authState.value = AuthState.Error("Failed to initialize session.")
-          }
-        }
-      }
-    }
-  }
-
-  private suspend fun validateAndFetchProfile(userId: String) {
+  private suspend fun fetchAndValidateProfile(userId: String) {
     if (userId.isBlank()) {
       _authState.value = AuthState.Unauthenticated
       return
@@ -274,6 +199,72 @@ class AuthenticationRepositoryImpl(
       }
     }
     currentJob?.join()
+  }
+
+  private fun logAuthState() {
+    authState.onEach { state ->
+      val stateName = when (state) {
+        is AuthState.Authenticated -> "Authenticated"
+        is AuthState.Error -> "Error"
+        is AuthState.Loading -> "Loading"
+        is AuthState.Unauthenticated -> "Unauthenticated"
+      }
+      Sentry.addBreadcrumb(Breadcrumb().apply {
+        category = "auth"
+        message = "AuthState: $stateName"
+      })
+
+      when (state) {
+        is AuthState.Authenticated -> Logger.i(TAG, "AuthState: Authenticated")
+        is AuthState.Error -> Logger.e(TAG, "AuthState: Error. ${state.message}")
+        is AuthState.Loading -> Logger.d(TAG, "AuthState: Loading")
+        is AuthState.Unauthenticated -> Logger.i(TAG, "AuthState: Unauthenticated")
+      }
+    }.launchIn(repositoryScope)
+  }
+
+  override suspend fun checkSession() {
+    checkSessionMutex.withLock {
+      try {
+        auth.awaitInitialization()
+
+        if (networkMonitor.isCurrentlyConnected && auth.currentSessionOrNull() != null) {
+          try {
+            auth.refreshCurrentSession()
+          } catch (e: Exception) {
+            if (e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected) {
+              Logger.d(TAG, "Silent refresh failed (network). Preserving current state.")
+            } else if (e.message?.contains("invalid_grant", ignoreCase = true) == true) {
+              Logger.w(TAG, "Refresh token revoked. Logging out.")
+              sessionManager.clearSession()
+              _authState.value = AuthState.Unauthenticated
+              return
+            }
+          }
+        }
+
+        syncProfileAndResolveState()
+      } catch (e: Exception) {
+        if (e.isConnectivityOrDnsException() || !networkMonitor.isCurrentlyConnected) {
+          if (sessionManager.currentEmployee.value != null) {
+            Logger.w(TAG, "Offline/Flaky network. Preserving current session.")
+            _authState.value = AuthState.Authenticated
+          } else {
+            _authState.value = AuthState.Error("Please check your internet connection.")
+          }
+        } else if (e.message?.contains("No refresh token", ignoreCase = true) == true) {
+          _authState.value = AuthState.Unauthenticated
+        } else {
+          Logger.e(TAG, "Critical session check failure: ${e.message}")
+          if (sessionManager.currentEmployee.value != null) {
+            _authState.value = AuthState.Authenticated
+          } else {
+            sessionManager.clearSession()
+            _authState.value = AuthState.Error("Failed to initialize session.")
+          }
+        }
+      }
+    }
   }
 
   override suspend fun login(email: String, password: String): Result<UserInfo> = try {

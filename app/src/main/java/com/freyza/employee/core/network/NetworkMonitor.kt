@@ -149,14 +149,14 @@ class ApiException(
 fun Throwable.isConnectivityOrDnsException(): Boolean {
   var current: Throwable? = this
   while (current != null) {
-    val className = current.javaClass.name
     if (current is OfflineException ||
-      className.contains("UnknownHostException") ||
-      className.contains("UnresolvedAddressException") ||
-      className.contains("SocketTimeoutException") ||
-      className.contains("ConnectTimeoutException") ||
-      className.contains("ConnectException") ||
-      className.contains("GaiException")
+      current is java.net.UnknownHostException ||
+      current is java.net.SocketTimeoutException ||
+      current is java.net.ConnectException ||
+      current is java.net.PortUnreachableException ||
+      current is java.net.NoRouteToHostException ||
+      current.javaClass.name.contains("UnresolvedAddressException") ||
+      current.javaClass.name.contains("GaiException")
     ) {
       return true
     }
@@ -230,12 +230,21 @@ private suspend fun <T> safeApiCallInternal(
       span?.status = SpanStatus.UNAVAILABLE
       monitor?.reportFailure()
 
+      val errType = when (e) {
+        is OfflineException -> "OfflineException"
+        is java.net.UnknownHostException -> "UnknownHostException"
+        is java.net.SocketTimeoutException -> "SocketTimeoutException"
+        is java.net.ConnectException -> "ConnectException"
+        is java.io.IOException -> "IOException"
+        else -> e.javaClass.name.substringAfterLast('.')
+      }
+
       Sentry.addBreadcrumb(Breadcrumb().apply {
         category = "network"
-        message = "$tag: Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}"
+        message = "$tag: Offline/Connectivity issue ($errType): ${e.message}"
       })
 
-      Logger.d(tag, "Offline/Connectivity issue (${e.javaClass.simpleName}): ${e.message}")
+      Logger.d(tag, "Offline/Connectivity issue ($errType): ${e.message}")
       Result.Error("Please check your internet connection.", errorBody = e)
     } else {
       span?.status = SpanStatus.INTERNAL_ERROR
