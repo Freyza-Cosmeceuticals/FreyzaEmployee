@@ -136,7 +136,18 @@ private fun MetricsContent(metrics: TravelPlanMetrics) {
       .height(8.dp)
       .clip(CircleShape),
     color = color,
-    trackColor = color.copy(alpha = 0.25f)
+    trackColor = color.copy(alpha = 0.3f)
+  )
+
+  Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
+
+  val visitsStr = if (metrics.numVisits == 1) "1 visit" else "${metrics.numVisits} visits"
+  val reportsStr = if (metrics.numReports == 1) "1 report" else "${metrics.numReports} reports"
+
+  Text(
+    text = "Achieved in $visitsStr across $reportsStr",
+    style = MaterialTheme.typography.bodySmall,
+    color = MaterialTheme.colorScheme.onSurfaceVariant
   )
 }
 
@@ -180,7 +191,9 @@ private fun TravelPlanMetricsCardPreview() {
           targetAmount = 10000.0,
           employeeId = "1",
           totalOrderAmount = 500.0,
-          totalAmountWithoutGST = 500.0
+          totalAmountWithoutGST = 500.0,
+          numReports = 2,
+          numVisits = 4
         ), // 10%
         monthName = "August",
         daysLeft = 25,
@@ -193,7 +206,9 @@ private fun TravelPlanMetricsCardPreview() {
           targetAmount = 10000.0,
           employeeId = "1",
           totalOrderAmount = 1500.0,
-          totalAmountWithoutGST = 1500.0
+          totalAmountWithoutGST = 1500.0,
+          numReports = 5,
+          numVisits = 12
         ), // 30%
         monthName = "August",
         daysLeft = 18,
@@ -206,7 +221,9 @@ private fun TravelPlanMetricsCardPreview() {
           targetAmount = 10000.0,
           employeeId = "1",
           totalOrderAmount = 3000.0,
-          totalAmountWithoutGST = 3000.0
+          totalAmountWithoutGST = 3000.0,
+          numReports = 10,
+          numVisits = 25
         ), // 60%
         monthName = "August",
         daysLeft = 10,
@@ -219,7 +236,9 @@ private fun TravelPlanMetricsCardPreview() {
           targetAmount = 10000.0,
           employeeId = "1",
           totalOrderAmount = 4500.0,
-          totalAmountWithoutGST = 4500.0
+          totalAmountWithoutGST = 4500.0,
+          numReports = 15,
+          numVisits = 38
         ), // 90%
         monthName = "August",
         daysLeft = 3,
@@ -232,7 +251,9 @@ private fun TravelPlanMetricsCardPreview() {
           targetAmount = 10000.0,
           employeeId = "1",
           totalOrderAmount = 6000.0,
-          totalAmountWithoutGST = 5000.0
+          totalAmountWithoutGST = 5000.0,
+          numReports = 18,
+          numVisits = 45
         ), // 110%
         monthName = "August",
         daysLeft = 1,

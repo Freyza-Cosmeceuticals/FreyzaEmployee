@@ -87,6 +87,7 @@ fun FreyzaEmployeeApp(
   LaunchedEffect(Unit) {
     sessionViewModel.checkAuth()
     sessionViewModel.syncTime()
+    appUpdateViewModel.checkForUpdate()
 
     snackbarManager.messages.collect { message ->
       val result = snackbarHostState.showTypedSnackbar(
@@ -106,12 +107,6 @@ fun FreyzaEmployeeApp(
     if (authState is AuthState.Authenticated) {
       appUpdateViewModel.checkForUpdate()
       sessionViewModel.syncTime()
-    }
-  }
-
-  LaunchedEffect(authState) {
-    if (authState is AuthState.Authenticated) {
-      appUpdateViewModel.checkForUpdate()
     }
   }
 

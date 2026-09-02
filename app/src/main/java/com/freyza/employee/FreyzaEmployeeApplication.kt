@@ -10,6 +10,8 @@ import com.freyza.employee.core.util.HyperlinkedDebugTree
 import io.sentry.SentryLevel
 import io.sentry.SentryLogLevel
 import io.sentry.android.core.SentryAndroid
+import io.sentry.android.replay.maskAllImages
+import io.sentry.android.replay.maskAllText
 import io.sentry.android.timber.SentryTimberIntegration
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -50,6 +52,8 @@ class FreyzaEmployeeApplication : Application() {
 
         options.sessionReplay.sessionSampleRate = 0.1
         options.sessionReplay.onErrorSampleRate = 1.0
+        options.sessionReplay.maskAllText = false
+        options.sessionReplay.maskAllImages = false
 
         options.addIntegration(
           SentryTimberIntegration(

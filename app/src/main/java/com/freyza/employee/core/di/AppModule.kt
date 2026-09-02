@@ -13,6 +13,7 @@ import com.freyza.employee.core.util.SharedPreferencesHelper
 import com.freyza.employee.core.util.SnackbarManager
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
@@ -33,6 +34,11 @@ val appModule = module {
   single<HttpClient> {
     val networkMonitor = get<NetworkMonitor>()
     HttpClient(Android) {
+      install(HttpTimeout) {
+        requestTimeoutMillis = 15_000L
+        connectTimeoutMillis = 10_000L
+        socketTimeoutMillis = 10_000L
+      }
       install(ConnectivityPlugin) {
         this.networkMonitor = networkMonitor
       }

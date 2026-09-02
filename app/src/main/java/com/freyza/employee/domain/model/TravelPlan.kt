@@ -22,6 +22,8 @@ data class TravelPlanMetrics(
   val employeeId: String,
   val totalOrderAmount: Double,
   val totalAmountWithoutGST: Double,
+  val numReports: Int,
+  val numVisits: Int,
 ) {
   val currentAmount: Double
     get() = totalOrderAmount + totalAmountWithoutGST
@@ -92,7 +94,9 @@ fun dummyTravelPlanMetrics(): TravelPlanMetrics = TravelPlanMetrics(
   targetAmount = 15000.0,
   employeeId = "a79ae89b-af0f-4f0f-9ae8-9baf0f4f0f59",
   totalOrderAmount = 8000.0,
-  totalAmountWithoutGST = 4500.0
+  totalAmountWithoutGST = 4500.0,
+  numReports = 5,
+  numVisits = 34
 )
 
 fun dummyTravelPlanEntryWork() = TravelPlanEntry(

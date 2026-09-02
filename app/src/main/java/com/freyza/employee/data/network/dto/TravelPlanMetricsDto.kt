@@ -15,11 +15,15 @@ data class TravelPlanMetricsDto(
   val employeeId: String,
   val totalOrderAmount: Double,
   val totalAmountWithoutGST: Double,
+  val numReports: Int,
+  val numVisits: Int,
 )
 
 fun TravelPlanMetricsDto.toDomain(): TravelPlanMetrics = TravelPlanMetrics(
   targetAmount = targetAmount,
   employeeId = employeeId,
   totalOrderAmount = totalOrderAmount,
-  totalAmountWithoutGST = totalAmountWithoutGST
+  totalAmountWithoutGST = totalAmountWithoutGST,
+  numReports = numReports,
+  numVisits = numVisits
 )
