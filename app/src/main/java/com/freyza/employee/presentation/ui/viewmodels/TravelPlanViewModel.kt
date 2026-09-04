@@ -75,7 +75,8 @@ class TravelPlanViewModel(
       )
     }
     viewModelScope.launch {
-      when (val result = travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
+      when (val result =
+        travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(currentTravelPlan = UIState.Ready(result.data))
@@ -141,7 +142,8 @@ class TravelPlanViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = travelPlanRepository.getTravelPlanEntries(tpId, forceRefresh = forceRefresh)) {
+      when (val result =
+        travelPlanRepository.getTravelPlanEntries(tpId, forceRefresh = forceRefresh)) {
         is Result.Success -> {
           _uiState.update {
             it.copy(travelPlanEntries = UIState.Ready(result.data))

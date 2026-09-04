@@ -33,4 +33,5 @@ x 2026-08-23 2026-08-23 list both src and dest POIs in add visit form
 x 2026-08-30 2026-08-27 Improve bad connection experience. Handle logouts and errors
 (B) 2026-09-01 fuzzy search in all autocomplete fields
 x 2026-09-02 2026-09-01 resolve odd timeout errors. Still throwing no token even when cached token. Wait for token init using common function
-(A) 2026-09-01 Optimize visits fetch nested join query being slow. OR don't fetch all visits on home page (only metrics). Fetch individually and use cache +dailyreport
+x 2026-09-04 2026-09-01 Optimize visits fetch nested join query being slow. OR don't fetch all visits on home page (only metrics). Fetch individually and use cache +dailyreport
+x 2026-09-02 2026-09-02 fix immediate home screen navigation after login. Make it wait until user is not null

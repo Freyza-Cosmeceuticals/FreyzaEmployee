@@ -8,6 +8,7 @@ data class GetRecentDailyReportsParams(
   val numDailyReports: Int,
   val employeeId: String,
   val withVisits: Boolean = false,
+  val forceRefresh: Boolean = false,
 )
 
 class GetRecentDailyReportsUseCase(private val dailyReportRepository: DailyReportRepository) {
@@ -15,7 +16,8 @@ class GetRecentDailyReportsUseCase(private val dailyReportRepository: DailyRepor
     val result = dailyReportRepository.getRecentDailyReports(
       params.numDailyReports,
       params.employeeId,
-      params.withVisits
+      params.withVisits,
+      params.forceRefresh
     )
     return when (result) {
       is Result.Success -> Result.Success(result.data)

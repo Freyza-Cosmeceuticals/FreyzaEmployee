@@ -23,6 +23,7 @@ interface DailyReportRepository {
     numDailyReports: Int,
     employeeId: String,
     withVisits: Boolean = false,
+    forceRefresh: Boolean = false,
   ): Result<List<DailyReport>>
 
   suspend fun getVisits(dailyReportId: String): Result<List<Visit>>

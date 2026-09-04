@@ -73,7 +73,7 @@ class UserRepositoryImpl(
 
   override suspend fun getAllEmployees(forceRefresh: Boolean): Result<List<User>> {
     if (!forceRefresh && cachedEmployees.values.isNotEmpty()) {
-      Logger.d(TAG, "Returning cached employees")
+      Logger.d(TAG, "Cache hit for employees")
 
       return Result.Success(cachedEmployees.values.toList())
     }

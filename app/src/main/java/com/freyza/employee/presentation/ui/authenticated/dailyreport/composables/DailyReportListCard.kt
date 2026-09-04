@@ -152,7 +152,7 @@ fun DailyReportListCard(
               modifier = Modifier.size(16.dp)
             )
             Text(
-              text = "Travelling with ${travellingWith?.name?: ""}",
+              text = "Travelling with ${travellingWith?.name ?: ""}",
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -314,7 +314,12 @@ private fun DailyReportListCardWorkPreview() {
 private fun DailyReportListCardHolidayPreview() {
   FreyzaEmployeeTheme {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      DailyReportListCard(dummyDailyReportHoliday(), travellingWith = dummyUserEmployee(), route = null, isToday = true)
+      DailyReportListCard(
+        dummyDailyReportHoliday(),
+        travellingWith = dummyUserEmployee(),
+        route = null,
+        isToday = true
+      )
       DailyReportListCard(dummyDailyReportHoliday(), travellingWith = null, route = null)
     }
   }
@@ -325,7 +330,12 @@ private fun DailyReportListCardHolidayPreview() {
 private fun DailyReportListCardLeavePreview() {
   FreyzaEmployeeTheme {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      DailyReportListCard(dummyDailyReportLeave(), travellingWith = null, route = null, isToday = true)
+      DailyReportListCard(
+        dummyDailyReportLeave(),
+        travellingWith = null,
+        route = null,
+        isToday = true
+      )
       DailyReportListCard(dummyDailyReportLeave(), travellingWith = null, route = null)
     }
   }

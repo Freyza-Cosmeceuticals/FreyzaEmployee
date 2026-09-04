@@ -41,6 +41,7 @@ class HomeViewModel(
   }
 
   private var refreshJob: Job? = null
+  private var createReportJob: Job? = null
 
   private val _uiState = MutableStateFlow(HomeScreenUiState(today = serverTime.nowLocalDateTime()))
   val uiState = _uiState.onStart {
@@ -140,7 +141,8 @@ class HomeViewModel(
 
   private suspend fun loadTravelPlanMetrics(tpId: String, forceRefresh: Boolean = false) {
     _uiState.update { it.copy(isMetricsLoading = true) }
-    when (val result = travelPlanRepository.getTravelPlanMetrics(tpId, forceRefresh = forceRefresh)) {
+    when (val result =
+      travelPlanRepository.getTravelPlanMetrics(tpId, forceRefresh = forceRefresh)) {
       is Result.Success -> {
         _uiState.update { it.copy(travelPlanMetrics = result.data, isMetricsLoading = false) }
       }
@@ -235,9 +237,13 @@ class HomeViewModel(
   ) {
     val employeeId = sessionManager.currentEmployee.value?.id ?: return
 
-    _uiState.update { it.copy(isLoading = true) }
+    if (createReportJob?.isActive == true) {
+      Logger.d(TAG, "Create report already in progress, skipping duplicate request")
+      return
+    }
 
-    viewModelScope.launch {
+    createReportJob = viewModelScope.launch {
+      _uiState.update { it.copy(isLoading = true) }
       var finalRouteId: String? = null
 
       if (dayType == DayType.WORK && srcLocId != null && destLocId != null) {
@@ -258,7 +264,7 @@ class HomeViewModel(
                 "New route created on-the-fly: ID=${newRoute.id}, " + "SrcLocId=$srcLocId, DestLocId=$destLocId. Manual tweak may be needed."
               )
               // Refresh routes list to include the newly created route
-              loadAllRoutes()
+              loadAllRoutes(true)
             }
 
             is Result.Error -> {
@@ -280,6 +286,7 @@ class HomeViewModel(
 
       when (result) {
         is Result.Success -> {
+          Logger.i(TAG, "Daily report created successfully id: ${result.data.id}")
           _uiState.update {
             it.copy(
               isLoading = false,

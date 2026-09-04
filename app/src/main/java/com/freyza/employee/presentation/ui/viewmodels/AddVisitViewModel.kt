@@ -76,20 +76,20 @@ class AddVisitViewModel(
     Logger.d(TAG, "Init with visitType: ${visitType.name}")
   }
 
-  fun refresh() {
+  fun refresh(forceRefresh: Boolean = false) {
     loadAvailablePois()
 
     if (isEditMode) {
-      loadVisit()
+      loadVisit(forceRefresh)
     } else {
       refreshLocation()
     }
   }
 
-  private fun loadAvailablePois() {
+  private fun loadAvailablePois(forceRefresh: Boolean = false) {
     _uiState.update { it.copy(availablePois = UIState.Loading()) }
     viewModelScope.launch {
-      val reportResult = dailyReportRepository.getDailyReport(reportId)
+      val reportResult = dailyReportRepository.getDailyReport(reportId, forceRefresh = forceRefresh)
       if (reportResult !is Result.Success) {
         _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
         return@launch
@@ -100,7 +100,7 @@ class AddVisitViewModel(
         return@launch
       }
 
-      val routeResult = routeRepository.getRoute(routeId)
+      val routeResult = routeRepository.getRoute(routeId, forceRefresh = forceRefresh)
       if (routeResult !is Result.Success || (routeResult.data == null)) {
         _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
         return@launch
@@ -108,14 +108,15 @@ class AddVisitViewModel(
 
       val route = routeResult.data
       val locationIds = listOf(route.srcLocId, route.destLocId).distinct()
-      val poisResult = dailyReportRepository.getPois(locationIds, visitType)
+      val poisResult =
+        dailyReportRepository.getPois(locationIds, visitType, forceRefresh = forceRefresh)
 
       val pois = (poisResult as? Result.Success)?.data ?: emptyList()
       _uiState.update { it.copy(availablePois = UIState.Ready(pois)) }
     }
   }
 
-  private fun loadVisit() {
+  private fun loadVisit(forceRefresh: Boolean = false) {
     if (visitId == null) return
 
     _uiState.update {
@@ -123,7 +124,7 @@ class AddVisitViewModel(
     }
 
     viewModelScope.launch {
-      when (val result = dailyReportRepository.getVisit(visitId)) {
+      when (val result = dailyReportRepository.getVisit(visitId, forceRefresh = forceRefresh)) {
         is Result.Success -> {
           val visit = result.data
           if (visit != null) {

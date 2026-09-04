@@ -91,7 +91,7 @@ class DailyReportViewModel(
         GetRecentDailyReportsParams(
           numDailyReports = Constants.NUM_RECENT_DAILY_REPORTS,
           employeeId = employeeId,
-          withVisits = true,
+          withVisits = false,
         )
       )
 
