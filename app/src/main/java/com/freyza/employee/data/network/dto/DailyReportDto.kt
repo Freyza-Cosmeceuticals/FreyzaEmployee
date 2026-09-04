@@ -2,6 +2,7 @@ package com.freyza.employee.data.network.dto
 
 import com.freyza.employee.core.util.BigDecimalSerializer
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.VisitType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
@@ -63,4 +64,13 @@ data class DailyReportCreateDto(
 
   @SerialName("routeId")
   val routeId: String?,
+)
+
+@Serializable
+data class VisitSummaryDto(
+  @SerialName("reportId")
+  val reportId: String,
+
+  @SerialName("visitType")
+  val visitType: VisitType,
 )

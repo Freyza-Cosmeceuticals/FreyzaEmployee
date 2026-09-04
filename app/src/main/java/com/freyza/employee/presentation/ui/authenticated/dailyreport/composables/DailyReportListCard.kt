@@ -157,25 +157,41 @@ fun DailyReportListCard(
               color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (travellingWith == null) {
-              Skeleton(modifier = Modifier.height(16.dp).width(32.dp))
+              Skeleton(
+                modifier = Modifier
+                  .height(16.dp)
+                  .width(32.dp)
+              )
             }
           }
         }
+
+        val counts = report.computedVisitCounts
 
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically
         ) {
+          val visitCountText = if (counts.totalCount == 0) {
+            if (isToday)
+              stringResource(R.string.no_visits_hint_add)
+            else
+              stringResource(R.string.no_visits)
+          } else {
+            if (counts.totalCount == 1)
+              "1 Visit"
+            else
+              "${counts.totalCount} Visits"
+          }
+
           Text(
-            if (report.visits.isEmpty()) if (isToday) stringResource(R.string.no_visits_hint_add)
-            else stringResource(R.string.no_visits)
-            else "${report.visits.size} Visits logged",
+            visitCountText,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
 
-          if (report.visits.isNotEmpty()) {
+          if (counts.totalCount > 0) {
             Row(
               horizontalArrangement = Arrangement.spacedBy(
                 dimensionResource(R.dimen.default_spacing).times(
@@ -183,13 +199,18 @@ fun DailyReportListCard(
                 )
               )
             ) {
-              val doctors = report.visits.count { it.visitType == VisitType.DOCTOR }
-              val chemists = report.visits.count { it.visitType == VisitType.CHEMIST }
-              val stockists = report.visits.count { it.visitType == VisitType.STOCKIST }
-
-              if (doctors > 0) VisitBadge(count = doctors, type = VisitType.DOCTOR)
-              if (chemists > 0) VisitBadge(count = chemists, type = VisitType.CHEMIST)
-              if (stockists > 0) VisitBadge(count = stockists, type = VisitType.STOCKIST)
+              if (counts.doctorCount > 0) VisitBadge(
+                count = counts.doctorCount,
+                type = VisitType.DOCTOR
+              )
+              if (counts.chemistCount > 0) VisitBadge(
+                count = counts.chemistCount,
+                type = VisitType.CHEMIST
+              )
+              if (counts.stockistCount > 0) VisitBadge(
+                count = counts.stockistCount,
+                type = VisitType.STOCKIST
+              )
             }
           }
         }

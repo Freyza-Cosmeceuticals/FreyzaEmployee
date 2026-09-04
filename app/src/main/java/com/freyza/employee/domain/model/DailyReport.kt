@@ -7,6 +7,14 @@ import kotlinx.datetime.LocalDate
 import java.util.UUID
 import kotlin.time.Instant
 
+data class VisitTypeCounts(
+  val doctorCount: Int = 0,
+  val chemistCount: Int = 0,
+  val stockistCount: Int = 0,
+) {
+  val totalCount: Int get() = doctorCount + chemistCount + stockistCount
+}
+
 data class DailyReport(
   val id: String,
   val employeeId: String,
@@ -20,14 +28,26 @@ data class DailyReport(
   val da: Money?,
   val totalExpense: Money?,
 
-  val visits: List<Visit>,
+  val visits: List<Visit> = emptyList(),
+  val visitTypeCounts: VisitTypeCounts? = null,
 
   val locked: Boolean,
   val lockedAt: Instant?,
 
   val createdAt: Instant,
   val updatedAt: Instant?,
-)
+) {
+  val computedVisitCounts: VisitTypeCounts
+    get() = if (visits.isNotEmpty()) {
+      VisitTypeCounts(
+        doctorCount = visits.count { it.visitType == VisitType.DOCTOR },
+        chemistCount = visits.count { it.visitType == VisitType.CHEMIST },
+        stockistCount = visits.count { it.visitType == VisitType.STOCKIST },
+      )
+    } else {
+      visitTypeCounts ?: VisitTypeCounts()
+    }
+}
 
 fun dummyDailyReportWork(
   locked: Boolean = false,

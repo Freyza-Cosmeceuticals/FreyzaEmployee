@@ -14,12 +14,14 @@ import com.freyza.employee.data.network.dto.DailyReportDto
 import com.freyza.employee.data.network.dto.PointOfInterestDto
 import com.freyza.employee.data.network.dto.VisitCreateDto
 import com.freyza.employee.data.network.dto.VisitDto
+import com.freyza.employee.data.network.dto.VisitSummaryDto
 import com.freyza.employee.data.network.dto.VisitUpdateDto
 import com.freyza.employee.domain.model.DailyReport
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
+import com.freyza.employee.domain.model.VisitTypeCounts
 import com.freyza.employee.domain.repository.DailyReportRepository
 import com.freyza.employee.domain.repository.TravelPlanRepository
 import io.github.jan.supabase.auth.Auth
@@ -68,7 +70,6 @@ data class PoiResponse(
   val data: PointOfInterestDto?,
 )
 
-
 class DailyReportRepositoryImpl(
   private val postgrest: Postgrest,
   private val httpClient: HttpClient,
@@ -82,6 +83,12 @@ class DailyReportRepositoryImpl(
   // Cache for daily reports keyed by report ID
   private val reportCache = mutableMapOf<String, DailyReport>()
 
+  // Cache for aggregated visit counts keyed by report ID
+  private val visitCountsCache = mutableMapOf<String, VisitTypeCounts>()
+
+  // Set of report IDs that have had their full visits list loaded
+  private val reportsWithVisitsLoaded = mutableSetOf<String>()
+
   companion object {
     const val TAG: String = "DailyReportRepo"
     private const val TABLE_DAILY_REPORT = "dailyReport"
@@ -94,6 +101,8 @@ class DailyReportRepositoryImpl(
     Logger.d(TAG, "Clearing daily report caches")
     poiCache.clear()
     reportCache.clear()
+    visitCountsCache.clear()
+    reportsWithVisitsLoaded.clear()
   }
 
   override suspend fun getTodayDailyReport(
@@ -102,6 +111,16 @@ class DailyReportRepositoryImpl(
     withVisits: Boolean,
     forceRefresh: Boolean
   ): Result<DailyReport?> {
+    if (!forceRefresh) {
+      val cachedTodayReport = reportCache.values.find { it.date == today && it.employeeId == employeeId }
+      if (cachedTodayReport != null) {
+        if (!withVisits || reportsWithVisitsLoaded.contains(cachedTodayReport.id)) {
+          Logger.d(TAG, "Cache hit for today's dailyReport ID: ${cachedTodayReport.id}")
+          return Result.Success(cachedTodayReport)
+        }
+      }
+    }
+
     return safeApiCall(TAG) {
       val thisDate = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
       val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
@@ -124,6 +143,10 @@ class DailyReportRepositoryImpl(
         val dailyReport = dailyReportDto?.toDomain()
         if (dailyReport != null) {
           reportCache[dailyReport.id] = dailyReport
+          visitCountsCache[dailyReport.id] = dailyReport.computedVisitCounts
+          if (withVisits) {
+            reportsWithVisitsLoaded.add(dailyReport.id)
+          }
         }
         dailyReport
       }
@@ -134,7 +157,18 @@ class DailyReportRepositoryImpl(
     numDailyReports: Int,
     employeeId: String,
     withVisits: Boolean,
+    forceRefresh: Boolean,
   ): Result<List<DailyReport>> {
+    if (!forceRefresh && reportCache.isNotEmpty()) {
+      val cachedReports = reportCache.values
+        .filter { it.employeeId == employeeId }
+        .sortedByDescending { it.date }
+      if (cachedReports.size >= numDailyReports) {
+        Logger.d(TAG, "Cache hit for recent daily reports (${cachedReports.size} reports)")
+        return Result.Success(cachedReports.take(numDailyReports))
+      }
+    }
+
     val selectQuery = if (withVisits) SELECT_WITH_VISITS else SELECT_ALL
 
     return safeApiCall(TAG) {
@@ -151,14 +185,62 @@ class DailyReportRepositoryImpl(
           limit(numDailyReports.toLong())
         }.decodeList<DailyReportDto>()
 
-        val reports = reportsDto.map { it.toDomain() }
-        reports.forEach { reportCache[it.id] = it }
+        // Fetch lightweight visit summaries if full visits were not requested
+        if (!withVisits) {
+          val workReportIds = reportsDto
+            .filter { it.dayType == DayType.WORK }
+            .map { it.id }
+
+          if (workReportIds.isNotEmpty()) {
+            val visitSummaryResult = postgrest.from(TABLE_VISIT).select(
+              columns = Columns.raw("reportId, visitType")
+            ) {
+              filter {
+                isIn("reportId", workReportIds)
+              }
+            }.decodeList<VisitSummaryDto>()
+
+            val countsByReportId = visitSummaryResult.groupBy { it.reportId }.mapValues { (_, visitList) ->
+              VisitTypeCounts(
+                doctorCount = visitList.count { it.visitType == VisitType.DOCTOR },
+                chemistCount = visitList.count { it.visitType == VisitType.CHEMIST },
+                stockistCount = visitList.count { it.visitType == VisitType.STOCKIST },
+              )
+            }
+            countsByReportId.forEach { (reportId, counts) ->
+              visitCountsCache[reportId] = counts
+            }
+          }
+        }
+
+        val reports = reportsDto.map { dto ->
+          val cachedCounts = visitCountsCache[dto.id]
+          val domainReport = dto.toDomain(visitTypeCounts = cachedCounts)
+          if (domainReport.visits.isNotEmpty()) {
+            visitCountsCache[domainReport.id] = domainReport.computedVisitCounts
+          }
+          domainReport
+        }
+        reports.forEach { report ->
+          reportCache[report.id] = report
+          if (withVisits) {
+            reportsWithVisitsLoaded.add(report.id)
+          }
+        }
         reports
       }
     }
   }
 
   override suspend fun getVisits(dailyReportId: String): Result<List<Visit>> {
+    if (reportsWithVisitsLoaded.contains(dailyReportId)) {
+      val cachedVisits = reportCache[dailyReportId]?.visits
+      if (cachedVisits != null) {
+        Logger.d(TAG, "Cache hit for visits in dailyReport ID: $dailyReportId")
+        return Result.Success(cachedVisits)
+      }
+    }
+
     return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Querying visits for current employee and dailyReportId: $dailyReportId")
@@ -182,10 +264,7 @@ class DailyReportRepositoryImpl(
   ): Result<DailyReport?> {
     if (!forceRefresh && reportCache.containsKey(id)) {
       val cached = reportCache[id]!!
-      // If we need visits but cache doesn't have them (or it's empty, but we expect some),
-      // we might want to fetch. But for now, let's say if withVisits is true, we must have them in cache.
-      // Actually, if we cached it WITH visits, we're good. If we cached it WITHOUT, and now need them, fetch.
-      if (!withVisits || cached.visits.isNotEmpty()) {
+      if (!withVisits || reportsWithVisitsLoaded.contains(id)) {
         Logger.d(TAG, "Cache hit for dailyReport ID: $id (withVisits=$withVisits)")
         return Result.Success(cached)
       }
@@ -205,9 +284,13 @@ class DailyReportRepositoryImpl(
           }
         }.decodeSingleOrNull<DailyReportDto>()
 
-        val dailyReport = dailyReportDto?.toDomain()
+        val dailyReport = dailyReportDto?.toDomain(visitTypeCounts = visitCountsCache[id])
         if (dailyReport != null) {
           reportCache[id] = dailyReport
+          visitCountsCache[id] = dailyReport.computedVisitCounts
+          if (withVisits) {
+            reportsWithVisitsLoaded.add(dailyReport.id)
+          }
         }
         dailyReport
       }
@@ -464,6 +547,8 @@ class DailyReportRepositoryImpl(
             val visit = createResponse.data.toDomain()
             // Invalidate associated report cache and travel plan metrics cache
             reportCache.remove(dailyReportId)
+            visitCountsCache.remove(dailyReportId)
+            reportsWithVisitsLoaded.remove(dailyReportId)
             travelPlanRepository.invalidateMetricsCache()
             visit
           } else {
@@ -498,6 +583,8 @@ class DailyReportRepositoryImpl(
         }
 
         reportCache.clear()
+        visitCountsCache.clear()
+        reportsWithVisitsLoaded.clear()
         true
       }
     }
@@ -515,6 +602,8 @@ class DailyReportRepositoryImpl(
         }
 
         reportCache.clear()
+        visitCountsCache.clear()
+        reportsWithVisitsLoaded.clear()
         travelPlanRepository.invalidateMetricsCache()
         true
       }
@@ -541,6 +630,8 @@ class DailyReportRepositoryImpl(
             val visit = updateResponse.data.toDomain()
             // Invalidate associated report cache
             reportCache.remove(visit.reportId)
+            visitCountsCache.remove(visit.reportId)
+            reportsWithVisitsLoaded.remove(visit.reportId)
             travelPlanRepository.invalidateMetricsCache()
             visit
           } else {
