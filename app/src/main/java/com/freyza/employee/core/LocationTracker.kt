@@ -29,7 +29,7 @@ class LocationTracker(private val context: Context) {
   private var cachedLocation: Location? = null
   private var lastFetchTime: Long = 0L
   private val CACHE_DURATION_MS = 120.seconds.inWholeMilliseconds
-  private val LOCATION_REQUEST_TIMEOUT = 10.seconds
+  private val LOCATION_REQUEST_TIMEOUT = 4.seconds
 
   suspend fun getCurrentLocation(): Location? = locationMutex.withLock {
     val span = Sentry.getSpan()?.startChild("location.gps", "Acquire GPS Location")

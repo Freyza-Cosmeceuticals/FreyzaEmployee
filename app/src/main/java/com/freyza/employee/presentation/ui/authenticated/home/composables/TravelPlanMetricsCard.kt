@@ -1,7 +1,12 @@
 package com.freyza.employee.presentation.ui.authenticated.home.composables
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,10 +19,16 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -66,89 +77,128 @@ fun TravelPlanMetricsCard(
 
     Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
 
-    if (isLoading || metrics == null) {
+    if (metrics == null && isLoading) {
       MetricsSkeleton()
+    } else if (metrics != null) {
+      val contentAlpha by animateFloatAsState(
+        targetValue = if (isLoading) 0.5f else 1.0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "metricsAlphaAnimation"
+      )
+
+      Box(modifier = Modifier.graphicsLayer { alpha = contentAlpha }) {
+        MetricsContent(metrics)
+      }
     } else {
-      MetricsContent(metrics)
+      Text(
+        text = "No travel plan targets found for this month.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+      )
     }
   }
 }
 
 @Composable
 private fun MetricsContent(metrics: TravelPlanMetrics) {
-  val progress = (metrics.percentage / 100f).coerceIn(0f, 1f)
-  val color = when {
-    metrics.percentage < 15 -> Color(0xFFE57373) // Red
-    metrics.percentage < 50 -> MaterialTheme.colorScheme.primary
-    metrics.percentage < 85 -> Color(0xFF64B5F6) // Blue
-    metrics.percentage < 100 -> Color(0xFF81C784) // Green
-    else -> Color(0xFFFFD700) // Golden
+  var hasAppeared by rememberSaveable { mutableStateOf(false) }
+  LaunchedEffect(Unit) {
+    hasAppeared = true
   }
 
-  Row(
-    modifier = Modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.SpaceBetween,
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Column {
-      Row {
-        Text(
-          text = metrics.currentAmount.toMoney().toCurrencyString(),
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.Bold
-        )
-        Text(
-          " / ",
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.Bold
-        )
-        Text(
-          metrics.targetAmount.toMoney().toCurrencyString(),
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-      }
+  Column(modifier = Modifier.fillMaxWidth()) {
+    val targetProgress = if (hasAppeared) (metrics.percentage / 100f).coerceIn(0f, 1f) else 0f
+    val animatedProgress by animateFloatAsState(
+      targetValue = targetProgress,
+      animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+      label = "metricsProgressAnimation"
+    )
+
+    val targetAmount = if (hasAppeared) metrics.currentAmount.toFloat() else 0f
+    val animatedAmount by animateFloatAsState(
+      targetValue = targetAmount,
+      animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+      label = "metricsAmountAnimation"
+    )
+
+    val targetPercentage = if (hasAppeared) metrics.percentage else 0f
+    val animatedPercentage by animateFloatAsState(
+      targetValue = targetPercentage,
+      animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+      label = "metricsPercentageAnimation"
+    )
+
+    val targetColor = when {
+      metrics.percentage < 15 -> Color(0xFFE57373) // Red
+      metrics.percentage < 50 -> MaterialTheme.colorScheme.primary
+      metrics.percentage < 85 -> Color(0xFF64B5F6) // Blue
+      metrics.percentage < 100 -> Color(0xFF81C784) // Green
+      else -> Color(0xFFFFD700) // Golden
     }
 
+    val animatedColor by animateColorAsState(
+      targetValue = targetColor,
+      animationSpec = tween(durationMillis = 800),
+      label = "metricsColorAnimation"
+    )
+
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Column {
+        Row {
+          Text(
+            text = animatedAmount.toDouble().toMoney().toCurrencyString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+          )
+          Text(
+            " / ",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+          )
+          Text(
+            metrics.targetAmount.toMoney().toCurrencyString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+        }
+      }
+
+      Text(
+        text = "${animatedPercentage.toInt()}%",
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.Bold
+      )
+    }
+
+    Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(3)))
+
+    LinearProgressIndicator(
+      progress = { animatedProgress },
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(8.dp)
+        .clip(CircleShape),
+      color = animatedColor,
+      trackColor = animatedColor.copy(alpha = 0.25f)
+    )
+
+    Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
+
+    val visitsStr = if (metrics.numVisits == 1) "1 visit" else "${metrics.numVisits} visits"
+    val reportsStr = if (metrics.numReports == 1) "1 report" else "${metrics.numReports} reports"
+
     Text(
-      text = "${metrics.percentage.toInt()}%",
-      style = MaterialTheme.typography.labelLarge,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      fontWeight = FontWeight.Bold
+      text = "Achieved in $visitsStr across $reportsStr",
+      style = MaterialTheme.typography.bodySmall,
+      color = MaterialTheme.colorScheme.onSurfaceVariant
     )
   }
-
-  Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(3)))
-
-//  CircularProgressIndicator(
-//    progress = { progress },
-//    color = color,
-//    trackColor = color.copy(alpha = 0.5f),
-//    modifier = Modifier
-//      .fillMaxWidth()
-//  )
-
-  LinearProgressIndicator(
-    progress = { progress },
-    modifier = Modifier
-      .fillMaxWidth()
-      .height(8.dp)
-      .clip(CircleShape),
-    color = color,
-    trackColor = color.copy(alpha = 0.3f)
-  )
-
-  Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(2)))
-
-  val visitsStr = if (metrics.numVisits == 1) "1 visit" else "${metrics.numVisits} visits"
-  val reportsStr = if (metrics.numReports == 1) "1 report" else "${metrics.numReports} reports"
-
-  Text(
-    text = "Achieved in $visitsStr across $reportsStr",
-    style = MaterialTheme.typography.bodySmall,
-    color = MaterialTheme.colorScheme.onSurfaceVariant
-  )
 }
 
 @Composable
