@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -25,6 +27,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -114,6 +117,7 @@ fun BeginDailyReportSheet(
   var destinationQuery by remember { mutableStateOf(selectedDestination?.name ?: "") }
 
   var selectedTravellingWith by remember { mutableStateOf<User?>(null) }
+  var showConfirmationDialog by remember { mutableStateOf(false) }
 
   val matchingRoute by remember(selectedSource, selectedDestination, routes) {
     derivedStateOf {
@@ -251,21 +255,19 @@ fun BeginDailyReportSheet(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error
               )
-              RouteItem(
-                route = RouteWithLocation(
-                  id = "new",
-                  srcLoc = selectedSource!!,
-                  destLoc = selectedDestination!!,
-                  0.0f,
-                  Instant.parse("1970-01-01T00:00:00.000+00:00"),
-                  updatedAt = null
+
+              if (selectedSource != null && selectedDestination != null) {
+                RouteItem(
+                  route = RouteWithLocation(
+                    id = "new",
+                    srcLoc = selectedSource!!,
+                    destLoc = selectedDestination!!,
+                    0.0f,
+                    Instant.parse("1970-01-01T00:00:00.000+00:00"),
+                    updatedAt = null
+                  )
                 )
-              )
-//              Text(
-//                "${selectedSource!!.name} -> ${selectedDestination!!.name}",
-//                style = MaterialTheme.typography.titleMedium,
-//                fontWeight = FontWeight.Bold
-//              )
+              }
               Text(
                 "This route will be created automatically.",
                 style = MaterialTheme.typography.bodySmall,
@@ -283,14 +285,7 @@ fun BeginDailyReportSheet(
       modifier = Modifier.fillMaxWidth(),
       contentPadding = PaddingValues(dimensionResource(R.dimen.default_spacing).times(4)),
       enabled = startButtonEnabled,
-      onClick = {
-        onDailyReportBegin(
-          selectedDayType,
-          selectedSource?.id,
-          selectedDestination?.id,
-          selectedTravellingWith?.id
-        )
-      },
+      onClick = { showConfirmationDialog = true },
     ) {
       Text(
         startButtonText,
@@ -299,6 +294,113 @@ fun BeginDailyReportSheet(
       )
     }
   }
+
+  if (showConfirmationDialog) {
+    ConfirmAlertDialog(
+      selectedDayType = selectedDayType,
+      selectedSource = selectedSource,
+      selectedDestination = selectedDestination,
+      selectedTravellingWith = selectedTravellingWith,
+      matchingRoute = matchingRoute,
+      onConfirm = {
+        showConfirmationDialog = false
+        onDailyReportBegin(
+          selectedDayType,
+          selectedSource?.id,
+          selectedDestination?.id,
+          selectedTravellingWith?.id
+        )
+      },
+      onDismiss = { showConfirmationDialog = false }
+    )
+  }
+}
+
+@Composable
+private fun ConfirmAlertDialog(
+  selectedDayType: DayType,
+  selectedSource: Location?,
+  selectedDestination: Location?,
+  selectedTravellingWith: User?,
+  matchingRoute: RouteWithLocation?,
+  onConfirm: () -> Unit,
+  onDismiss: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val routeToDisplay = matchingRoute ?: if (selectedSource != null && selectedDestination != null) {
+    RouteWithLocation(
+      id = "new",
+      srcLoc = selectedSource,
+      destLoc = selectedDestination,
+      distanceKm = 0.0f,
+      createdAt = Instant.parse("1970-01-01T00:00:00.000+00:00"),
+      updatedAt = null
+    )
+  } else null
+
+  AlertDialog(
+    modifier = modifier.padding(dimensionResource(R.dimen.screen_padding)),
+    onDismissRequest = onDismiss,
+    title = {
+      Text(
+        when (selectedDayType) {
+          DayType.WORK -> "Confirm Daily Report"
+          DayType.LEAVE -> "Confirm Leave"
+          DayType.HOLIDAY -> "Confirm Holiday"
+        }
+      )
+    },
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        when (selectedDayType) {
+          DayType.LEAVE -> {
+            Text("Are you sure you want to mark today as Leave?")
+          }
+
+          DayType.HOLIDAY -> {
+            Text("Are you sure you want to mark today as Holiday?")
+          }
+
+          DayType.WORK -> {
+            Text("Are you sure you want to start your work day with the following details?")
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(
+                dimensionResource(R.dimen.default_spacing)
+              )
+            ) {
+              Icon(
+                painter = painterResource(R.drawable.account_circle_24px),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+              )
+              Text(
+                text = "Travelling With: ${selectedTravellingWith?.name ?: "No One (Solo)"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Medium
+              )
+            }
+            routeToDisplay?.let { route ->
+              RouteItem(route)
+            }
+          }
+        }
+      }
+    },
+    confirmButton = {
+      TextButton(onClick = onConfirm) {
+        Text("Ok")
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) {
+        Text("Cancel")
+      }
+    }
+  )
 }
 
 
@@ -367,6 +469,54 @@ private fun SheetPreviewNoPlan() {
       onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
       onExit = {}
+    )
+  }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun ConfirmAlertDialogWorkPreview() {
+  FreyzaEmployeeTheme {
+    ConfirmAlertDialog(
+      selectedDayType = DayType.WORK,
+      selectedSource = dummyLocation(),
+      selectedDestination = dummyLocationAlt(),
+      selectedTravellingWith = dummyUserEmployee(),
+      matchingRoute = dummyRouteWithLocation(),
+      onConfirm = {},
+      onDismiss = {}
+    )
+  }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun ConfirmAlertDialogLeavePreview() {
+  FreyzaEmployeeTheme {
+    ConfirmAlertDialog(
+      selectedDayType = DayType.LEAVE,
+      selectedSource = null,
+      selectedDestination = null,
+      selectedTravellingWith = null,
+      matchingRoute = null,
+      onConfirm = {},
+      onDismiss = {}
+    )
+  }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun ConfirmAlertDialogHolidayPreview() {
+  FreyzaEmployeeTheme {
+    ConfirmAlertDialog(
+      selectedDayType = DayType.HOLIDAY,
+      selectedSource = null,
+      selectedDestination = null,
+      selectedTravellingWith = null,
+      matchingRoute = null,
+      onConfirm = {},
+      onDismiss = {}
     )
   }
 }
