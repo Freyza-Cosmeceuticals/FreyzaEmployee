@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.3.0-6] - 2026-09-05
+
+### Added
+- View monthly sales and visit targets directly on the home screen with animated progress tracking
+- Confirm your work details, holiday, or leave before starting the day using a new confirmation dialog
+- Search locations and routes with typo-tolerant fuzzy matching that handles spelling variations gracefully
+- Track and record payment collection details and GST amounts for chemist visits
+
+### Fixed
+- Experience faster initial home screen loading and smoother data refreshing across slow network connections
+
 ## [0.2.2-5] - 2026-08-30
 
 ### Fixed
