@@ -61,6 +61,9 @@ fun VisitDto.toDomain(): Visit {
       distanceMetersFromPOI = distanceMetersFromPOI,
       poiId = poiId,
       orderTaken = orderTaken,
+      paymentCollected = paymentCollected,
+      amountWithGST = amountWithGST?.let { Money(it) } ?: Money.ZERO,
+      amountWithoutGST = amountWithoutGST?.let { Money(it) } ?: Money.ZERO,
       outstandingAmount = outstandingAmount?.let { Money(it) } ?: Money.ZERO,
       additionalNotes = additionalNotes,
       createdAt = Instant.parse(createdAt),
@@ -92,15 +95,27 @@ fun Visit.toDto(): VisitDto {
     },
     orderAmount = (this as? Visit.DoctorVisit)?.orderAmount?.amount,
     billNo = (this as? Visit.StockistVisit)?.billNo,
-    amountWithGST = (this as? Visit.StockistVisit)?.amountWithGST?.amount,
-    amountWithoutGST = (this as? Visit.StockistVisit)?.amountWithoutGST?.amount,
+    amountWithGST = when (this) {
+      is Visit.StockistVisit -> amountWithGST.amount
+      is Visit.ChemistVisit -> amountWithGST.amount
+      else -> null
+    },
+    amountWithoutGST = when (this) {
+      is Visit.StockistVisit -> amountWithoutGST.amount
+      is Visit.ChemistVisit -> amountWithoutGST.amount
+      else -> null
+    },
     outstandingAmount = when (this) {
       is Visit.DoctorVisit -> outstandingAmount.amount
       is Visit.StockistVisit -> outstandingAmount.amount
       is Visit.ChemistVisit -> outstandingAmount.amount
     },
     stockChecked = (this as? Visit.StockistVisit)?.stockChecked ?: false,
-    paymentCollected = (this as? Visit.StockistVisit)?.paymentCollected ?: false,
+    paymentCollected = when (this) {
+      is Visit.StockistVisit -> paymentCollected
+      is Visit.ChemistVisit -> paymentCollected
+      else -> false
+    },
     createdAt = createdAt.toString(),
     updatedAt = updatedAt?.toString()
   )
@@ -155,8 +170,8 @@ fun AddVisitFormState.toUpdateDto(visitType: VisitType, updatedAt: String? = nul
     orderTaken = orderTaken,
     billNo = billNo.value.takeIf { visitType == VisitType.STOCKIST },
     paymentCollected = paymentCollected,
-    amountWithGST = if (visitType == VisitType.STOCKIST) amountWithGST.value.toMoney().amount else null,
-    amountWithoutGST = if (visitType == VisitType.STOCKIST) amountWithoutGST.value.toMoney().amount else null,
+    amountWithGST = if (visitType == VisitType.STOCKIST || visitType == VisitType.CHEMIST) amountWithGST.value.toMoney().amount else null,
+    amountWithoutGST = if (visitType == VisitType.STOCKIST || visitType == VisitType.CHEMIST) amountWithoutGST.value.toMoney().amount else null,
     outstandingAmount = outstandingAmount.value.toMoney().amount,
     orderAmount = if (visitType == VisitType.DOCTOR) orderAmount.amount else null,
     stockChecked = stockChecked,
@@ -188,12 +203,24 @@ fun Visit.toFormState(): AddVisitFormState {
       is Visit.ChemistVisit -> orderTaken
     },
     billNo = FormField((this as? Visit.StockistVisit)?.billNo ?: ""),
-    paymentCollected = (this as? Visit.StockistVisit)?.paymentCollected ?: false,
+    paymentCollected = when (this) {
+      is Visit.StockistVisit -> paymentCollected
+      is Visit.ChemistVisit -> paymentCollected
+      else -> false
+    },
     amountWithGST = FormField(
-      (this as? Visit.StockistVisit)?.amountWithGST?.amount?.toString() ?: ""
+      when (this) {
+        is Visit.StockistVisit -> amountWithGST.amount.toString()
+        is Visit.ChemistVisit -> amountWithGST.amount.toString()
+        else -> ""
+      }
     ),
     amountWithoutGST = FormField(
-      (this as? Visit.StockistVisit)?.amountWithoutGST?.amount?.toString() ?: ""
+      when (this) {
+        is Visit.StockistVisit -> amountWithoutGST.amount.toString()
+        is Visit.ChemistVisit -> amountWithoutGST.amount.toString()
+        else -> ""
+      }
     ),
     stockChecked = (this as? Visit.StockistVisit)?.stockChecked ?: false,
     outstandingAmount = when (this) {

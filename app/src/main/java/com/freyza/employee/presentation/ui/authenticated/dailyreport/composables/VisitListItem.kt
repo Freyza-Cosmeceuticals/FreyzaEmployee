@@ -163,6 +163,12 @@ fun VisitListItem(
                   containerColor = MaterialTheme.colorScheme.primaryContainer, text = "Order taken"
                 )
               }
+              visit.paymentCollected.takeIf { it }?.let {
+                InfoChip(
+                  containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                  text = "Payment Collected"
+                )
+              }
               if (visit.outstandingAmount > Money.ZERO) {
                 InfoChip(
                   containerColor = MaterialTheme.colorScheme.errorContainer,

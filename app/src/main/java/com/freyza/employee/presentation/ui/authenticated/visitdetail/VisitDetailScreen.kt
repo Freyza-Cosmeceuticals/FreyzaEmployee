@@ -350,6 +350,11 @@ private fun VisitSpecificDetails(visit: Visit) {
 
       is Visit.ChemistVisit -> {
         DetailRow("Order Taken", if (visit.orderTaken) "Yes" else "No")
+        DetailRow("Payment Collected", if (visit.paymentCollected) "Yes" else "No")
+        if (visit.paymentCollected) {
+          DetailRow("Amount (Excl. GST)", visit.amountWithoutGST.toCurrencyString())
+          DetailRow("Amount (Incl. GST)", visit.amountWithGST.toCurrencyString())
+        }
         DetailRow("Outstanding", visit.outstandingAmount.toCurrencyString())
       }
     }
