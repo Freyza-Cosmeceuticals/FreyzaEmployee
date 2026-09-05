@@ -222,9 +222,15 @@ class DailyReportRepositoryImpl(
           domainReport
         }
         reports.forEach { report ->
-          reportCache[report.id] = report
-          if (withVisits) {
-            reportsWithVisitsLoaded.add(report.id)
+          val existingReport = reportCache[report.id]
+          val finalReport = if (!withVisits && existingReport != null && existingReport.visits.isNotEmpty()) {
+            report.copy(visits = existingReport.visits)
+          } else {
+            report
+          }
+          reportCache[finalReport.id] = finalReport
+          if (withVisits || (existingReport != null && reportsWithVisitsLoaded.contains(existingReport.id))) {
+            reportsWithVisitsLoaded.add(finalReport.id)
           }
         }
         reports

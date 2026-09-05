@@ -54,6 +54,7 @@ class AddVisitViewModel(
 
   val isEditMode = visitId != null
   private var submitJob: Job? = null
+  private var poisJob: Job? = null
 
   private val _uiState = MutableStateFlow(
     AddVisitUiState(
@@ -77,7 +78,7 @@ class AddVisitViewModel(
   }
 
   fun refresh(forceRefresh: Boolean = false) {
-    loadAvailablePois()
+    loadAvailablePois(forceRefresh)
 
     if (isEditMode) {
       loadVisit(forceRefresh)
@@ -87,8 +88,13 @@ class AddVisitViewModel(
   }
 
   private fun loadAvailablePois(forceRefresh: Boolean = false) {
+    if (poisJob?.isActive == true) {
+      Logger.d(TAG, "loadAvailablePois already in progress, skipping duplicate call")
+      return
+    }
+
     _uiState.update { it.copy(availablePois = UIState.Loading()) }
-    viewModelScope.launch {
+    poisJob = viewModelScope.launch {
       val reportResult = dailyReportRepository.getDailyReport(reportId, forceRefresh = forceRefresh)
       if (reportResult !is Result.Success) {
         _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }

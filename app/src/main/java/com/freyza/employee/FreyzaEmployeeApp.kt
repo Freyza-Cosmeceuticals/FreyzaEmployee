@@ -58,6 +58,7 @@ import com.freyza.employee.presentation.ui.GPSGateway
 import com.freyza.employee.presentation.ui.composables.FreyzaBottomNavBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import kotlinx.coroutines.launch
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.OfflineBanner
 import com.freyza.employee.presentation.ui.composables.VersionInfo
@@ -86,8 +87,10 @@ fun FreyzaEmployeeApp(
   // load auth and setup snackbar consumer
   LaunchedEffect(Unit) {
     sessionViewModel.checkAuth()
-    sessionViewModel.syncTime()
-    appUpdateViewModel.checkForUpdate()
+
+    // Asynchronously launch non-critical tasks without blocking critical path auth check
+    launch { sessionViewModel.syncTime() }
+    launch { appUpdateViewModel.checkForUpdate() }
 
     snackbarManager.messages.collect { message ->
       val result = snackbarHostState.showTypedSnackbar(
