@@ -238,6 +238,9 @@ dependencies {
 
   // location
   implementation(libs.play.services.location)
+
+  // fuzzy search
+  implementation(libs.kt.fuzzy)
 }
 
 sentry {

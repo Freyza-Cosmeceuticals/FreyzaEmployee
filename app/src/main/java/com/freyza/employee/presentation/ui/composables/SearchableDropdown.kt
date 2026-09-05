@@ -20,10 +20,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import ca.solostudios.fuzzykt.FuzzyKt
 import com.freyza.employee.R
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,9 +47,14 @@ fun <T> SearchableDropdown(
   isError: Boolean = false,
   supportingText: @Composable (() -> Unit)? = null,
   enabled: Boolean = true,
+  // between 0.0 and 1.0
+  minFuzzyScore: Double = 0.6,
+  enableFuzzySearch: Boolean = true,
 ) {
   var expanded by remember { mutableStateOf(false) }
   val scrollState = rememberScrollState()
+
+  val localSoftwareKeyboardController = LocalSoftwareKeyboardController.current
 
   LaunchedEffect(selectedItem) {
     if (selectedItem != null) {
@@ -57,11 +65,32 @@ fun <T> SearchableDropdown(
     }
   }
 
-  val filteredItems = remember(query, items) {
-    if (query.isEmpty()) {
-      items
+  var debouncedQuery by remember { mutableStateOf(query) }
+
+  LaunchedEffect(query) {
+    if (query.isBlank()) {
+      debouncedQuery = query
     } else {
-      items.filter { itemSearchLabeler(it).contains(query, ignoreCase = true) }
+      kotlinx.coroutines.delay(150.milliseconds)
+      debouncedQuery = query
+    }
+  }
+
+  val filteredItems = remember(debouncedQuery, items, minFuzzyScore, enableFuzzySearch) {
+    if (debouncedQuery.isBlank()) {
+      items
+    } else if (!enableFuzzySearch) {
+      items.filter { itemSearchLabeler(it).contains(debouncedQuery, ignoreCase = true) }
+    } else {
+      items
+        .map { item ->
+          val label = itemSearchLabeler(item)
+          val score = FuzzyKt.partialRatio(debouncedQuery.lowercase(), label.lowercase())
+          item to score
+        }
+        .filter { (_, score) -> score >= minFuzzyScore }
+        .sortedByDescending { (_, score) -> score }
+        .map { (item, _) -> item }
     }
   }
 
@@ -75,11 +104,22 @@ fun <T> SearchableDropdown(
       onValueChange = {
         onQueryChange(it)
         expanded = true
+        val queryTrimmed = it.trim()
         val matchedItem = items.find { item ->
-          itemLabeler(item).trim().equals(it.trim(), ignoreCase = true)
+          itemLabeler(item).trim().equals(queryTrimmed, ignoreCase = true)
         }
-        if (matchedItem != null && matchedItem != selectedItem) {
+        if (matchedItem != selectedItem) {
           onItemSelect(matchedItem)
+
+          if (matchedItem != null) {
+            val hasOtherPrefixMatches = items.any { item ->
+              item != matchedItem && itemLabeler(item).trim().startsWith(queryTrimmed, ignoreCase = true)
+            }
+            if (!hasOtherPrefixMatches) {
+              expanded = false
+              localSoftwareKeyboardController?.hide()
+            }
+          }
         }
       },
       label = { Text(label) },
@@ -117,10 +157,12 @@ fun <T> SearchableDropdown(
         expanded = expanded, scrollState = scrollState, onDismissRequest = { expanded = false }) {
         filteredItems.forEach { item ->
           DropdownMenuItem(
-            text = { menuItemContent(item) }, onClick = {
+            text = { menuItemContent(item) },
+            onClick = {
               onItemSelect(item)
               onQueryChange(itemLabeler(item))
               expanded = false
+              localSoftwareKeyboardController?.hide()
             },
             trailingIcon = {
               if (selectedItem == item)

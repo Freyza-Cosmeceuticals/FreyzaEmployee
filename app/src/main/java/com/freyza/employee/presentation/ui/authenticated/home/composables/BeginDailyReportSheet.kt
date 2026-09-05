@@ -57,6 +57,7 @@ import com.freyza.employee.domain.model.dummyUserEmployeeAlt
 import com.freyza.employee.presentation.ui.composables.RouteItem
 import com.freyza.employee.presentation.ui.composables.SearchableDropdown
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -250,11 +251,21 @@ fun BeginDailyReportSheet(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.error
               )
-              Text(
-                "${selectedSource?.name} -> ${selectedDestination?.name}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+              RouteItem(
+                route = RouteWithLocation(
+                  id = "new",
+                  srcLoc = selectedSource!!,
+                  destLoc = selectedDestination!!,
+                  0.0f,
+                  Instant.parse("1970-01-01T00:00:00.000+00:00"),
+                  updatedAt = null
+                )
               )
+//              Text(
+//                "${selectedSource!!.name} -> ${selectedDestination!!.name}",
+//                style = MaterialTheme.typography.titleMedium,
+//                fontWeight = FontWeight.Bold
+//              )
               Text(
                 "This route will be created automatically.",
                 style = MaterialTheme.typography.bodySmall,

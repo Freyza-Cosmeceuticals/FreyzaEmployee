@@ -21,6 +21,7 @@ timber = "5.0.1"
 sentry-bom = "8.54.0"
 sentry = "6.20.0"
 playServicesLocation = "21.4.0"
+ktFuzzy = "0.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -67,6 +68,8 @@ sentry-android = { group = "io.sentry", name = "sentry-android" }
 sentry-timber = { group = "io.sentry", name = "sentry-android-timber"}
 
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+
+kt-fuzzy = { module = "ca.solo-studios:kt-fuzzy", version.ref = "ktFuzzy" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
