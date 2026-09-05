@@ -103,8 +103,8 @@ class TravelPlanRepositoryImpl(
         }.decodeSingleOrNull<TravelPlanDto>()
 
         val plan = travelPlanDto?.toDomain()
+        currentPlanCache = plan
         if (plan != null) {
-          currentPlanCache = plan
           planCache[plan.id] = plan
         }
 

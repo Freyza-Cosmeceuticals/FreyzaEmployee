@@ -92,6 +92,7 @@ class UserRepositoryImpl(
           val employeesResponse = response.body<EmployeesResponse>()
           if (employeesResponse.success) {
             val employees = employeesResponse.data.map { it.toDomain() }
+            cachedEmployees.clear()
             employees.forEach {
               cachedEmployees[it.id] = it
             }

@@ -64,14 +64,17 @@ class DailyReportViewModel(
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {
-      loadAllDailyReports(employeeId)
+      loadAllDailyReports(employeeId, forceRefresh)
       loadAllRoutes(forceRefresh)
       loadHqEmployees(forceRefresh)
     }
   }
 
-  fun loadAllDailyReports(employeeId: String? = sessionManager.currentEmployee.value?.id) {
-    Logger.d(TAG, "Fetching all daily reports for emp:$employeeId with visits")
+  fun loadAllDailyReports(
+    employeeId: String? = sessionManager.currentEmployee.value?.id,
+    forceRefresh: Boolean = false,
+  ) {
+    Logger.d(TAG, "Fetching all daily reports for emp:$employeeId forceRefresh:$forceRefresh")
 
     if (employeeId == null) {
       Logger.e(TAG, "Current employee not set. cannot load daily reports, aborting")
@@ -92,6 +95,7 @@ class DailyReportViewModel(
           numDailyReports = Constants.NUM_RECENT_DAILY_REPORTS,
           employeeId = employeeId,
           withVisits = false,
+          forceRefresh = forceRefresh,
         )
       )
 

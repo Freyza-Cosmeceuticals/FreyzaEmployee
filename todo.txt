@@ -37,3 +37,4 @@ x 2026-09-04 2026-09-01 Optimize visits fetch nested join query being slow. OR d
 x 2026-09-02 2026-09-02 fix immediate home screen navigation after login. Make it wait until user is not null
 (A) 2026-09-04 parallelize travel plan fetches. Group the dependent travel plan calls (getTravelPlan -> getTravelPlanEntry -> getMetrics) into a unified coroutine supervisorScope or api composite endpoint to cut down initialization latency on the Home screen.
 x 2026-09-05 2026-09-05 Confirmation for begin report
+x 2026-09-05 2026-09-05 fix stale/ghost reports in cache after deletion from server

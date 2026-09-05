@@ -142,11 +142,27 @@ class DailyReportRepositoryImpl(
 
         val dailyReport = dailyReportDto?.toDomain()
         if (dailyReport != null) {
+          // Evict any stale report entries for today with a different ID
+          reportCache.values.filter { it.date == today && it.employeeId == employeeId && it.id != dailyReport.id }
+            .forEach { old ->
+              reportCache.remove(old.id)
+              visitCountsCache.remove(old.id)
+              reportsWithVisitsLoaded.remove(old.id)
+            }
+
           reportCache[dailyReport.id] = dailyReport
           visitCountsCache[dailyReport.id] = dailyReport.computedVisitCounts
           if (withVisits) {
             reportsWithVisitsLoaded.add(dailyReport.id)
           }
+        } else {
+          // If server returned null (e.g., report was deleted on backend), evict stale today reports
+          reportCache.values.filter { it.date == today && it.employeeId == employeeId }
+            .forEach { old ->
+              reportCache.remove(old.id)
+              visitCountsCache.remove(old.id)
+              reportsWithVisitsLoaded.remove(old.id)
+            }
         }
         dailyReport
       }
@@ -159,7 +175,12 @@ class DailyReportRepositoryImpl(
     withVisits: Boolean,
     forceRefresh: Boolean,
   ): Result<List<DailyReport>> {
-    if (!forceRefresh && reportCache.isNotEmpty()) {
+    if (forceRefresh) {
+      Logger.d(TAG, "forceRefresh requested on getRecentDailyReports, clearing caches")
+      reportCache.clear()
+      visitCountsCache.clear()
+      reportsWithVisitsLoaded.clear()
+    } else if (reportCache.isNotEmpty()) {
       val cachedReports = reportCache.values
         .filter { it.employeeId == employeeId }
         .sortedByDescending { it.date }
@@ -221,6 +242,15 @@ class DailyReportRepositoryImpl(
           }
           domainReport
         }
+        // Evict any cached reports for this employee that no longer exist in the server response
+        val fetchedIds = reportsDto.map { it.id }.toSet()
+        reportCache.values.filter { it.employeeId == employeeId && !fetchedIds.contains(it.id) }
+          .forEach { stale ->
+            reportCache.remove(stale.id)
+            visitCountsCache.remove(stale.id)
+            reportsWithVisitsLoaded.remove(stale.id)
+          }
+
         reports.forEach { report ->
           val existingReport = reportCache[report.id]
           val finalReport = if (!withVisits && existingReport != null && existingReport.visits.isNotEmpty()) {
@@ -314,7 +344,15 @@ class DailyReportRepositoryImpl(
           }
         }.decodeSingleOrNull<VisitDto>()
 
-        visitDto?.toDomain()
+        val visit = visitDto?.toDomain()
+        if (visit != null) {
+          val cachedReport = reportCache[visit.reportId]
+          if (cachedReport != null && cachedReport.visits.isNotEmpty()) {
+            val updatedVisits = cachedReport.visits.map { if (it.id == visit.id) visit else it }
+            reportCache[visit.reportId] = cachedReport.copy(visits = updatedVisits)
+          }
+        }
+        visit
       }
     }
   }
@@ -411,7 +449,7 @@ class DailyReportRepositoryImpl(
             // 2. Assured that this entry contains all POIs for the locations
             poiCache[cacheKey] = pois
 
-            Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationIds: $cacheKey")
+            Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationIds: $cacheKey from network")
             pois
           } else {
             throw Exception("Unable to fetch POIs")
@@ -508,6 +546,8 @@ class DailyReportRepositoryImpl(
             Logger.d(TAG, "Daily report created successfully")
             val report = beginResponse.data.toDomain()
             reportCache[report.id] = report
+            visitCountsCache[report.id] = report.computedVisitCounts
+            travelPlanRepository.invalidateMetricsCache()
             report
           } else {
             Logger.e(TAG, "Unable to create daily report. ${response.status.description}")
@@ -591,6 +631,7 @@ class DailyReportRepositoryImpl(
         reportCache.clear()
         visitCountsCache.clear()
         reportsWithVisitsLoaded.clear()
+        travelPlanRepository.invalidateMetricsCache()
         true
       }
     }
