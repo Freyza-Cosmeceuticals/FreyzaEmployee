@@ -1,6 +1,7 @@
 package com.freyza.employee.core.di
 
 import androidx.room.Room
+import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.data.local.db.FreyzaDatabase
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -23,4 +24,22 @@ val databaseModule = module {
   single { get<FreyzaDatabase>().userDao() }
   single { get<FreyzaDatabase>().travelPlanDao() }
   single { get<FreyzaDatabase>().poiDao() }
+
+  single {
+    SyncManager(
+      appMetaDao = get(),
+      syncStateDao = get(),
+      locationDao = get(),
+      routeDao = get(),
+      userDao = get(),
+      travelPlanDao = get(),
+      poiDao = get(),
+      postgrest = get(),
+      httpClient = get(),
+      appConfig = get(),
+      auth = get(),
+      sessionManager = get(),
+      serverTime = get()
+    )
+  }
 }
