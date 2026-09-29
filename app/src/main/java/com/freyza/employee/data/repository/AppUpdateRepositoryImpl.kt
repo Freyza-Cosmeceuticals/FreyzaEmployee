@@ -1,12 +1,20 @@
 package com.freyza.employee.data.repository
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.freyza.employee.BuildConfig
 import com.freyza.employee.core.AppConfig
+import com.freyza.employee.core.Constants
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.ApiErrorResponse
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.local.dao.AppMetaDao
+import com.freyza.employee.data.local.entities.AppMetaEntity
 import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.network.dto.AppVersionResponseDto
 import com.freyza.employee.domain.model.AppUpdateInfo
@@ -18,6 +26,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.prepareGet
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
@@ -33,10 +42,11 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class AppUpdateRepositoryImpl(
-  private val context: android.content.Context,
+  private val context: Context,
   private val httpClient: HttpClient,
   private val appConfig: AppConfig,
   private val auth: Auth,
+  private val appMetaDao: AppMetaDao,
 ) : AppUpdateRepository {
 
   companion object {
@@ -45,6 +55,24 @@ class AppUpdateRepositoryImpl(
   }
 
   override suspend fun checkForUpdate(): Result<AppUpdateInfo> {
+    val now = System.currentTimeMillis()
+    val meta = withContext(Dispatchers.IO) { appMetaDao.getAppMeta() } ?: AppMetaEntity()
+
+    if ((now - meta.lastVersionCheckAt) < Constants.TTL_VERSION_CHECK_MS) {
+      Logger.d(TAG, "Skipping network update check; last check was within 12h")
+      return Result.Success(
+        AppUpdateInfo(
+          hasUpdate = false,
+          versionName = BuildConfig.VERSION_NAME,
+          buildNumber = BuildConfig.VERSION_CODE.toLong(),
+          releaseNotes = "",
+          isMandatory = false,
+          downloadUrl = "",
+          fileSizeMb = null
+        )
+      )
+    }
+
     return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching latest app version from server")
@@ -58,6 +86,13 @@ class AppUpdateRepositoryImpl(
           if (updateResponse.success && updateResponse.data != null) {
             val localBuildNumber = BuildConfig.VERSION_CODE
             val hasUpdate = updateResponse.data.buildNumber > localBuildNumber
+
+            appMetaDao.upsertAppMeta(
+              meta.copy(
+                lastVersionCheckAt = now,
+                serverVersion = updateResponse.data.versionName
+              )
+            )
 
             Sentry.addBreadcrumb(Breadcrumb().apply {
               category = "app.update"
@@ -147,7 +182,7 @@ class AppUpdateRepositoryImpl(
     }.flowOn(Dispatchers.IO)
 
   override fun installUpdate(): Result<Unit> {
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       if (!context.packageManager.canRequestPackageInstalls()) {
         Sentry.addBreadcrumb(Breadcrumb().apply {
           category = "app.update"
@@ -155,10 +190,10 @@ class AppUpdateRepositoryImpl(
         })
 
         val intent =
-          android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+          Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
             .apply {
               data = "package:${context.packageName}".toUri()
-              addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+              addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
         context.startActivity(intent)
         return Result.Error("Permission required to install unknown apps")
@@ -173,16 +208,16 @@ class AppUpdateRepositoryImpl(
     }
 
     return try {
-      val contentUri = androidx.core.content.FileProvider.getUriForFile(
+      val contentUri = FileProvider.getUriForFile(
         context,
         "${context.packageName}.fileprovider",
         apkFile
       )
 
-      val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+      val intent = Intent(Intent.ACTION_VIEW).apply {
         setDataAndType(contentUri, "application/vnd.android.package-archive")
-        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       }
 
       Sentry.addBreadcrumb(Breadcrumb().apply {
@@ -201,7 +236,7 @@ class AppUpdateRepositoryImpl(
     }
   }
 
-  private fun io.ktor.client.statement.HttpResponse.contentLength(): Long? {
+  private fun HttpResponse.contentLength(): Long? {
     return headers["Content-Length"]?.toLongOrNull()
   }
 }
