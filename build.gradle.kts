@@ -6,4 +6,5 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
 
     alias(libs.plugins.sentry.android.gradle) apply false
+    alias(libs.plugins.ksp) apply false
 }

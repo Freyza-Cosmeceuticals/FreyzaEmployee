@@ -1,8 +1,8 @@
 x 2026-07-08 2026-07-08 koin modules syntax cleanup @architecture
 x 2026-07-10 2026-07-10 usecases cleanup @architecture
 x 2026-08-22 2026-08-22 in-app updates @feature
-(B) Offline sync using Room. Make layered data source with UI -> InMemory -> Room -> Remote @ux @feature
-(C) Sentry logging and tracing for all actions @monitoring
+(B) 2026-09-07 add last update check timestamp and don't check for sometime
+(C) 2026-09-07 Sentry application metrics for visit creation and others
 x 2026-07-09 2026-06-24 Own Screen for Reports +dailyreport @ux
 x 2026-07-23 2026-07-23 Edit visits +dailyreport @feature
 x 2026-07-16 2026-07-16 Capture location with visits +dailyreport @admin
@@ -17,7 +17,7 @@ add mock coords fill in DEBUG
 x 2026-07-17 2026-07-17 Better gps and perms blocking screen
 x 2026-07-17 2026-07-17 App Icon
 x 2026-07-17 2026-07-17 delete visits
-(A) 2026-07-23 add proper error messages on login screen
+(A) 2026-09-29 expense export in app for the current month or last month
 x 2026-08-02 2026-08-01 Travelling with option in report creation
 x 2026-08-02 2026-08-01 Use new report begin endpoint for report creation
 x 2026-08-08 2026-08-07 fetch POIs in create visit screen
@@ -35,7 +35,17 @@ x 2026-09-05 2026-09-01 fuzzy search in all autocomplete fields
 x 2026-09-02 2026-09-01 resolve odd timeout errors. Still throwing no token even when cached token. Wait for token init using common function
 x 2026-09-04 2026-09-01 Optimize visits fetch nested join query being slow. OR don't fetch all visits on home page (only metrics). Fetch individually and use cache +dailyreport
 x 2026-09-02 2026-09-02 fix immediate home screen navigation after login. Make it wait until user is not null
-(A) 2026-09-04 parallelize travel plan fetches. Group the dependent travel plan calls (getTravelPlan -> getTravelPlanEntry -> getMetrics) into a unified coroutine supervisorScope or api composite endpoint to cut down initialization latency on the Home screen.
+(A) 2026-09-06 show proper charts and expenses in the app
 x 2026-09-05 2026-09-05 Confirmation for begin report
 x 2026-09-05 2026-09-05 fix stale/ghost reports in cache after deletion from server
 x 2026-09-05 2026-09-05 animation for target metrics
+(A) 2026-09-05 implement tiers in app level
+(A) 2026-09-05 make create visit faster
+(A) 2026-09-04 parallelize travel plan fetches. Group the dependent travel plan calls (getTravelPlan -> getTravelPlanEntry -> getMetrics) into a unified coroutine supervisorScope or api composite endpoint to cut down initialization latency on the Home screen.
+(A) 2026-09-05 increase accuracy of amounts shown in metrics
+(B) 2026-09-06 break update check into fast latest version and then signed url process
+(C) Sentry logging and tracing for all actions @monitoring
+(A) 2026-07-23 add proper error messages on login screen
+(B) Offline sync using Room. Make layered data source with UI -> InMemory -> Room -> Remote @ux @feature
+(A) 2026-09-07 prevent update check on login screen ??? Or allow without token
+(A) 2026-09-07 fix snackbar positioning
