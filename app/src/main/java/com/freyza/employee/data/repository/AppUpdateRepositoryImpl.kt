@@ -16,6 +16,7 @@ import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.local.dao.AppMetaDao
 import com.freyza.employee.data.local.entities.AppMetaEntity
 import com.freyza.employee.data.mappers.toDomain
+import com.freyza.employee.data.network.dto.AppDownloadResponseDto
 import com.freyza.employee.data.network.dto.AppVersionResponseDto
 import com.freyza.employee.domain.model.AppUpdateInfo
 import com.freyza.employee.domain.repository.AppUpdateRepository
@@ -25,6 +26,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
@@ -77,45 +79,70 @@ class AppUpdateRepositoryImpl(
       withContext(Dispatchers.IO) {
         Logger.d(TAG, "Fetching latest app version from server")
 
-        val response = httpClient.get("${appConfig.apiUrl}/api/app/version/latest") {
+        val versionResponse = httpClient.get("${appConfig.apiUrl}/api/app/version/latest") {
           header(HttpHeaders.Authorization, "Bearer $token")
         }
 
-        if (response.status.isSuccess()) {
-          val updateResponse = response.body<AppVersionResponseDto>()
-          if (updateResponse.success && updateResponse.data != null) {
-            val localBuildNumber = BuildConfig.VERSION_CODE
-            val hasUpdate = updateResponse.data.buildNumber > localBuildNumber
-
-            appMetaDao.upsertAppMeta(
-              meta.copy(
-                lastVersionCheckAt = now,
-                serverVersion = updateResponse.data.versionName
-              )
-            )
-
-            Sentry.addBreadcrumb(Breadcrumb().apply {
-              category = "app.update"
-              message = "Version check completed"
-              setData("localBuildNumber", localBuildNumber)
-              setData("serverBuildNumber", updateResponse.data.buildNumber)
-              setData("hasUpdate", hasUpdate)
-              setData("isMandatory", updateResponse.data.isMandatory)
-            })
-
-            updateResponse.data.toDomain(hasUpdate = hasUpdate)
-          } else {
-            throw Exception("Unable to fetch latest version")
-          }
-        } else {
+        if (!versionResponse.status.isSuccess()) {
           val error = try {
-            response.body<ApiErrorResponse>()
+            versionResponse.body<ApiErrorResponse>()
           } catch (e: Exception) {
-            ApiErrorResponse(message = response.status.description)
+            ApiErrorResponse(message = versionResponse.status.description)
           }
-          Logger.e(TAG, "API Error: ${response.status} - $error")
+          Logger.e(TAG, "API Error: ${versionResponse.status} - $error")
           throw Exception(error.message)
         }
+
+        val updateResponse = versionResponse.body<AppVersionResponseDto>()
+        val versionData = updateResponse.data
+          ?: throw Exception("Unable to fetch latest version")
+
+        val localBuildNumber = BuildConfig.VERSION_CODE
+        val hasUpdate = versionData.buildNumber > localBuildNumber
+
+        appMetaDao.upsertAppMeta(
+          meta.copy(
+            lastVersionCheckAt = now,
+            serverVersion = versionData.versionName
+          )
+        )
+
+        Sentry.addBreadcrumb(Breadcrumb().apply {
+          category = "app.update"
+          message = "Version check completed"
+          setData("localBuildNumber", localBuildNumber)
+          setData("serverBuildNumber", versionData.buildNumber)
+          setData("hasUpdate", hasUpdate)
+          setData("isMandatory", versionData.isMandatory)
+        })
+
+        if (!hasUpdate) {
+          Logger.d(TAG, "App is up to date (local: $localBuildNumber, server: ${versionData.buildNumber})")
+          return@withContext versionData.toDomain(hasUpdate = false)
+        }
+
+        Logger.d(TAG, "Update available, fetching download link")
+        val downloadResponse = httpClient.get("${appConfig.apiUrl}/api/app/download") {
+          header(HttpHeaders.Authorization, "Bearer $token")
+          parameter("versionName", versionData.versionName)
+          parameter("buildNumber", versionData.buildNumber)
+        }
+
+        if (!downloadResponse.status.isSuccess()) {
+          val error = try {
+            downloadResponse.body<ApiErrorResponse>()
+          } catch (e: Exception) {
+            ApiErrorResponse(message = downloadResponse.status.description)
+          }
+          Logger.e(TAG, "Download link API Error: ${downloadResponse.status} - $error")
+          throw Exception(error.message)
+        }
+
+        val downloadResult = downloadResponse.body<AppDownloadResponseDto>()
+        val downloadData = downloadResult.data
+          ?: throw Exception("Unable to fetch update download link")
+
+        downloadData.toDomain(hasUpdate = true)
       }
     }
   }
