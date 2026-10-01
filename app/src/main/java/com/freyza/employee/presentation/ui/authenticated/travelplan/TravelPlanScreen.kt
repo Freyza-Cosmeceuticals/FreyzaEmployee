@@ -4,12 +4,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -24,7 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,6 +43,7 @@ import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.toLocalDate
+import com.freyza.employee.core.util.toTitleCase
 import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.TravelPlan
 import com.freyza.employee.domain.model.User
@@ -80,7 +89,8 @@ fun TravelPlanScreenRoute(
       uiState = uiState,
       user = currentUser!!,
       modifier = modifier,
-      loadSelectedPlanEntryRoute = viewModel::loadSelectedPlanEntryRoute
+      loadSelectedPlanEntryRoute = viewModel::loadSelectedPlanEntryRoute,
+      onRefresh = { viewModel.refresh(forceRefresh = true) }
     )
   }
 }
@@ -92,6 +102,7 @@ fun TravelPlanScreen(
   user: User,
   modifier: Modifier = Modifier,
   loadSelectedPlanEntryRoute: (tpEntryId: String) -> Unit,
+  onRefresh: () -> Unit,
 ) {
   val sheetState = rememberModalBottomSheetState()
 
@@ -189,7 +200,15 @@ fun TravelPlanScreen(
       item {
         when (val travelPlan = uiState.currentTravelPlan) {
           is UIState.Loading -> {
-            LoadingIndicator(message = "Loading Travel Plan..")
+            Column(
+              modifier = Modifier
+                .fillParentMaxSize()
+                .padding(dimensionResource(R.dimen.screen_padding)),
+              horizontalAlignment = Alignment.CenterHorizontally,
+              verticalArrangement = Arrangement.Center
+            ) {
+              LoadingIndicator(message = "Loading Travel Plan..")
+            }
           }
 
           is UIState.Ready -> {
@@ -206,11 +225,42 @@ fun TravelPlanScreen(
                     loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
                   }
                 })
+            } else {
+              Column(
+                modifier = Modifier
+                  .fillParentMaxSize()
+                  .padding(dimensionResource(R.dimen.screen_padding)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+              ) {
+                Icon(
+                  painter = painterResource(R.drawable.pending_actions_24px),
+                  contentDescription = null,
+                  modifier = Modifier.size(120.dp),
+                  tint = MaterialTheme.colorScheme.outlineVariant
+                )
+                Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing)))
+                Text(
+                  text = "No Travel Plan created for ${uiState.today.month.name.toTitleCase()} yet.",
+                  style = MaterialTheme.typography.titleMedium,
+                  textAlign = TextAlign.Center,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                  text = "Ask admins to create one for you.",
+                  style = MaterialTheme.typography.bodyMedium,
+                  color = MaterialTheme.colorScheme.outline
+                )
+                Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
+
+                FilledTonalButton(onClick = onRefresh) {
+                  Text("Refresh")
+                }
+              }
             }
 
             if (BuildConfig.DEBUG) {
-              DebugTravelPlan(travelPlan.data)
-
+              travelPlan.data?.let { DebugTravelPlan(travelPlan.data) }
               OutlinedTextField("", { })
             }
           }
@@ -227,24 +277,19 @@ fun TravelPlanScreen(
 }
 
 @Composable
-private fun DebugTravelPlan(travelPlan: TravelPlan?, modifier: Modifier = Modifier) {
+private fun DebugTravelPlan(travelPlan: TravelPlan, modifier: Modifier = Modifier) {
   Card {
     Column(modifier = modifier.padding(8.dp)) {
+      Text(travelPlan.id, fontFamily = FontFamily.Monospace)
+      Text("empId: ${travelPlan.employeeId}")
+      Text(DateFormatter.format(travelPlan.month))
+      Text("createdById: ${travelPlan.createdById}")
 
-      if (travelPlan === null) {
-        Text("No Travel Plan")
-      } else {
-        Text(travelPlan.id, fontFamily = FontFamily.Monospace)
-        Text("empId: ${travelPlan.employeeId}")
-        Text(DateFormatter.format(travelPlan.month))
-        Text("createdById: ${travelPlan.createdById}")
+      Text(travelPlan.travelPlanEntries.size.toString())
 
-        Text(travelPlan.travelPlanEntries.size.toString())
-
-        Text(DateFormatter.format(travelPlan.createdAt))
-        travelPlan.updatedAt?.let {
-          Text(DateFormatter.format(it))
-        }
+      Text(DateFormatter.format(travelPlan.createdAt))
+      travelPlan.updatedAt?.let {
+        Text(DateFormatter.format(it))
       }
     }
   }
@@ -260,7 +305,24 @@ private fun TravelPlanScreenPreview() {
         UIState.Ready(dummyTravelPlan())
       ),
       user = dummyUserEmployee(),
-      loadSelectedPlanEntryRoute = { _ -> }
+      loadSelectedPlanEntryRoute = { _ -> },
+      onRefresh = {}
+    )
+  }
+}
+
+@Preview(showSystemUi = false, showBackground = true)
+@Composable
+private fun TravelPlanScreenNoPlanPreview() {
+  FreyzaEmployeeTheme {
+    TravelPlanScreen(
+      uiState = TravelPlanUiState(
+        ServerTime().nowLocalDateTime(),
+        UIState.Ready(null)
+      ),
+      user = dummyUserEmployee(),
+      loadSelectedPlanEntryRoute = { _ -> },
+      onRefresh = {}
     )
   }
 }
