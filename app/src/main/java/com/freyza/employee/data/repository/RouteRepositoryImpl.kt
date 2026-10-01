@@ -3,7 +3,10 @@ package com.freyza.employee.data.repository
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.local.dao.LocationDao
+import com.freyza.employee.data.local.dao.RouteDao
 import com.freyza.employee.data.mappers.toDomain
+import com.freyza.employee.data.mappers.toEntity
 import com.freyza.employee.data.network.dto.RouteDto
 import com.freyza.employee.data.network.dto.RouteWithLocationDto
 import com.freyza.employee.domain.model.Route
@@ -14,105 +17,57 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
+class RouteRepositoryImpl(
+  private val postgrest: Postgrest,
+  private val routeDao: RouteDao,
+  private val locationDao: LocationDao,
+) : RouteRepository {
+
   companion object {
     const val TAG: String = "RouteRepository"
   }
 
   override fun clearCache() {
-    Logger.d(TAG, "Clearing route caches")
-    routeCache.clear()
-    routesCache = null
-    cachedRoutesWithLocation = null
+    throw NotImplementedError()
   }
 
-  // Cache for individual routes keyed by route ID
-  private var routeCache = mutableMapOf<String, Route>()
-
-  // Cache for the complete list of basic routes
-  private var routesCache: List<Route>? = null
-
-  // Cache for the complete list of routes with nested location data
-  private var cachedRoutesWithLocation: List<RouteWithLocation>? = null
+  override fun observeAllRoutesWithLocation(): Flow<List<RouteWithLocation>> {
+    return routeDao.getAllRoutesWithLocationFlow().map { entities ->
+      entities.map { it.toDomain() }
+    }
+  }
 
   override suspend fun getRoute(routeId: String, forceRefresh: Boolean): Result<Route?> {
-    if (!forceRefresh && routeCache.containsKey(routeId)) {
-      Logger.d(TAG, "Cache hit for route ID: $routeId")
-      return Result.Success(routeCache[routeId])
-    }
-
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying route with ID: $routeId from network")
-
-        val routeDto = postgrest.from("route").select {
-          filter {
-            RouteDto::id eq routeId
-          }
-        }.decodeSingleOrNull<RouteDto>()
-
-        val route = routeDto?.toDomain()
-        if (route != null) {
-          routeCache[routeId] = route
-        }
-
-        route
-      }
+    val cached = routeDao.getRouteById(routeId)
+    return if (cached != null && !forceRefresh) {
+      Result.Success(cached.toDomain())
+    } else {
+      refreshRoutes()
+      Result.Success(routeDao.getRouteById(routeId)?.toDomain())
     }
   }
 
   override suspend fun getAllRoutes(forceRefresh: Boolean): Result<List<Route>> {
-    if (!forceRefresh && routesCache != null) {
-      Logger.d(TAG, "Cache hit for all routes")
-      return Result.Success(routesCache!!)
-    }
-
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying all routes from network")
-
-        val routesDto = postgrest.from("route").select().decodeList<RouteDto>()
-
-        val routes = routesDto.map { it.toDomain() }
-        routesCache = routes
-        // Also populate individual cache
-        routes.forEach { routeCache[it.id] = it }
-
-        routes
-      }
+    val cached = routeDao.getAllRoutes()
+    return if (cached.isNotEmpty() && !forceRefresh) {
+      Result.Success(cached.map { it.toDomain() })
+    } else {
+      refreshRoutes()
+      Result.Success(routeDao.getAllRoutes().map { it.toDomain() })
     }
   }
 
   override suspend fun getAllRoutesWithLocation(forceRefresh: Boolean): Result<List<RouteWithLocation>> {
-    if (!forceRefresh && cachedRoutesWithLocation != null) {
-      Logger.d(TAG, "Cache hit for all routes with location")
-      return Result.Success(cachedRoutesWithLocation!!)
-    }
-
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying all routes with location from network")
-
-        val routesDto = postgrest.from("route").select(
-          Columns.raw(
-            """
-          *,
-          srcLoc:location!route_srcLocId_fkey(*),
-          destLoc:location!route_destLocId_fkey(*)
-         """.trimIndent()
-          )
-        ).decodeList<RouteWithLocationDto>()
-
-        val routes = routesDto.map { it.toDomain() }
-        cachedRoutesWithLocation = routes
-
-        // Also populate individual basic route cache
-        routes.forEach { routeCache[it.id] = it.toRoute() }
-
-        routes
-      }
+    val cached = routeDao.getAllRoutesWithLocation()
+    return if (cached.isNotEmpty() && !forceRefresh) {
+      Result.Success(cached.map { it.toDomain() })
+    } else {
+      refreshRoutes()
+      Result.Success(routeDao.getAllRoutesWithLocation().map { it.toDomain() })
     }
   }
 
@@ -128,15 +83,32 @@ class RouteRepositoryImpl(private val postgrest: Postgrest) : RouteRepository {
         ).decodeAs<RouteDto>()
 
         val route = routeDto.toDomain()
-
-        // Invalidate caches
-        routeCache.clear()
-        routesCache = null
-        cachedRoutesWithLocation = null
-
-        Logger.d(TAG, "Caches invalidated after creating new route")
-
+        routeDao.upsertRoute(route.toEntity())
         route
+      }
+    }
+  }
+
+  override suspend fun refreshRoutes(): Result<Unit> {
+    return safeApiCall(TAG) {
+      withContext(Dispatchers.IO) {
+        val routesDto = postgrest.from("route").select(
+          Columns.raw(
+            """
+          *,
+          srcLoc:location!route_srcLocId_fkey(*),
+          destLoc:location!route_destLocId_fkey(*)
+         """.trimIndent()
+          )
+        ).decodeList<RouteWithLocationDto>()
+
+        val routeEntities = routesDto.map { it.toDomain().toRoute().toEntity() }
+        val locationEntities = routesDto.flatMap { dto ->
+          listOf(dto.srcLoc.toDomain().toEntity(), dto.destLoc.toDomain().toEntity())
+        }.distinctBy { it.id }
+
+        locationDao.upsertLocations(locationEntities)
+        routeDao.upsertRoutes(routeEntities)
       }
     }
   }

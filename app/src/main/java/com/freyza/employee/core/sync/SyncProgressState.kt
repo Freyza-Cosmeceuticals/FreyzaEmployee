@@ -6,6 +6,7 @@ enum class SyncStep(val title: String) {
   ROUTES("Syncing Routes"),
   EMPLOYEES("Syncing Employees"),
   TRAVEL_PLAN("Syncing Travel Plan"),
+  POIS("Syncing Points of Interest"),
   COMPLETED("Sync Completed")
 }
 

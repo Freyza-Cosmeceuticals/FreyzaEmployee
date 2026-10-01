@@ -49,6 +49,7 @@ import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.SnackbarManager
+import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.domain.model.AuthState
 import com.freyza.employee.presentation.nav.NavRoutes
 import com.freyza.employee.presentation.nav.authenticatedGraph
@@ -78,6 +79,7 @@ fun FreyzaEmployeeApp(
   appUpdateViewModel: AppUpdateViewModel = koinActivityViewModel(),
   snackbarManager: SnackbarManager = koinInject(),
   networkMonitor: NetworkMonitor = koinInject(),
+  syncManager: SyncManager = koinInject(),
 ) {
   val authState by sessionViewModel.authState.collectAsStateWithLifecycle()
   val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle(initialValue = true)
@@ -89,7 +91,6 @@ fun FreyzaEmployeeApp(
     sessionViewModel.checkAuth()
 
     // Asynchronously launch non-critical tasks without blocking critical path auth check
-    launch { sessionViewModel.syncTime() }
     launch { appUpdateViewModel.checkForUpdate() }
 
     snackbarManager.messages.collect { message ->
@@ -109,7 +110,7 @@ fun FreyzaEmployeeApp(
   LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
     if (authState is AuthState.Authenticated) {
       appUpdateViewModel.checkForUpdate()
-      sessionViewModel.syncTime()
+      syncManager.performSyncIfNeeded()
     }
   }
 

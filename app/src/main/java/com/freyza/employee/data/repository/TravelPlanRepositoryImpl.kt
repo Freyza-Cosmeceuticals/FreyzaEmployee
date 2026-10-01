@@ -8,7 +8,9 @@ import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
+import com.freyza.employee.data.local.dao.TravelPlanDao
 import com.freyza.employee.data.mappers.toDomain
+import com.freyza.employee.data.mappers.toEntity
 import com.freyza.employee.data.network.dto.TravelPlanDto
 import com.freyza.employee.data.network.dto.TravelPlanEntryDto
 import com.freyza.employee.data.network.dto.TravelPlanMetricsResponse
@@ -26,6 +28,11 @@ import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 
@@ -35,21 +42,9 @@ class TravelPlanRepositoryImpl(
   private val httpClient: HttpClient,
   private val appConfig: AppConfig,
   private val auth: Auth,
+  private val travelPlanDao: TravelPlanDao,
 ) : TravelPlanRepository {
 
-  // Cache for the most recently fetched current travel plan
-  private var currentPlanCache: TravelPlan? = null
-
-  // Cache for travel plans keyed by their ID
-  private val planCache = mutableMapOf<String, TravelPlan>()
-
-  // Cache for specific day plan entries keyed by "tpId-yyyy-mm-dd"
-  private val todayEntryCache = mutableMapOf<String, TravelPlanEntry?>()
-
-  // Cache for complete entry lists keyed by travel plan ID
-  private val entriesCache = mutableMapOf<String, List<TravelPlanEntry>>()
-
-  // Cache for travel plan metrics keyed by travel plan ID
   private val metricsCache = mutableMapOf<String, TravelPlanMetrics>()
 
   companion object {
@@ -57,11 +52,7 @@ class TravelPlanRepositoryImpl(
   }
 
   override fun clearCache() {
-    Logger.d(TAG, "Clearing travel plan caches")
-    currentPlanCache = null
-    planCache.clear()
-    todayEntryCache.clear()
-    entriesCache.clear()
+    Logger.d(TAG, "Clearing travel plan caches (Room DB managed)")
     metricsCache.clear()
   }
 
@@ -75,26 +66,62 @@ class TravelPlanRepositoryImpl(
     }
   }
 
+  @OptIn(ExperimentalCoroutinesApi::class)
+  override fun observeCurrentTravelPlan(employeeId: String, today: LocalDate): Flow<TravelPlan?> {
+    val thisMonth = DateFormatter.format(
+      LocalDate(year = today.year, month = today.month, day = 1),
+      DateFormatter.FormattingType.MACHINE
+    )
+    return travelPlanDao.getTravelPlanFlow(employeeId, thisMonth).flatMapLatest { planEntity ->
+      if (planEntity == null) {
+        flowOf(null)
+      } else {
+        travelPlanDao.getTravelPlanEntriesFlow(planEntity.id).map { entryEntities ->
+          planEntity.toDomain(entryEntities.map { it.toDomain() })
+        }
+      }
+    }
+  }
+
+  override fun observeTodayTravelPlanEntry(tpId: String, today: LocalDate): Flow<TravelPlanEntry?> {
+    return travelPlanDao.getTodayTravelPlanEntryFlow(tpId, today).map { it?.toDomain() }
+  }
+
   override suspend fun getCurrentTravelPlan(
     employeeId: String,
     withEntries: Boolean,
     forceRefresh: Boolean,
   ): Result<TravelPlan?> {
-    if (!forceRefresh && currentPlanCache != null && currentPlanCache?.employeeId == employeeId) {
-      Logger.d(TAG, "Cache hit for current travel plan")
-      return Result.Success(currentPlanCache)
+    val today = serverTime.todayIn()
+    val thisMonth = DateFormatter.format(
+      LocalDate(year = today.year, month = today.month, day = 1),
+      DateFormatter.FormattingType.MACHINE
+    )
+
+    val cachedPlan = travelPlanDao.getTravelPlan(employeeId, thisMonth)
+    if (cachedPlan != null && !forceRefresh) {
+      val entries = travelPlanDao.getTravelPlanEntries(cachedPlan.id).map { it.toDomain() }
+      return Result.Success(cachedPlan.toDomain(entries))
     }
 
+    refreshTravelPlan(employeeId, today)
+    val freshPlan = travelPlanDao.getTravelPlan(employeeId, thisMonth)
+    val freshEntries = if (freshPlan != null) {
+      travelPlanDao.getTravelPlanEntries(freshPlan.id).map { it.toDomain() }
+    } else {
+      emptyList()
+    }
+    return Result.Success(freshPlan?.toDomain(freshEntries))
+  }
+
+  override suspend fun refreshTravelPlan(employeeId: String, today: LocalDate): Result<Unit> {
+    val thisMonth = DateFormatter.format(
+      LocalDate(year = today.year, month = today.month, day = 1),
+      DateFormatter.FormattingType.MACHINE
+    )
+
     return safeApiCall(TAG) {
-      val today = serverTime.todayIn()
-      val thisMonth = DateFormatter.format(
-        LocalDate(year = today.year, month = today.month, day = 1),
-        DateFormatter.FormattingType.MACHINE
-      )
-
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying travelPlan for current employee and month: $thisMonth from network")
-
         val travelPlanDto = postgrest.from("travelPlan").select {
           filter {
             TravelPlanDto::employeeId eq employeeId
@@ -102,13 +129,18 @@ class TravelPlanRepositoryImpl(
           }
         }.decodeSingleOrNull<TravelPlanDto>()
 
-        val plan = travelPlanDto?.toDomain()
-        currentPlanCache = plan
-        if (plan != null) {
-          planCache[plan.id] = plan
-        }
+        if (travelPlanDto != null) {
+          val planEntity = travelPlanDto.toDomain().toEntity()
 
-        plan
+          val entriesDto = postgrest.from("travelPlanEntry").select {
+            filter {
+              TravelPlanEntryDto::tpId eq planEntity.id
+            }
+          }.decodeList<TravelPlanEntryDto>()
+
+          val entryEntities = entriesDto.map { it.toDomain().toEntity() }
+          travelPlanDao.insertPlanWithEntries(planEntity, entryEntities)
+        }
       }
     }
   }
@@ -118,32 +150,11 @@ class TravelPlanRepositoryImpl(
     forceRefresh: Boolean,
   ): Result<TravelPlanEntry?> {
     val today = serverTime.todayIn()
-    val thisDay = DateFormatter.format(today, DateFormatter.FormattingType.MACHINE)
-    val cacheKey = "$tpId-$thisDay"
-
-    if (!forceRefresh && todayEntryCache.containsKey(cacheKey)) {
-      Logger.d(TAG, "Cache hit for today's travel plan entry")
-      return Result.Success(todayEntryCache[cacheKey])
-    }
-
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        Logger.d(
-          TAG, "Querying travelPlanEntry for current employee and day: $thisDay from network"
-        )
-
-        val travelPlanEntryDto = postgrest.from("travelPlanEntry").select {
-          filter {
-            TravelPlanEntryDto::tpId eq tpId
-            TravelPlanEntryDto::date eq thisDay
-          }
-        }.decodeSingleOrNull<TravelPlanEntryDto>()
-
-        val entry = travelPlanEntryDto?.toDomain()
-        todayEntryCache[cacheKey] = entry
-
-        entry
-      }
+    val cached = travelPlanDao.getTodayTravelPlanEntry(tpId, today)
+    return if (cached != null && !forceRefresh) {
+      Result.Success(cached.toDomain())
+    } else {
+      Result.Success(travelPlanDao.getTodayTravelPlanEntry(tpId, today)?.toDomain())
     }
   }
 
@@ -151,28 +162,11 @@ class TravelPlanRepositoryImpl(
     tpId: String,
     forceRefresh: Boolean,
   ): Result<List<TravelPlanEntry>> {
-    if (!forceRefresh && entriesCache.containsKey(tpId)) {
-      Logger.d(TAG, "Cache hit for travel plan entries: $tpId")
-      return Result.Success(entriesCache[tpId]!!)
-    }
-
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        Logger.d(
-          TAG, "Querying travelPlanEntries for current employee and tpId: $tpId from network"
-        )
-
-        val travelPlanEntriesDto = postgrest.from("travelPlanEntry").select {
-          filter {
-            TravelPlanEntryDto::tpId eq tpId
-          }
-        }.decodeList<TravelPlanEntryDto>()
-
-        val travelPlanEntries = travelPlanEntriesDto.map { it.toDomain() }
-        entriesCache[tpId] = travelPlanEntries
-
-        travelPlanEntries
-      }
+    val cached = travelPlanDao.getTravelPlanEntries(tpId)
+    return if (cached.isNotEmpty() && !forceRefresh) {
+      Result.Success(cached.map { it.toDomain() })
+    } else {
+      Result.Success(travelPlanDao.getTravelPlanEntries(tpId).map { it.toDomain() })
     }
   }
 
@@ -180,25 +174,15 @@ class TravelPlanRepositoryImpl(
     id: String,
     forceRefresh: Boolean,
   ): Result<TravelPlan?> {
-    if (!forceRefresh && planCache.containsKey(id)) {
-      Logger.d(TAG, "Cache hit for travel plan ID: $id")
-      return Result.Success(planCache[id])
-    }
-
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying travel plan ID: $id from network")
-        val travelPlanDto = postgrest.from("travelPlan").select {
-          filter { TravelPlanDto::id eq id }
-        }.decodeSingleOrNull<TravelPlanDto>()
-
-        val plan = travelPlanDto?.toDomain()
-        if (plan != null) {
-          planCache[id] = plan
-        }
-
-        plan
-      }
+    val cached = travelPlanDao.getTravelPlanById(id)
+    return if (cached != null && !forceRefresh) {
+      val entries = travelPlanDao.getTravelPlanEntries(id).map { it.toDomain() }
+      Result.Success(cached.toDomain(entries))
+    } else {
+      Result.Success(travelPlanDao.getTravelPlanById(id)?.let { plan ->
+        val entries = travelPlanDao.getTravelPlanEntries(id).map { it.toDomain() }
+        plan.toDomain(entries)
+      })
     }
   }
 
@@ -223,11 +207,6 @@ class TravelPlanRepositoryImpl(
           val metricsResponse = response.body<TravelPlanMetricsResponse>()
 
           if (metricsResponse.success) {
-            Logger.d(
-              TAG,
-              "Fetched plan metrics ${metricsResponse} for planId:$id"
-            )
-
             val metrics = metricsResponse.data.toDomain()
             metricsCache[id] = metrics
             metrics

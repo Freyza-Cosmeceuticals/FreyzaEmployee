@@ -4,10 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.sync.SyncManager
+import com.freyza.employee.core.sync.SyncProgressState
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.domain.model.DayType
+import com.freyza.employee.domain.model.Location
+import com.freyza.employee.domain.model.RouteWithLocation
+import com.freyza.employee.domain.model.TravelPlan
+import com.freyza.employee.domain.model.TravelPlanEntry
+import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.repository.DailyReportRepository
 import com.freyza.employee.domain.repository.LocationRepository
 import com.freyza.employee.domain.repository.RouteRepository
@@ -16,14 +23,23 @@ import com.freyza.employee.domain.repository.UserRepository
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportParams
 import com.freyza.employee.domain.usecase.dailyreport.CreateTodayDailyReportUseCase
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
   private val sessionManager: SessionManager,
   private val userRepository: UserRepository,
@@ -34,6 +50,7 @@ class HomeViewModel(
   private val createTodayDailyReportUseCase: CreateTodayDailyReportUseCase,
   private val snackbarManager: SnackbarManager,
   private val serverTime: ServerTime,
+  private val syncManager: SyncManager,
 ) : ViewModel() {
 
   companion object {
@@ -44,12 +61,67 @@ class HomeViewModel(
   private var createReportJob: Job? = null
 
   private val _uiState = MutableStateFlow(HomeScreenUiState(today = serverTime.nowLocalDateTime()))
-  val uiState = _uiState.onStart {
+
+  // helper data class for combining Room emissions
+  private data class RoomData(
+    val locations: List<Location> = emptyList(),
+    val routes: List<RouteWithLocation> = emptyList(),
+    val employees: List<User> = emptyList(),
+    val travelPlan: TravelPlan? = null,
+    val travelPlanEntry: TravelPlanEntry? = null,
+  )
+
+  // shared travelplan flow
+  private val travelPlanFlow =
+    sessionManager.currentEmployee.filterNotNull().flatMapLatest { user ->
+      travelPlanRepository.observeCurrentTravelPlan(user.id, serverTime.todayIn())
+    }.distinctUntilChangedBy { it?.id }.onEach { plan ->
+      if (plan != null) loadTravelPlanMetrics(plan.id)
+    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+  // derived entry flow
+  private val travelPlanEntryFlow = travelPlanFlow.flatMapLatest { plan ->
+    if (plan != null) {
+      travelPlanRepository.observeTodayTravelPlanEntry(plan.id, serverTime.todayIn())
+    } else {
+      flowOf(null)
+    }
+  }
+
+  // combined room streams
+  private val roomDataFlow = combine(
+    locationRepository.observeAllLocations(),
+    routeRepository.observeAllRoutesWithLocation(),
+    userRepository.observeAllEmployees(),
+    travelPlanFlow,
+    travelPlanEntryFlow,
+  ) { locations, routes, allEmployees, plan, entry ->
+    val currentEmpId = sessionManager.currentEmployee.value?.id
+    val employees =
+      if (currentEmpId != null) allEmployees.filter { it.id != currentEmpId } else allEmployees
+    RoomData(locations, routes, employees, plan, entry)
+  }
+
+  // final reactive UI state
+  val uiState = combine(_uiState, roomDataFlow, syncManager.syncProgress) { state, room, syncProgress ->
+    val isSyncing = syncProgress is SyncProgressState.Syncing
+
+    state.copy(
+      isRefreshing = state.isRefreshing || isSyncing,
+      locations = room.locations,
+      routes = room.routes,
+      employees = room.employees,
+      currentTravelPlan = room.travelPlan,
+      todayTravelPlanEntry = room.travelPlanEntry,
+      todayPlanEntryRoute = room.routes.find { it.id == room.travelPlanEntry?.routeId },
+      todayReportRoute = room.routes.find { it.id == state.currentDailyReport?.routeId }
+    )
+  }.onStart {
     refresh()
   }.stateIn(
-    viewModelScope,
-    SharingStarted.WhileSubscribed(5_000),
-    HomeScreenUiState(today = serverTime.nowLocalDateTime())
+    scope = viewModelScope,
+    started = SharingStarted.WhileSubscribed(5_000),
+    initialValue = HomeScreenUiState(today = serverTime.nowLocalDateTime())
   )
 
   val currentUser = sessionManager.currentEmployee
@@ -63,8 +135,7 @@ class HomeViewModel(
     viewModelScope.launch {
       serverTime.isSynced.collect { synced ->
         if (synced) {
-          val nowTime = serverTime.nowLocalDateTime()
-          _uiState.update { it.copy(today = nowTime) }
+          _uiState.update { it.copy(today = serverTime.nowLocalDateTime()) }
         }
       }
     }
@@ -79,63 +150,12 @@ class HomeViewModel(
       return
     }
 
+    syncManager.performSyncIfNeeded(forceRefresh)
+
     refreshJob = viewModelScope.launch {
       _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
-
-      // Fetch all data in parallel
-      val routesJob = launch { loadAllRoutes(forceRefresh) }
-      val locationsJob = launch { loadAllLocations(forceRefresh) }
-      val employeesJob = launch { loadHqEmployees(employeeId, forceRefresh) }
-      val planJob = launch { loadCurrentTravelPlan(employeeId, forceRefresh) }
-      val reportJob = launch { loadCurrentDailyReport(employeeId, forceRefresh) }
-
-      routesJob.join()
-      locationsJob.join()
-      employeesJob.join()
-      planJob.join()
-      reportJob.join()
-
-      // Resolve routes and POIs after all parallel network requests complete
-      val routes = _uiState.value.routes
-      val report = _uiState.value.currentDailyReport
-      val entry = _uiState.value.todayTravelPlanEntry
-
-      val updatedPlanRoute = routes.find { it.id == entry?.routeId }
-      val updatedReportRoute = routes.find { it.id == report?.routeId }
-
-      _uiState.update { state ->
-        state.copy(
-          todayPlanEntryRoute = updatedPlanRoute ?: state.todayPlanEntryRoute,
-          todayReportRoute = updatedReportRoute ?: state.todayReportRoute,
-        )
-      }
-
-      // Load POIs for the report route if available
-      report?.routeId?.let { routeId ->
-        loadReportPois(routeId, forceRefresh)
-      }
-
+      loadCurrentDailyReport(employeeId, forceRefresh)
       _uiState.update { it.copy(isRefreshing = false, isLoading = false) }
-    }
-  }
-
-  private suspend fun loadCurrentTravelPlan(employeeId: String, forceRefresh: Boolean) {
-    when (val result =
-      travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = forceRefresh)) {
-      is Result.Success -> {
-        _uiState.update { it.copy(currentTravelPlan = result.data) }
-        result.data?.id?.let {
-          loadTodayTravelPlanEntry(it, forceRefresh)
-          loadTravelPlanMetrics(it, forceRefresh)
-        }
-      }
-
-      is Result.Error -> {
-        _uiState.update { it.copy(errorMessage = "Unable to fetch travel plan") }
-        Logger.e(TAG, "Fetch travel plan failed: ${result.message}")
-      }
-
-      else -> {}
     }
   }
 
@@ -143,31 +163,16 @@ class HomeViewModel(
     _uiState.update { it.copy(isMetricsLoading = true) }
     when (val result =
       travelPlanRepository.getTravelPlanMetrics(tpId, forceRefresh = forceRefresh)) {
-      is Result.Success -> {
-        _uiState.update { it.copy(travelPlanMetrics = result.data, isMetricsLoading = false) }
+      is Result.Success -> _uiState.update {
+        it.copy(
+          travelPlanMetrics = result.data,
+          isMetricsLoading = false
+        )
       }
 
       is Result.Error -> {
         _uiState.update { it.copy(isMetricsLoading = false) }
         Logger.e(TAG, "Fetch travel plan metrics failed: ${result.message}")
-      }
-
-      else -> {}
-    }
-  }
-
-  private suspend fun loadTodayTravelPlanEntry(tpId: String, forceRefresh: Boolean) {
-    when (val result =
-      travelPlanRepository.getTodayTravelPlanEntry(tpId, forceRefresh = forceRefresh)) {
-      is Result.Success -> {
-        val entry = result.data
-        val route = _uiState.value.routes.find { it.id == entry?.routeId }
-
-        _uiState.update { it.copy(todayTravelPlanEntry = entry, todayPlanEntryRoute = route) }
-      }
-
-      is Result.Error -> {
-        Logger.e(TAG, "Fetch travel plan entry failed: ${result.message}")
       }
 
       else -> {}
@@ -190,12 +195,9 @@ class HomeViewModel(
             currentDailyReport = report,
             showCreateReportSheet = report == null,
             todayReportDayType = report?.dayType,
-            todayReportRoute = null
           )
         }
-
         report?.routeId?.let { routeId ->
-          setReportRoute(routeId)
           viewModelScope.launch { loadReportPois(routeId, forceRefresh) }
         }
       }
@@ -210,23 +212,16 @@ class HomeViewModel(
   }
 
   private suspend fun loadReportPois(routeId: String, forceRefresh: Boolean) {
-    val route = _uiState.value.routes.find { it.id == routeId } ?: return
-    val locationIds = listOfNotNull(route.srcLoc.id, route.destLoc.id).distinct()
+    // Avoid race conditions if Room hasn't hydrated the UI State yet by querying Repo directly
+    val routeResult = routeRepository.getRoute(routeId)
+    val route = (routeResult as? Result.Success)?.data ?: return
+    val locationIds = listOf(route.srcLocId, route.destLocId).distinct()
 
     when (val result = dailyReportRepository.getPoisByLocation(locationIds, forceRefresh)) {
-      is Result.Success -> {
-        _uiState.update { it.copy(pois = result.data) }
-      }
-
+      is Result.Success -> _uiState.update { it.copy(pois = result.data) }
       is Result.Error -> Logger.e(TAG, "Fetch POIs failed: ${result.message}")
       else -> {}
     }
-  }
-
-  private fun setReportRoute(routeId: String?) {
-    if (routeId == null) return
-    val route = _uiState.value.routes.find { it.id == routeId }
-    _uiState.update { it.copy(todayReportRoute = route) }
   }
 
   fun createCurrentDailyReport(
@@ -238,7 +233,7 @@ class HomeViewModel(
     val employeeId = sessionManager.currentEmployee.value?.id ?: return
 
     if (createReportJob?.isActive == true) {
-      Logger.d(TAG, "Create report already in progress, skipping duplicate request")
+      Logger.d(TAG, "Create report already in progress")
       return
     }
 
@@ -247,24 +242,19 @@ class HomeViewModel(
       var finalRouteId: String? = null
 
       if (dayType == DayType.WORK && srcLocId != null && destLocId != null) {
-        val localRoute = _uiState.value.routes.find {
+        // Look up route in fully hydrated downstream uiState
+        val localRoute = uiState.value.routes.find {
           it.srcLoc.id == srcLocId && it.destLoc.id == destLocId
         }
 
         if (localRoute != null) {
           finalRouteId = localRoute.id
         } else {
-          // New route detected, call RPC
           when (val routeResult = routeRepository.getOrCreateRoute(srcLocId, destLocId)) {
             is Result.Success -> {
               val newRoute = routeResult.data
               finalRouteId = newRoute.id
-              Logger.w(
-                TAG,
-                "New route created on-the-fly: ID=${newRoute.id}, " + "SrcLocId=$srcLocId, DestLocId=$destLocId. Manual tweak may be needed."
-              )
-              // Refresh routes list to include the newly created route
-              loadAllRoutes(true)
+              Logger.w(TAG, "New route created: ID=${newRoute.id}")
             }
 
             is Result.Error -> {
@@ -280,7 +270,11 @@ class HomeViewModel(
 
       val result = createTodayDailyReportUseCase(
         CreateTodayDailyReportParams(
-          serverTime.todayIn(), employeeId, dayType, finalRouteId, travellingWithId
+          serverTime.todayIn(),
+          employeeId,
+          dayType,
+          finalRouteId,
+          travellingWithId
         )
       )
 
@@ -295,7 +289,6 @@ class HomeViewModel(
               todayReportDayType = result.data.dayType
             )
           }
-          setReportRoute(result.data.routeId)
           snackbarManager.showSuccess("Daily report created successfully")
         }
 
@@ -306,37 +299,6 @@ class HomeViewModel(
 
         else -> {}
       }
-    }
-  }
-
-  private suspend fun loadAllRoutes(forceRefresh: Boolean = false) {
-    when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh = forceRefresh)) {
-      is Result.Success -> _uiState.update { it.copy(routes = result.data) }
-      is Result.Error -> Logger.e(TAG, "Fetch routes failed: ${result.message}")
-      else -> {}
-    }
-  }
-
-  private suspend fun loadAllLocations(forceRefresh: Boolean = false) {
-    when (val result = locationRepository.getAllLocations(forceRefresh = forceRefresh)) {
-      is Result.Success -> _uiState.update { it.copy(locations = result.data) }
-      is Result.Error -> Logger.e(TAG, "Fetch locations failed: ${result.message}")
-      else -> {}
-    }
-  }
-
-  private suspend fun loadHqEmployees(employeeId: String, forceRefresh: Boolean = false) {
-    val user = sessionManager.currentEmployee.value
-    val hqId = user?.hqId ?: return
-
-    when (val result = userRepository.getAllEmployees(forceRefresh = forceRefresh)) {
-      is Result.Success -> {
-        val employees = result.data.filter { it.id != employeeId }
-        _uiState.update { it.copy(employees = employees) }
-      }
-
-      is Result.Error -> Logger.e(TAG, "Fetch employees failed: ${result.message}")
-      else -> {}
     }
   }
 

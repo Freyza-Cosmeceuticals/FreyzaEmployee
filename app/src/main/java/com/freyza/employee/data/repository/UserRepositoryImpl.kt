@@ -5,7 +5,9 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.ApiErrorResponse
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.local.dao.UserDao
 import com.freyza.employee.data.mappers.toDomain
+import com.freyza.employee.data.mappers.toEntity
 import com.freyza.employee.data.network.dto.UserDto
 import com.freyza.employee.domain.model.User
 import com.freyza.employee.domain.repository.UserRepository
@@ -19,6 +21,8 @@ import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -36,31 +40,29 @@ class UserRepositoryImpl(
   private val postgres: Postgrest,
   private val httpClient: HttpClient,
   private val appConfig: AppConfig,
+  private val userDao: UserDao,
 ) : UserRepository {
   companion object {
     const val TAG: String = "UserRepository"
   }
 
   override fun clearCache() {
-    Logger.d(TAG, "Clearing user caches")
-    cachedEmployees.clear()
+    throw NotImplementedError()
   }
 
-  // Cache for employee lists keyed by ID
-  private var cachedEmployees = mutableMapOf<String, User>()
+  override fun observeAllEmployees(): Flow<List<User>> {
+    return userDao.getAllEmployeesFlow().map { entities ->
+      entities.map { it.toDomain() }
+    }
+  }
 
   override suspend fun getUserById(id: String): Result<User?> {
-    // No cache here
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        val userDto = postgres.from("user").select {
-          filter {
-            UserDto::id eq id
-          }
-        }.decodeSingleOrNull<UserDto>()
-
-        userDto?.toDomain()
-      }
+    val cached = userDao.getEmployeeById(id)
+    return if (cached != null) {
+      Result.Success(cached.toDomain())
+    } else {
+      refreshEmployees()
+      Result.Success(userDao.getEmployeeById(id)?.toDomain())
     }
   }
 
@@ -72,18 +74,18 @@ class UserRepositoryImpl(
   }
 
   override suspend fun getAllEmployees(forceRefresh: Boolean): Result<List<User>> {
-    if (!forceRefresh && cachedEmployees.values.isNotEmpty()) {
-      Logger.d(TAG, "Cache hit for employees")
-
-      return Result.Success(cachedEmployees.values.toList())
+    val cached = userDao.getAllEmployees()
+    return if (cached.isNotEmpty() && !forceRefresh) {
+      Result.Success(cached.map { it.toDomain() })
+    } else {
+      refreshEmployees()
+      Result.Success(userDao.getAllEmployees().map { it.toDomain() })
     }
+  }
 
+  override suspend fun refreshEmployees(): Result<Unit> {
     return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Fetching employees from server API")
-
-        // The API accepts an optional 'hqId' query parameter to filter employees.
-        // For now, we are fetching all employees.
         val response = httpClient.get("${appConfig.apiUrl}/api/employees") {
           header(HttpHeaders.Authorization, "Bearer $token")
         }
@@ -91,14 +93,10 @@ class UserRepositoryImpl(
         if (response.status.isSuccess()) {
           val employeesResponse = response.body<EmployeesResponse>()
           if (employeesResponse.success) {
-            val employees = employeesResponse.data.map { it.toDomain() }
-            cachedEmployees.clear()
-            employees.forEach {
-              cachedEmployees[it.id] = it
-            }
-            employees
+            val userEntities = employeesResponse.data.map { it.toDomain().toEntity() }
+            userDao.upsertEmployees(userEntities)
           } else {
-            throw Exception("Failed to fetch employees: success flag is false")
+            throw Exception("Failed to fetch employees")
           }
         } else {
           val error = try {

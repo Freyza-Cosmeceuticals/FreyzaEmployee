@@ -1,64 +1,42 @@
 package com.freyza.employee.core.sync
 
-import com.freyza.employee.core.AppConfig
 import com.freyza.employee.core.Constants
-import com.freyza.employee.core.network.safeApiCall
+import com.freyza.employee.core.Result
 import com.freyza.employee.core.state.SessionManager
-import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.data.local.dao.AppMetaDao
-import com.freyza.employee.data.local.dao.LocationDao
-import com.freyza.employee.data.local.dao.PoiDao
-import com.freyza.employee.data.local.dao.RouteDao
 import com.freyza.employee.data.local.dao.SyncStateDao
-import com.freyza.employee.data.local.dao.TravelPlanDao
-import com.freyza.employee.data.local.dao.UserDao
 import com.freyza.employee.data.local.entities.AppMetaEntity
 import com.freyza.employee.data.local.entities.SyncStateEntity
 import com.freyza.employee.data.local.entities.SyncStatus
-import com.freyza.employee.data.mappers.toDomain
-import com.freyza.employee.data.mappers.toEntity
-import com.freyza.employee.data.network.dto.LocationDto
-import com.freyza.employee.data.network.dto.RouteWithLocationDto
-import com.freyza.employee.data.network.dto.TravelPlanDto
-import com.freyza.employee.data.network.dto.TravelPlanEntryDto
-import com.freyza.employee.data.repository.EmployeesResponse
-import com.freyza.employee.domain.model.toRoute
-import io.github.jan.supabase.auth.Auth
-import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.postgrest.query.Columns
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.http.HttpHeaders
-import io.ktor.http.isSuccess
+import com.freyza.employee.domain.repository.DailyReportRepository
+import com.freyza.employee.domain.repository.LocationRepository
+import com.freyza.employee.domain.repository.RouteRepository
+import com.freyza.employee.domain.repository.TravelPlanRepository
+import com.freyza.employee.domain.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.LocalDate
 
 class SyncManager(
-  private val appMetaDao: AppMetaDao,
-  private val syncStateDao: SyncStateDao,
-  private val locationDao: LocationDao,
-  private val routeDao: RouteDao,
-  private val userDao: UserDao,
-  private val travelPlanDao: TravelPlanDao,
-  private val poiDao: PoiDao,
-  private val postgrest: Postgrest,
-  private val httpClient: HttpClient,
-  private val appConfig: AppConfig,
-  private val auth: Auth,
+  private val locationRepository: LocationRepository,
+  private val routeRepository: RouteRepository,
+  private val userRepository: UserRepository,
+  private val travelPlanRepository: TravelPlanRepository,
+  private val dailyReportRepository: DailyReportRepository,
   private val sessionManager: SessionManager,
   private val serverTime: ServerTime,
+  private val syncStateDao: SyncStateDao,
+  private val appMetaDao: AppMetaDao,
 ) {
 
   companion object {
@@ -76,47 +54,108 @@ class SyncManager(
   private val _syncProgress = MutableStateFlow<SyncProgressState>(SyncProgressState.Idle)
   val syncProgress: StateFlow<SyncProgressState> = _syncProgress.asStateFlow()
 
+  init {
+    // collect and log syncProgress
+    scope.launch {
+      syncProgress.collect { state ->
+        when (state) {
+          is SyncProgressState.Idle -> Logger.d(TAG, "SyncProgress: Idle")
+          is SyncProgressState.Syncing -> Logger.i(
+            TAG,
+            "SyncProgress: [${state.step.name}] ${state.message} (${(state.progressFraction * 100).toInt()}%)"
+          )
+
+          is SyncProgressState.Success -> Logger.i(TAG, "SyncProgress: Success - ${state.message}")
+          is SyncProgressState.Error -> Logger.e(TAG, "SyncProgress: Error - ${state.message}")
+        }
+      }
+    }
+  }
+
   fun performSyncIfNeeded(forceRefresh: Boolean = false) {
     scope.launch {
+      val user = sessionManager.currentEmployee.filterNotNull().first()
+
       syncMutex.withLock {
         val now = System.currentTimeMillis()
-        val employeeId = sessionManager.currentEmployee.value?.id ?: return@launch
+        val employeeId = user.id
 
-        // 1. Check TTLs for version check & time sync
+        // check TTLs for time sync
         checkAppMetaTTLs(now, forceRefresh)
 
-        // 2. Check if master data is missing in Room or TTL expired
-        val locationsStale = isDomainStale(KEY_LOCATIONS, now, forceRefresh) || locationDao.getAllLocations().isEmpty()
-        val routesStale = isDomainStale(KEY_ROUTES, now, forceRefresh) || routeDao.getAllRoutes().isEmpty()
-        val employeesStale = isDomainStale(KEY_EMPLOYEES, now, forceRefresh) || userDao.getAllEmployees().isEmpty()
+        // query cached entities via repositories to check missing status
+        val locationsEmpty =
+          (locationRepository.getAllLocations(forceRefresh = false) as? Result.Success)?.data?.isEmpty() == true
+        val routesEmpty =
+          (routeRepository.getAllRoutes(forceRefresh = false) as? Result.Success)?.data?.isEmpty() == true
+        val employeesEmpty =
+          (userRepository.getAllEmployees(forceRefresh = false) as? Result.Success)?.data?.isEmpty() == true
 
         val today = serverTime.todayIn()
-        val currentMonthStr = DateFormatter.format(
-          LocalDate(year = today.year, month = today.month, day = 1),
-          DateFormatter.FormattingType.MACHINE
-        )
-        val currentPlan = travelPlanDao.getTravelPlan(employeeId, currentMonthStr)
-        val travelPlanStale = isDomainStale(KEY_TRAVEL_PLAN, now, forceRefresh) || currentPlan == null
+        val currentPlanResult =
+          travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = false)
+        val currentPlan = (currentPlanResult as? Result.Success)?.data
 
-        if (!locationsStale && !routesStale && !employeesStale && !travelPlanStale) {
+        val travelPlanNeverSynced = syncStateDao.getSyncState(KEY_TRAVEL_PLAN) == null
+        val travelPlanStale =
+          isDomainStale(KEY_TRAVEL_PLAN, now, forceRefresh) || travelPlanNeverSynced
+
+        val locationsStale = isDomainStale(KEY_LOCATIONS, now, forceRefresh) || locationsEmpty
+        val routesStale = isDomainStale(KEY_ROUTES, now, forceRefresh) || routesEmpty
+        val employeesStale = isDomainStale(KEY_EMPLOYEES, now, forceRefresh) || employeesEmpty
+
+        // collect target locations for POI sync (HQ + Today's plan entry route locations)
+        val todayEntryResult = currentPlan?.let {
+          travelPlanRepository.getTodayTravelPlanEntry(
+            it.id,
+            forceRefresh = false
+          )
+        }
+        val todayEntry = (todayEntryResult as? Result.Success)?.data
+        val todayRoute = todayEntry?.routeId?.let {
+          (routeRepository.getRoute(
+            it,
+            forceRefresh = false
+          ) as? Result.Success)?.data
+        }
+
+        val targetPoiLocIds = listOfNotNull(
+          user.hqId,
+          todayRoute?.srcLocId,
+          todayRoute?.destLocId
+        ).filter { it.isNotBlank() }.distinct()
+
+        val poisStale = targetPoiLocIds.any { locId ->
+          isDomainStale("POIS_LOC_$locId", now, forceRefresh)
+        }
+
+        if (!locationsStale && !routesStale && !employeesStale && !travelPlanStale && !poisStale) {
           Logger.d(TAG, "All local data is fresh in Room. Skipping sync.")
           return@launch
         }
 
         Logger.i(TAG, "Starting sync (forceRefresh=$forceRefresh)...")
 
+        // key to sync action
         val tasks = mutableListOf<Pair<SyncStep, suspend () -> Unit>>()
         if (locationsStale) {
-          tasks.add(SyncStep.LOCATIONS to { syncLocations() })
+          tasks.add(SyncStep.LOCATIONS to { syncDomain(KEY_LOCATIONS) { locationRepository.refreshLocations() } })
         }
         if (routesStale) {
-          tasks.add(SyncStep.ROUTES to { syncRoutes() })
+          tasks.add(SyncStep.ROUTES to { syncDomain(KEY_ROUTES) { routeRepository.refreshRoutes() } })
         }
         if (employeesStale) {
-          tasks.add(SyncStep.EMPLOYEES to { syncEmployees() })
+          tasks.add(SyncStep.EMPLOYEES to { syncDomain(KEY_EMPLOYEES) { userRepository.refreshEmployees() } })
         }
         if (travelPlanStale) {
-          tasks.add(SyncStep.TRAVEL_PLAN to { syncTravelPlan(employeeId, today) })
+          tasks.add(SyncStep.TRAVEL_PLAN to {
+            syncDomain(KEY_TRAVEL_PLAN) {
+              travelPlanRepository.refreshTravelPlan(employeeId, today)
+            }
+          })
+        }
+        if (poisStale) {
+          tasks.add(SyncStep.POIS to { syncPois(targetPoiLocIds, forceRefresh) })
         }
 
         val totalTasks = tasks.size
@@ -154,10 +193,47 @@ class SyncManager(
     }
   }
 
+  private suspend fun syncPois(locationIds: List<String>, forceRefresh: Boolean) {
+    val now = System.currentTimeMillis()
+    val distinctIds = locationIds.filter { it.isNotBlank() }.distinct()
+
+    for (locId in distinctIds) {
+      val key = "POIS_LOC_$locId"
+      if (forceRefresh || isDomainStale(key, now, false)) {
+        syncDomain(key) {
+          dailyReportRepository.refreshPoisForLocations(listOf(locId))
+        }
+      }
+    }
+  }
+
+  private suspend fun syncDomain(key: String, action: suspend () -> Result<Unit>) {
+    val now = System.currentTimeMillis()
+    val result = action()
+    if (result is Result.Success) {
+      syncStateDao.upsertSyncState(
+        SyncStateEntity(
+          key = key,
+          lastAttemptAt = now,
+          lastSuccessAt = now,
+          status = SyncStatus.SUCCESS
+        )
+      )
+    } else if (result is Result.Error) {
+      syncStateDao.upsertSyncState(
+        SyncStateEntity(
+          key = key,
+          lastAttemptAt = now,
+          status = SyncStatus.FAILED,
+          errorMessage = result.message
+        )
+      )
+    }
+  }
+
   private suspend fun checkAppMetaTTLs(now: Long, forceRefresh: Boolean) {
     val meta = appMetaDao.getAppMeta() ?: AppMetaEntity()
 
-    // Sync Server Time if TTL expired
     if (forceRefresh || (now - meta.lastTimeSyncAt) > Constants.TTL_TIME_SYNC_MS) {
       Logger.d(TAG, "Syncing server time...")
       serverTime.syncTime(forceRefresh = forceRefresh)
@@ -169,121 +245,5 @@ class SyncManager(
     if (forceRefresh) return true
     val state = syncStateDao.getSyncState(key) ?: return true
     return (now - state.lastSuccessAt) > Constants.TTL_MASTER_DATA_MS
-  }
-
-  suspend fun syncLocations() {
-    safeApiCall(TAG) {
-      val locationDtos = postgrest.from("location").select().decodeList<LocationDto>()
-      val entities = locationDtos.map { it.toDomain().toEntity() }
-      locationDao.upsertLocations(entities)
-
-      val now = System.currentTimeMillis()
-      syncStateDao.upsertSyncState(
-        SyncStateEntity(
-          key = KEY_LOCATIONS,
-          lastAttemptAt = now,
-          lastSuccessAt = now,
-          status = SyncStatus.SUCCESS
-        )
-      )
-    }
-  }
-
-  suspend fun syncRoutes() {
-    safeApiCall(TAG) {
-      val routesDto = postgrest.from("route").select(
-        Columns.raw(
-          """
-          *,
-          srcLoc:location!route_srcLocId_fkey(*),
-          destLoc:location!route_destLocId_fkey(*)
-         """.trimIndent()
-        )
-      ).decodeList<RouteWithLocationDto>()
-
-      val routeEntities = routesDto.map { it.toDomain().toRoute().toEntity() }
-      val locationEntities = routesDto.flatMap { dto ->
-        listOf(dto.srcLoc.toDomain().toEntity(), dto.destLoc.toDomain().toEntity())
-      }.distinctBy { it.id }
-
-      locationDao.upsertLocations(locationEntities)
-      routeDao.upsertRoutes(routeEntities)
-
-      val now = System.currentTimeMillis()
-      syncStateDao.upsertSyncState(
-        SyncStateEntity(
-          key = KEY_ROUTES,
-          lastAttemptAt = now,
-          lastSuccessAt = now,
-          status = SyncStatus.SUCCESS
-        )
-      )
-    }
-  }
-
-  suspend fun syncEmployees() {
-    safeApiCall(TAG, auth) { token ->
-      val response = httpClient.get("${appConfig.apiUrl}/api/employees") {
-        header(HttpHeaders.Authorization, "Bearer $token")
-      }
-
-      if (response.status.isSuccess()) {
-        val employeesResponse = response.body<EmployeesResponse>()
-        if (employeesResponse.success) {
-          val userEntities = employeesResponse.data.map { it.toDomain().toEntity() }
-          userDao.upsertEmployees(userEntities)
-
-          val now = System.currentTimeMillis()
-          syncStateDao.upsertSyncState(
-            SyncStateEntity(
-              key = KEY_EMPLOYEES,
-              lastAttemptAt = now,
-              lastSuccessAt = now,
-              status = SyncStatus.SUCCESS
-            )
-          )
-        }
-      }
-    }
-  }
-
-  suspend fun syncTravelPlan(employeeId: String, today: LocalDate) {
-    val thisMonth = DateFormatter.format(
-      LocalDate(year = today.year, month = today.month, day = 1),
-      DateFormatter.FormattingType.MACHINE
-    )
-
-    safeApiCall(TAG) {
-      val travelPlanDto = postgrest.from("travelPlan").select {
-        filter {
-          TravelPlanDto::employeeId eq employeeId
-          TravelPlanDto::month eq thisMonth
-        }
-      }.decodeSingleOrNull<TravelPlanDto>()
-
-      if (travelPlanDto != null) {
-        val planEntity = travelPlanDto.toDomain().toEntity()
-
-        val entriesDto = postgrest.from("travelPlanEntry").select {
-          filter {
-            TravelPlanEntryDto::tpId eq planEntity.id
-          }
-        }.decodeList<TravelPlanEntryDto>()
-
-        val entryEntities = entriesDto.map { it.toDomain().toEntity() }
-
-        travelPlanDao.insertPlanWithEntries(planEntity, entryEntities)
-
-        val now = System.currentTimeMillis()
-        syncStateDao.upsertSyncState(
-          SyncStateEntity(
-            key = KEY_TRAVEL_PLAN,
-            lastAttemptAt = now,
-            lastSuccessAt = now,
-            status = SyncStatus.SUCCESS
-          )
-        )
-      }
-    }
   }
 }

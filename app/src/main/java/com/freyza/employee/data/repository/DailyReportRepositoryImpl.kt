@@ -7,7 +7,9 @@ import com.freyza.employee.core.network.ApiException
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.local.dao.PoiDao
 import com.freyza.employee.data.mappers.toDomain
+import com.freyza.employee.data.mappers.toEntity
 import com.freyza.employee.data.network.dto.BeginReportRequest
 import com.freyza.employee.data.network.dto.BeginReportResponse
 import com.freyza.employee.data.network.dto.DailyReportDto
@@ -76,6 +78,7 @@ class DailyReportRepositoryImpl(
   private val appConfig: AppConfig,
   private val auth: Auth,
   private val travelPlanRepository: TravelPlanRepository,
+  private val poiDao: PoiDao,
 ) : DailyReportRepository {
   // Cache for complete POI lists keyed by location ID
   private val poiCache = mutableMapOf<String, List<PointOfInterest>>()
@@ -419,38 +422,33 @@ class DailyReportRepositoryImpl(
     locationIds: List<String>,
     forceRefresh: Boolean,
   ): Result<List<PointOfInterest>> {
-    val cacheKey = locationIds.sorted().joinToString(",")
-
-    // 1. Read from cache if available and not force refreshing
-    if (!forceRefresh) {
-      val cached = poiCache[cacheKey]
-      if (cached != null) {
-        Logger.d(TAG, "Cache hit for all POIs at locations: $cacheKey")
-        return Result.Success(cached)
-      }
+    val cached = poiDao.getPoisByLocations(locationIds)
+    if (cached.isNotEmpty() && !forceRefresh) {
+      return Result.Success(cached.map { it.toDomain() })
     }
+
+    refreshPoisForLocations(locationIds)
+    return Result.Success(poiDao.getPoisByLocations(locationIds).map { it.toDomain() })
+  }
+
+  override suspend fun refreshPoisForLocations(locationIds: List<String>): Result<Unit> {
+    val payloadIds = locationIds.filter { it.isNotBlank() }.sorted().joinToString(",")
+    if (payloadIds.isBlank()) return Result.Success(Unit)
 
     return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Fetching all POIs for locationIds: $cacheKey")
+        Logger.d(TAG, "Fetching POIs for locationIds: $payloadIds")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
           header(HttpHeaders.Authorization, "Bearer $token")
-          parameter("locationIds", cacheKey)
+          parameter("locationIds", payloadIds)
         }
 
         if (response.status.isSuccess()) {
           val poisResponse = response.body<PoisResponse>()
           if (poisResponse.success) {
-            val pois = poisResponse.data.map { dto ->
-              dto.toDomain()
-            }
-
-            // 2. Assured that this entry contains all POIs for the locations
-            poiCache[cacheKey] = pois
-
-            Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationIds: $cacheKey from network")
-            pois
+            val pois = poisResponse.data.map { dto -> dto.toDomain() }
+            poiDao.upsertPois(pois.map { it.toEntity() })
           } else {
             throw Exception("Unable to fetch POIs")
           }
@@ -468,10 +466,10 @@ class DailyReportRepositoryImpl(
   }
 
   override suspend fun getPoi(id: String): Result<PointOfInterest?> {
-    // Check cache first across all locations
-    poiCache.values.flatten().find { it.id == id }?.let {
-      Logger.d(TAG, "Cache hit for POI with id: $id")
-      return Result.Success(it)
+    val cached = poiDao.getPoiById(id)
+    if (cached != null) {
+      Logger.d(TAG, "Room cache hit for POI with id: $id")
+      return Result.Success(cached.toDomain())
     }
 
     return safeApiCall(TAG, auth) { token ->
@@ -486,15 +484,7 @@ class DailyReportRepositoryImpl(
           val poiResponse = response.body<PoiResponse>()
           if (poiResponse.success && poiResponse.data != null) {
             val poi = poiResponse.data.toDomain()
-
-            poiCache[poi.locationId]?.let { cachedList ->
-              poiCache[poi.locationId] = (cachedList + poi).distinctBy { it.id }
-              Logger.d(
-                TAG,
-                "Updated location cache for ${poi.locationId} with fetched POI: ${poi.id}"
-              )
-            }
-
+            poiDao.upsertPois(listOf(poi.toEntity()))
             poi
           } else {
             throw Exception("Unable to fetch POI")

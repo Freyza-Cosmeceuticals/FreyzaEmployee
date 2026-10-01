@@ -45,6 +45,8 @@ interface DailyReportRepository {
     forceRefresh: Boolean = false,
   ): Result<List<PointOfInterest>>
 
+  suspend fun refreshPoisForLocations(locationIds: List<String>): Result<Unit>
+
   suspend fun getPoi(id: String): Result<PointOfInterest?>
 
   suspend fun createTodayDailyReport(
