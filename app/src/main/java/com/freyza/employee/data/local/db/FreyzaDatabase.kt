@@ -30,7 +30,7 @@ import com.freyza.employee.data.local.entities.UserEntity
     TravelPlanEntryEntity::class,
     PoiEntity::class,
   ],
-  version = 1,
+  version = 2,
   exportSchema = false
 )
 @TypeConverters(Converters::class)

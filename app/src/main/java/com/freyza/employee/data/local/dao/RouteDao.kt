@@ -14,6 +14,9 @@ interface RouteDao {
   @Query("SELECT * FROM routes")
   fun getAllRoutesWithLocationFlow(): Flow<List<RouteWithLocationEntity>>
 
+  @Query("SELECT COUNT(*) FROM routes")
+  fun getRouteCountFlow(): Flow<Int>
+
   @Transaction
   @Query("SELECT * FROM routes")
   suspend fun getAllRoutesWithLocation(): List<RouteWithLocationEntity>

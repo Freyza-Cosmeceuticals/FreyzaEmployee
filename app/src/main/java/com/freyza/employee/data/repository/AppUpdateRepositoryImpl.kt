@@ -103,7 +103,8 @@ class AppUpdateRepositoryImpl(
         appMetaDao.upsertAppMeta(
           meta.copy(
             lastVersionCheckAt = now,
-            serverVersion = versionData.versionName
+            serverVersion = versionData.versionName,
+            serverBuildNumber = versionData.buildNumber
           )
         )
 

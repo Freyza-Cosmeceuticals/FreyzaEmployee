@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class AppMetaEntity(
   @PrimaryKey val id: Int = 1,
   val serverVersion: String? = null,
+  val serverBuildNumber: Long = 0L,
   val lastVersionCheckAt: Long = 0L,
   val serverTimeOffset: Long = 0L,
   val lastTimeSyncAt: Long = 0L,

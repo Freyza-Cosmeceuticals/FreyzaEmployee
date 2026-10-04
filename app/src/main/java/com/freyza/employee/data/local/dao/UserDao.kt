@@ -11,6 +11,9 @@ interface UserDao {
   @Query("SELECT * FROM employees ORDER BY name ASC")
   fun getAllEmployeesFlow(): Flow<List<UserEntity>>
 
+  @Query("SELECT COUNT(*) FROM employees")
+  fun getEmployeeCountFlow(): Flow<Int>
+
   @Query("SELECT * FROM employees ORDER BY name ASC")
   suspend fun getAllEmployees(): List<UserEntity>
 

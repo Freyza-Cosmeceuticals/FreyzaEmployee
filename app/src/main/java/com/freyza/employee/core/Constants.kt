@@ -15,5 +15,11 @@ object Constants {
   // TTL Constants in Milliseconds
   const val TTL_VERSION_CHECK_MS: Long = 12 * 3600 * 1000L // 12 hours
   const val TTL_TIME_SYNC_MS: Long = 5 * 3600 * 1000L      // 5 hours
-  const val TTL_MASTER_DATA_MS: Long = 24 * 3600 * 1000L   // 24 hours
+
+  // Granular Entity TTLs
+  const val TTL_LOCATIONS_MS: Long = 24 * 3600 * 1000L   // 24 hours
+  const val TTL_ROUTES_MS: Long = 24 * 3600 * 1000L      // 24 hours
+  const val TTL_EMPLOYEES_MS: Long = 12 * 3600 * 1000L   // 12 hours
+  const val TTL_TRAVEL_PLAN_MS: Long = 24 * 3600 * 1000L // 24 hours
+  const val TTL_POIS_MS: Long = 8 * 3600 * 1000L        // 8 hours
 }

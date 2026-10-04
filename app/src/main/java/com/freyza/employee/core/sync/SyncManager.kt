@@ -6,7 +6,12 @@ import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.data.local.dao.AppMetaDao
+import com.freyza.employee.data.local.dao.LocationDao
+import com.freyza.employee.data.local.dao.PoiDao
+import com.freyza.employee.data.local.dao.RouteDao
 import com.freyza.employee.data.local.dao.SyncStateDao
+import com.freyza.employee.data.local.dao.TravelPlanDao
+import com.freyza.employee.data.local.dao.UserDao
 import com.freyza.employee.data.local.entities.AppMetaEntity
 import com.freyza.employee.data.local.entities.SyncStateEntity
 import com.freyza.employee.data.local.entities.SyncStatus
@@ -37,6 +42,11 @@ class SyncManager(
   private val serverTime: ServerTime,
   private val syncStateDao: SyncStateDao,
   private val appMetaDao: AppMetaDao,
+  private val locationDao: LocationDao,
+  private val routeDao: RouteDao,
+  private val userDao: UserDao,
+  private val travelPlanDao: TravelPlanDao,
+  private val poiDao: PoiDao,
 ) {
 
   companion object {
@@ -98,11 +108,27 @@ class SyncManager(
 
         val travelPlanNeverSynced = syncStateDao.getSyncState(KEY_TRAVEL_PLAN) == null
         val travelPlanStale =
-          isDomainStale(KEY_TRAVEL_PLAN, now, forceRefresh) || travelPlanNeverSynced
+          isDomainStale(
+            KEY_TRAVEL_PLAN,
+            now,
+            forceRefresh,
+            Constants.TTL_TRAVEL_PLAN_MS
+          ) || travelPlanNeverSynced
 
-        val locationsStale = isDomainStale(KEY_LOCATIONS, now, forceRefresh) || locationsEmpty
-        val routesStale = isDomainStale(KEY_ROUTES, now, forceRefresh) || routesEmpty
-        val employeesStale = isDomainStale(KEY_EMPLOYEES, now, forceRefresh) || employeesEmpty
+        val locationsStale = isDomainStale(
+          KEY_LOCATIONS,
+          now,
+          forceRefresh,
+          Constants.TTL_LOCATIONS_MS
+        ) || locationsEmpty
+        val routesStale =
+          isDomainStale(KEY_ROUTES, now, forceRefresh, Constants.TTL_ROUTES_MS) || routesEmpty
+        val employeesStale = isDomainStale(
+          KEY_EMPLOYEES,
+          now,
+          forceRefresh,
+          Constants.TTL_EMPLOYEES_MS
+        ) || employeesEmpty
 
         // collect target locations for POI sync (HQ + Today's plan entry route locations)
         val todayEntryResult = currentPlan?.let {
@@ -126,7 +152,7 @@ class SyncManager(
         ).filter { it.isNotBlank() }.distinct()
 
         val poisStale = targetPoiLocIds.any { locId ->
-          isDomainStale("POIS_LOC_$locId", now, forceRefresh)
+          isDomainStale("POIS_LOC_$locId", now, forceRefresh, Constants.TTL_POIS_MS)
         }
 
         if (!locationsStale && !routesStale && !employeesStale && !travelPlanStale && !poisStale) {
@@ -193,13 +219,31 @@ class SyncManager(
     }
   }
 
+  suspend fun nukeAndRebuildDatabase() {
+    syncMutex.withLock {
+      Logger.w(TAG, "Master Resync requested: Nuking database and rebuilding...")
+      locationDao.clearAll()
+      routeDao.clearAll()
+      userDao.clearAll()
+      travelPlanDao.clearAllPlans()
+      travelPlanDao.clearAllEntries()
+      poiDao.clearAll()
+      syncStateDao.clearAll()
+    }
+    performSyncIfNeeded(forceRefresh = true)
+  }
+
+  fun resetProgressState() {
+    _syncProgress.value = SyncProgressState.Idle
+  }
+
   private suspend fun syncPois(locationIds: List<String>, forceRefresh: Boolean) {
     val now = System.currentTimeMillis()
     val distinctIds = locationIds.filter { it.isNotBlank() }.distinct()
 
     for (locId in distinctIds) {
       val key = "POIS_LOC_$locId"
-      if (forceRefresh || isDomainStale(key, now, false)) {
+      if (forceRefresh || isDomainStale(key, now, false, Constants.TTL_POIS_MS)) {
         syncDomain(key) {
           dailyReportRepository.refreshPoisForLocations(listOf(locId))
         }
@@ -237,13 +281,17 @@ class SyncManager(
     if (forceRefresh || (now - meta.lastTimeSyncAt) > Constants.TTL_TIME_SYNC_MS) {
       Logger.d(TAG, "Syncing server time...")
       serverTime.syncTime(forceRefresh = forceRefresh)
-      appMetaDao.upsertAppMeta(meta.copy(lastTimeSyncAt = now))
     }
   }
 
-  private suspend fun isDomainStale(key: String, now: Long, forceRefresh: Boolean): Boolean {
+  private suspend fun isDomainStale(
+    key: String,
+    now: Long,
+    forceRefresh: Boolean,
+    ttl: Long,
+  ): Boolean {
     if (forceRefresh) return true
     val state = syncStateDao.getSyncState(key) ?: return true
-    return (now - state.lastSuccessAt) > Constants.TTL_MASTER_DATA_MS
+    return (now - state.lastSuccessAt) > ttl
   }
 }

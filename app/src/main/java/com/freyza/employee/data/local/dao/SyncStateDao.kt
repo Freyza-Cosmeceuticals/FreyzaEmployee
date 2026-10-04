@@ -11,6 +11,9 @@ interface SyncStateDao {
   @Query("SELECT * FROM sync_state")
   fun getAllSyncStatesFlow(): Flow<List<SyncStateEntity>>
 
+  @Query("SELECT * FROM sync_state")
+  suspend fun getAllSyncStates(): List<SyncStateEntity>
+
   @Query("SELECT * FROM sync_state WHERE `key` = :key LIMIT 1")
   suspend fun getSyncState(key: String): SyncStateEntity?
 
@@ -19,4 +22,7 @@ interface SyncStateDao {
 
   @Upsert
   suspend fun upsertSyncState(syncState: SyncStateEntity)
+
+  @Query("DELETE FROM sync_state")
+  suspend fun clearAll()
 }

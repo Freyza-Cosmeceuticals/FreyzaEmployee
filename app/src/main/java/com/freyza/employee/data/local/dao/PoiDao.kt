@@ -12,6 +12,9 @@ interface PoiDao {
   @Query("SELECT * FROM pois WHERE locationId IN (:locationIds) ORDER BY name ASC")
   fun getPoisByLocationsFlow(locationIds: List<String>): Flow<List<PoiEntity>>
 
+  @Query("SELECT COUNT(*) FROM pois")
+  fun getPoiCountFlow(): Flow<Int>
+
   @Query("SELECT * FROM pois WHERE locationId IN (:locationIds) ORDER BY name ASC")
   suspend fun getPoisByLocations(locationIds: List<String>): List<PoiEntity>
 

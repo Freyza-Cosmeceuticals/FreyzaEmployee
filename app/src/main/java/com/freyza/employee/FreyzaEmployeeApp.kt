@@ -46,10 +46,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import com.freyza.employee.core.network.NetworkMonitor
 import com.freyza.employee.core.showTypedSnackbar
+import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.SnackbarManager
-import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.domain.model.AuthState
 import com.freyza.employee.presentation.nav.NavRoutes
 import com.freyza.employee.presentation.nav.authenticatedGraph
@@ -59,14 +59,15 @@ import com.freyza.employee.presentation.ui.GPSGateway
 import com.freyza.employee.presentation.ui.composables.FreyzaBottomNavBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
-import kotlinx.coroutines.launch
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.OfflineBanner
+import com.freyza.employee.presentation.ui.composables.SyncProgressDialog
 import com.freyza.employee.presentation.ui.composables.VersionInfo
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
 import com.freyza.employee.presentation.ui.viewmodels.AppUpdateViewModel
 import com.freyza.employee.presentation.ui.viewmodels.SessionViewModel
 import io.sentry.Sentry
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.Month
 import org.koin.compose.koinInject
@@ -83,6 +84,7 @@ fun FreyzaEmployeeApp(
 ) {
   val authState by sessionViewModel.authState.collectAsStateWithLifecycle()
   val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle(initialValue = true)
+  val syncState by syncManager.syncProgress.collectAsStateWithLifecycle()
   val snackbarHostState = remember { SnackbarHostState() }
   val context = LocalContext.current
 
@@ -118,8 +120,7 @@ fun FreyzaEmployeeApp(
     Box(modifier = Modifier.fillMaxSize()) {
       Column(modifier = Modifier.fillMaxSize()) {
         OfflineBanner(
-          isOnline = isOnline,
-          onRefresh = {
+          isOnline = isOnline, onRefresh = {
             sessionViewModel.checkAuth()
             sessionViewModel.syncTime()
           })
@@ -188,8 +189,7 @@ fun FreyzaEmployeeApp(
                         val listener =
                           NavController.OnDestinationChangedListener { _, destination, _ ->
                             Logger.d(
-                              "AppNavController",
-                              "Destination changed: ${destination.route}"
+                              "AppNavController", "Destination changed: ${destination.route}"
                             )
 
                             if (!BuildConfig.DEBUG) {
@@ -221,6 +221,14 @@ fun FreyzaEmployeeApp(
             }
           }
         }
+      }
+
+      // Sync Progress Dialog Overlay
+      if (authState is AuthState.Authenticated) {
+        SyncProgressDialog(
+          syncState = syncState,
+          onRetry = { syncManager.performSyncIfNeeded(forceRefresh = true) },
+          onDismiss = { syncManager.resetProgressState() })
       }
 
       // TODO: Move this up to the navbarHost property of Scaffolds instead, for better placement

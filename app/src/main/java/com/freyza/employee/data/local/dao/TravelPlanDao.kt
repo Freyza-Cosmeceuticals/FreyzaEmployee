@@ -14,6 +14,12 @@ interface TravelPlanDao {
   @Query("SELECT * FROM travel_plans WHERE employeeId = :employeeId AND month = :month LIMIT 1")
   fun getTravelPlanFlow(employeeId: String, month: String): Flow<TravelPlanEntity?>
 
+  @Query("SELECT COUNT(*) FROM travel_plans")
+  fun getTravelPlanCountFlow(): Flow<Int>
+
+  @Query("SELECT COUNT(*) FROM travel_plan_entries")
+  fun getTravelPlanEntriesCountFlow(): Flow<Int>
+
   @Query("SELECT * FROM travel_plans WHERE employeeId = :employeeId AND month = :month LIMIT 1")
   suspend fun getTravelPlan(employeeId: String, month: String): TravelPlanEntity?
 

@@ -10,9 +10,11 @@ import com.freyza.employee.data.network.dto.ServerStatusDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -37,6 +39,18 @@ class ServerTime(
 
   companion object {
     private const val TAG = "ServerTime"
+  }
+
+  init {
+    appMetaDao?.let { dao ->
+      CoroutineScope(Dispatchers.IO).launch {
+        val meta = dao.getAppMeta()
+        if (meta != null && meta.serverTimeOffset != 0L) {
+          setServerOffset(meta.serverTimeOffset)
+          Logger.d(TAG, "Restored stored serverOffset from app_meta: ${meta.serverTimeOffset} ms")
+        }
+      }
+    }
   }
 
   /**
