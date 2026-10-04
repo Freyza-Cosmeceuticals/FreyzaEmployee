@@ -11,6 +11,7 @@ import com.freyza.employee.core.network.getArrayIndex
 import com.freyza.employee.core.network.getNestedField
 import com.freyza.employee.core.network.getRootField
 import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
@@ -47,6 +48,7 @@ class AddVisitViewModel(
   private val snackbarManager: SnackbarManager,
   private val serverTime: ServerTime,
   private val locationTracker: LocationTracker,
+  private val syncManager: SyncManager,
 ) : ViewModel() {
   companion object {
     const val TAG = "AddVisitViewModel"
@@ -78,6 +80,7 @@ class AddVisitViewModel(
   }
 
   fun refresh(forceRefresh: Boolean = false) {
+    syncManager.performSyncIfNeeded(forceRefresh)
     loadAvailablePois(forceRefresh)
 
     if (isEditMode) {

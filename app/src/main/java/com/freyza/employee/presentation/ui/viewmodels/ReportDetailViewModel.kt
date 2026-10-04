@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
@@ -15,6 +16,8 @@ import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
 import com.freyza.employee.presentation.ui.state.ReportDetailUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -29,23 +32,34 @@ class ReportDetailViewModel(
   private val lockReportUseCase: LockReportUseCase,
   private val snackbarManager: SnackbarManager,
   serverTime: ServerTime,
+  private val syncManager: SyncManager,
 ) : ViewModel() {
 
   companion object {
     const val TAG = "ReportDetailViewModel"
   }
 
-  private val _uiState = MutableStateFlow(
+  private val _transientState = MutableStateFlow(
     ReportDetailUiState(
       today = serverTime.nowLocalDateTime(), reportId = reportId
     )
   )
-  val uiState = _uiState.onStart {
+
+  val uiState: StateFlow<ReportDetailUiState> = combine(
+    _transientState,
+    routeRepository.observeAllRoutesWithLocation(),
+    userRepository.observeAllEmployees(),
+  ) { state, routes, employees ->
+    state.copy(
+      routes = routes,
+      employees = employees,
+    )
+  }.onStart {
     refresh()
   }.stateIn(
-    viewModelScope,
-    SharingStarted.WhileSubscribed(5_000),
-    ReportDetailUiState(today = serverTime.nowLocalDateTime(), reportId = reportId)
+    scope = viewModelScope,
+    started = SharingStarted.WhileSubscribed(5_000),
+    initialValue = ReportDetailUiState(today = serverTime.nowLocalDateTime(), reportId = reportId)
   )
 
   val currentUser = sessionManager.currentEmployee
@@ -56,19 +70,18 @@ class ReportDetailViewModel(
 
   fun refresh(forceRefresh: Boolean = false) {
     Logger.d(TAG, "Refreshing data, forceRefresh:$forceRefresh")
+    syncManager.performSyncIfNeeded(forceRefresh)
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {
-      loadDailyReport(reportId = uiState.value.reportId, forceRefresh)
-      loadAllRoutes(forceRefresh)
-      loadHqEmployees(forceRefresh)
+      loadDailyReport(reportId = _transientState.value.reportId, forceRefresh)
     }
   }
 
   fun loadDailyReport(reportId: String, forceRefresh: Boolean = false) {
     Logger.d(TAG, "Fetching daily report:$reportId")
 
-    _uiState.update {
+    _transientState.update {
       it.copy(report = UIState.Loading(it.report.data, "Loading report"))
     }
 
@@ -79,7 +92,7 @@ class ReportDetailViewModel(
         forceRefresh = forceRefresh
       )) {
         is Result.Success -> {
-          _uiState.update {
+          _transientState.update {
             it.copy(report = UIState.Ready(result.data))
           }
           Logger.d(
@@ -91,7 +104,7 @@ class ReportDetailViewModel(
         }
 
         is Result.Error -> {
-          _uiState.update {
+          _transientState.update {
             it.copy(
               report = UIState.Error(message = "Unable to fetch daily report")
             )
@@ -107,14 +120,14 @@ class ReportDetailViewModel(
   fun lockReport(reportId: String) {
     Logger.d(TAG, "Locking report:$reportId")
 
-    _uiState.update {
+    _transientState.update {
       it.copy(lockingState = UIState.Loading())
     }
 
     viewModelScope.launch {
       when (lockReportUseCase(reportId)) {
         is Result.Success -> {
-          _uiState.update {
+          _transientState.update {
             it.copy(lockingState = UIState.Ready(Unit, "Report locked"))
           }
           snackbarManager.showSuccess("Report locked successfully")
@@ -125,7 +138,7 @@ class ReportDetailViewModel(
         }
 
         is Result.Error -> {
-          _uiState.update {
+          _transientState.update {
             it.copy(lockingState = UIState.Error("Unable to lock, please try again"))
           }
           snackbarManager.showError("Failed to lock report, please try again")
@@ -158,52 +171,10 @@ class ReportDetailViewModel(
     viewModelScope.launch {
       when (val result = dailyReportRepository.getPoisByLocation(locationIds, forceRefresh)) {
         is Result.Success -> {
-          _uiState.update { it.copy(pois = result.data) }
+          _transientState.update { it.copy(pois = result.data) }
         }
 
         is Result.Error -> Logger.e(TAG, "Failed to load POIs: ${result.message}")
-        else -> {}
-      }
-    }
-  }
-
-  private fun loadAllRoutes(forceRefresh: Boolean = false) {
-    Logger.d(TAG, "Fetching all routes")
-
-    viewModelScope.launch {
-      when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh)) {
-        is Result.Success -> {
-          _uiState.update {
-            it.copy(routes = result.data)
-          }
-
-          Logger.d(
-            TAG, "All routes fetched successfully: ${result.data.size} routes"
-          )
-        }
-
-        is Result.Error -> {
-          Logger.e(TAG, "Cannot fetch all routes with location: ${result.message}")
-        }
-
-        else -> {}
-      }
-    }
-  }
-
-  private fun loadHqEmployees(forceRefresh: Boolean = false) {
-    val user = sessionManager.currentEmployee.value
-    val hqId = user?.hqId ?: return
-
-    viewModelScope.launch {
-      when (val result = userRepository.getAllEmployees(forceRefresh = forceRefresh)) {
-        is Result.Success -> {
-          _uiState.update {
-            it.copy(employees = result.data)
-          }
-        }
-
-        is Result.Error -> Logger.e(TAG, "Fetch employees failed: ${result.message}")
         else -> {}
       }
     }

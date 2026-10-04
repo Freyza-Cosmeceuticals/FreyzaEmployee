@@ -69,6 +69,8 @@ fun ProfileScreenRoute(
       uiState = uiState,
       user = currentUser!!,
       onLogoutClicked = onNavigateToUnauthenticated,
+      onForceSync = viewModel::triggerForceSync,
+      onNukeAndRebuild = viewModel::triggerNukeAndRebuild,
       modifier = modifier
     )
   }
@@ -79,11 +81,12 @@ fun ProfileScreen(
   uiState: ProfileScreenUiState,
   user: User,
   onLogoutClicked: () -> Unit,
+  onForceSync: () -> Unit = {},
+  onNukeAndRebuild: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   Scaffold(
-    topBar = { FreyzaProfileAppBar() }
-  ) { paddingValues ->
+    topBar = { FreyzaProfileAppBar() }) { paddingValues ->
     LazyColumn(
       contentPadding = PaddingValues(dimensionResource(R.dimen.screen_padding)),
       verticalArrangement = Arrangement.spacedBy(
@@ -188,11 +191,70 @@ fun ProfileScreen(
         Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
       }
 
-      item("app_preferences") {
+      item("data_sync") {
         Text(
-          "App Preferences (Not Implemented)".uppercase(), style = MaterialTheme.typography.labelMedium.copy(
+          "Local Data & Sync".uppercase(), style = MaterialTheme.typography.labelMedium.copy(
             color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Start
           ), modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+              horizontal = dimensionResource(R.dimen.default_spacing).times(2),
+              vertical = dimensionResource(R.dimen.default_spacing)
+            )
+        )
+
+        ListItem(
+          headlineContent = { Text("Database Entity Counts") }, supportingContent = {
+          Text(
+            "Locations: ${uiState.locationCount} • Routes: ${uiState.routeCount} • Employees: ${uiState.employeeCount}\nPlans: ${uiState.travelPlanCount} • POIs: ${uiState.poiCount}"
+          )
+        }, tonalElevation = 8.dp, shadowElevation = 0.dp, modifier = Modifier.clip(
+          RoundedCornerShape(
+            topStart = dimensionResource(R.dimen.default_spacing).times(4),
+            topEnd = dimensionResource(R.dimen.default_spacing).times(4)
+          )
+        )
+        )
+
+        HorizontalDivider()
+
+        ListItem(
+          headlineContent = { Text("Force Sync Master Data") },
+          supportingContent = { Text("Fetch latest server data for stale local records") },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier.clickable { onForceSync() })
+
+        HorizontalDivider()
+
+        ListItem(
+          headlineContent = {
+          Text(
+            "Nuke & Rebuild Database", color = MaterialTheme.colorScheme.error
+          )
+        },
+          supportingContent = { Text("Wipe local tables and trigger complete resync") },
+          tonalElevation = 8.dp,
+          shadowElevation = 0.dp,
+          modifier = Modifier
+            .clip(
+              RoundedCornerShape(
+                bottomStart = dimensionResource(R.dimen.default_spacing).times(4),
+                bottomEnd = dimensionResource(R.dimen.default_spacing).times(4)
+              )
+            )
+            .clickable { onNukeAndRebuild() })
+
+        Spacer(Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
+      }
+
+      item("app_preferences") {
+        Text(
+          "App Preferences (Not Implemented)".uppercase(),
+          style = MaterialTheme.typography.labelMedium.copy(
+            color = MaterialTheme.colorScheme.tertiary, textAlign = TextAlign.Start
+          ),
+          modifier = Modifier
             .fillMaxWidth()
             .padding(
               horizontal = dimensionResource(R.dimen.default_spacing).times(2),
