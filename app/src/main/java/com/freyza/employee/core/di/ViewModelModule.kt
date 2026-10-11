@@ -30,7 +30,8 @@ val viewModelModule = module {
       userRepository = get(),
       lockReportUseCase = get(),
       snackbarManager = get(),
-      serverTime = get()
+      serverTime = get(),
+      syncManager = get()
     )
   }
   viewModel { (visitId: String) ->
@@ -54,7 +55,8 @@ val viewModelModule = module {
       routeRepository = get(),
       snackbarManager = get(),
       serverTime = get(),
-      locationTracker = get()
+      locationTracker = get(),
+      syncManager = get()
     )
   }
   viewModelOf(::ProfileViewModel)

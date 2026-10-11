@@ -61,7 +61,14 @@ val appModule = module {
     }
   }
 
-  singleOf(::ServerTime)
+  single<ServerTime> {
+    ServerTime(
+      httpClient = get(),
+      appConfig = get(),
+      appMetaDao = get(),
+    )
+  }
+
   singleOf(::SharedPreferencesHelper)
   singleOf(::SessionManager)
   singleOf(::SnackbarManager)

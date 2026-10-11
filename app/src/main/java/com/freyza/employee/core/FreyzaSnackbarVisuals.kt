@@ -21,7 +21,7 @@ fun SnackbarType.asSnackbarColors(): Pair<Color, Color> =
     SnackbarType.SUCCESS -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
     SnackbarType.ERROR -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
     SnackbarType.WARNING -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.onTertiary
-    SnackbarType.DEFAULT -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurface
+    SnackbarType.DEFAULT -> MaterialTheme.colorScheme.surfaceContainerHighest to MaterialTheme.colorScheme.onSurface
   }
 
 
@@ -42,9 +42,11 @@ suspend fun SnackbarHostState.showTypedSnackbar(
   actionLabel: String? = null,
   duration: SnackbarDuration = SnackbarDuration.Short,
   withDismissAction: Boolean = false,
-  dismissCurrent: Boolean = false,
+  dismissCurrent: Boolean = (type == SnackbarType.ERROR),
 ): SnackbarResult {
-  if (dismissCurrent) currentSnackbarData?.dismiss()
+  if (dismissCurrent) {
+    currentSnackbarData?.dismiss()
+  }
 
   return showSnackbar(
     FreyzaSnackbarVisuals(

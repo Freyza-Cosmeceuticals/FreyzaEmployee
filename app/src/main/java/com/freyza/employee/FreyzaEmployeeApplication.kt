@@ -2,6 +2,7 @@ package com.freyza.employee
 
 import android.app.Application
 import com.freyza.employee.core.di.appModule
+import com.freyza.employee.core.di.databaseModule
 import com.freyza.employee.core.di.repositoryModule
 import com.freyza.employee.core.di.supabaseModule
 import com.freyza.employee.core.di.useCaseModule
@@ -29,7 +30,7 @@ class FreyzaEmployeeApplication : Application() {
       androidLogger(Level.ERROR)
       androidContext(this@FreyzaEmployeeApplication)
       modules(
-        appModule, repositoryModule, supabaseModule, useCaseModule, viewModelModule
+        appModule, databaseModule, repositoryModule, supabaseModule, useCaseModule, viewModelModule
       )
     }
   }
@@ -42,7 +43,7 @@ class FreyzaEmployeeApplication : Application() {
         options.environment = BuildConfig.FLAVOR
 
         options.dsn = BuildConfig.SENTRY_DSN
-        options.tracesSampleRate = 1.0
+        options.tracesSampleRate = 0.5
 
         options.isEnableUserInteractionTracing = true
         options.isAttachScreenshot = true
@@ -50,7 +51,7 @@ class FreyzaEmployeeApplication : Application() {
 
         options.logs.isEnabled = true
 
-        options.sessionReplay.sessionSampleRate = 0.1
+        options.sessionReplay.sessionSampleRate = 0.0
         options.sessionReplay.onErrorSampleRate = 1.0
         options.sessionReplay.maskAllText = false
         options.sessionReplay.maskAllImages = false

@@ -7,7 +7,10 @@ import com.freyza.employee.core.network.ApiException
 import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.local.dao.PoiDao
+import com.freyza.employee.data.local.dao.RouteDao
 import com.freyza.employee.data.mappers.toDomain
+import com.freyza.employee.data.mappers.toEntity
 import com.freyza.employee.data.network.dto.BeginReportRequest
 import com.freyza.employee.data.network.dto.BeginReportResponse
 import com.freyza.employee.data.network.dto.DailyReportDto
@@ -41,6 +44,9 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -48,26 +54,20 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PoisResponse(
-  @SerialName("success")
-  val success: Boolean,
-  @SerialName("data")
-  val data: List<PointOfInterestDto>,
+  @SerialName("success") val success: Boolean,
+  @SerialName("data") val data: List<PointOfInterestDto>,
 )
 
 @Serializable
 data class VisitCreateResponse(
-  @SerialName("success")
-  val success: Boolean,
-  @SerialName("data")
-  val data: VisitDto,
+  @SerialName("success") val success: Boolean,
+  @SerialName("data") val data: VisitDto,
 )
 
 @Serializable
 data class PoiResponse(
-  @SerialName("success")
-  val success: Boolean,
-  @SerialName("data")
-  val data: PointOfInterestDto?,
+  @SerialName("success") val success: Boolean,
+  @SerialName("data") val data: PointOfInterestDto?,
 )
 
 class DailyReportRepositoryImpl(
@@ -76,6 +76,8 @@ class DailyReportRepositoryImpl(
   private val appConfig: AppConfig,
   private val auth: Auth,
   private val travelPlanRepository: TravelPlanRepository,
+  private val poiDao: PoiDao,
+  private val routeDao: RouteDao,
 ) : DailyReportRepository {
   // Cache for complete POI lists keyed by location ID
   private val poiCache = mutableMapOf<String, List<PointOfInterest>>()
@@ -109,10 +111,11 @@ class DailyReportRepositoryImpl(
     today: LocalDate,
     employeeId: String,
     withVisits: Boolean,
-    forceRefresh: Boolean
+    forceRefresh: Boolean,
   ): Result<DailyReport?> {
     if (!forceRefresh) {
-      val cachedTodayReport = reportCache.values.find { it.date == today && it.employeeId == employeeId }
+      val cachedTodayReport =
+        reportCache.values.find { it.date == today && it.employeeId == employeeId }
       if (cachedTodayReport != null) {
         if (!withVisits || reportsWithVisitsLoaded.contains(cachedTodayReport.id)) {
           Logger.d(TAG, "Cache hit for today's dailyReport ID: ${cachedTodayReport.id}")
@@ -181,9 +184,8 @@ class DailyReportRepositoryImpl(
       visitCountsCache.clear()
       reportsWithVisitsLoaded.clear()
     } else if (reportCache.isNotEmpty()) {
-      val cachedReports = reportCache.values
-        .filter { it.employeeId == employeeId }
-        .sortedByDescending { it.date }
+      val cachedReports =
+        reportCache.values.filter { it.employeeId == employeeId }.sortedByDescending { it.date }
       if (cachedReports.size >= numDailyReports) {
         Logger.d(TAG, "Cache hit for recent daily reports (${cachedReports.size} reports)")
         return Result.Success(cachedReports.take(numDailyReports))
@@ -208,9 +210,7 @@ class DailyReportRepositoryImpl(
 
         // Fetch lightweight visit summaries if full visits were not requested
         if (!withVisits) {
-          val workReportIds = reportsDto
-            .filter { it.dayType == DayType.WORK }
-            .map { it.id }
+          val workReportIds = reportsDto.filter { it.dayType == DayType.WORK }.map { it.id }
 
           if (workReportIds.isNotEmpty()) {
             val visitSummaryResult = postgrest.from(TABLE_VISIT).select(
@@ -221,13 +221,14 @@ class DailyReportRepositoryImpl(
               }
             }.decodeList<VisitSummaryDto>()
 
-            val countsByReportId = visitSummaryResult.groupBy { it.reportId }.mapValues { (_, visitList) ->
-              VisitTypeCounts(
-                doctorCount = visitList.count { it.visitType == VisitType.DOCTOR },
-                chemistCount = visitList.count { it.visitType == VisitType.CHEMIST },
-                stockistCount = visitList.count { it.visitType == VisitType.STOCKIST },
-              )
-            }
+            val countsByReportId =
+              visitSummaryResult.groupBy { it.reportId }.mapValues { (_, visitList) ->
+                VisitTypeCounts(
+                  doctorCount = visitList.count { it.visitType == VisitType.DOCTOR },
+                  chemistCount = visitList.count { it.visitType == VisitType.CHEMIST },
+                  stockistCount = visitList.count { it.visitType == VisitType.STOCKIST },
+                )
+              }
             countsByReportId.forEach { (reportId, counts) ->
               visitCountsCache[reportId] = counts
             }
@@ -253,13 +254,17 @@ class DailyReportRepositoryImpl(
 
         reports.forEach { report ->
           val existingReport = reportCache[report.id]
-          val finalReport = if (!withVisits && existingReport != null && existingReport.visits.isNotEmpty()) {
-            report.copy(visits = existingReport.visits)
-          } else {
-            report
-          }
+          val finalReport =
+            if (!withVisits && existingReport != null && existingReport.visits.isNotEmpty()) {
+              report.copy(visits = existingReport.visits)
+            } else {
+              report
+            }
           reportCache[finalReport.id] = finalReport
-          if (withVisits || (existingReport != null && reportsWithVisitsLoaded.contains(existingReport.id))) {
+          if (withVisits || (existingReport != null && reportsWithVisitsLoaded.contains(
+              existingReport.id
+            ))
+          ) {
             reportsWithVisitsLoaded.add(finalReport.id)
           }
         }
@@ -362,95 +367,64 @@ class DailyReportRepositoryImpl(
     visitType: VisitType,
     forceRefresh: Boolean,
   ): Result<List<PointOfInterest>> {
-    val cacheKey = locationIds.sorted().joinToString(",")
-
-    // 1. Read from cache if available and not force refreshing
-    if (!forceRefresh) {
-      val cached = poiCache[cacheKey]?.filter { it.type == visitType }
-      if (!cached.isNullOrEmpty()) {
-        Logger.d(TAG, "Cache hit for POIs (Type: $visitType) at locations: $cacheKey")
-        return Result.Success(cached)
-      }
+    val cached = poiDao.getPoisByLocationsAndType(locationIds, visitType)
+    if (cached.isNotEmpty() && !forceRefresh) {
+      Logger.d(TAG, "Room cache hit for POIs (Type: $visitType) at locations: $locationIds")
+      return Result.Success(cached.map { it.toDomain() })
     }
 
-    return safeApiCall(TAG, auth) { token ->
-      withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Fetching POIs for locationIds: $cacheKey, visitType: $visitType")
-
-        val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
-          header(HttpHeaders.Authorization, "Bearer $token")
-          parameter("locationIds", cacheKey)
-          parameter("visitType", visitType.name)
-        }
-
-        if (response.status.isSuccess()) {
-          val poisResponse = response.body<PoisResponse>()
-          if (poisResponse.success) {
-            val pois = poisResponse.data.map { dto ->
-              dto.toDomain()
-            }
-
-            // NOTE: We do not store the result in cache here because this fetch only 
-            // returns POIs for a specific visitType. We want the cache entry 
-            // to always be complete (containing all POIs for those locations).
-
-            Logger.d(
-              TAG,
-              "Fetched ${pois.size} POIs for locationIds: $cacheKey, visitType: $visitType"
-            )
-            pois
-          } else {
-            throw Exception("Unable to fetch POIs")
-          }
-        } else {
-          val error = try {
-            response.body<ApiErrorResponse>()
-          } catch (e: Exception) {
-            ApiErrorResponse(message = response.status.description)
-          }
-          Logger.e(TAG, "API Error: ${response.status} - $error")
-          throw ApiException(response.status.value, error, error.message)
-        }
-      }
-    }
+    refreshPoisForLocations(locationIds)
+    val freshPois = poiDao.getPoisByLocationsAndType(locationIds, visitType)
+    return Result.Success(freshPois.map { it.toDomain() })
   }
 
   override suspend fun getPoisByLocation(
     locationIds: List<String>,
     forceRefresh: Boolean,
   ): Result<List<PointOfInterest>> {
-    val cacheKey = locationIds.sorted().joinToString(",")
+    val cached = poiDao.getPoisByLocations(locationIds)
+    if (cached.isNotEmpty() && !forceRefresh) {
+      return Result.Success(cached.map { it.toDomain() })
+    }
 
-    // 1. Read from cache if available and not force refreshing
-    if (!forceRefresh) {
-      val cached = poiCache[cacheKey]
-      if (cached != null) {
-        Logger.d(TAG, "Cache hit for all POIs at locations: $cacheKey")
-        return Result.Success(cached)
+    refreshPoisForLocations(locationIds)
+    return Result.Success(poiDao.getPoisByLocations(locationIds).map { it.toDomain() })
+  }
+
+  override fun observePois(
+    locationIds: List<String>,
+    visitType: VisitType?,
+  ): Flow<List<PointOfInterest>> {
+    if (locationIds.isEmpty()) return flowOf(emptyList())
+    return if (visitType != null) {
+      poiDao.getPoisByLocationsAndTypeFlow(locationIds, visitType).map { entities ->
+        entities.map { it.toDomain() }
+      }
+    } else {
+      poiDao.getPoisByLocationsFlow(locationIds).map { entities ->
+        entities.map { it.toDomain() }
       }
     }
+  }
+
+  override suspend fun refreshPoisForLocations(locationIds: List<String>): Result<Unit> {
+    val payloadIds = locationIds.filter { it.isNotBlank() }.sorted().joinToString(",")
+    if (payloadIds.isBlank()) return Result.Success(Unit)
 
     return safeApiCall(TAG, auth) { token ->
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Fetching all POIs for locationIds: $cacheKey")
+        Logger.d(TAG, "Fetching POIs for locationIds: $payloadIds")
 
         val response = httpClient.get("${appConfig.apiUrl}/api/pois") {
           header(HttpHeaders.Authorization, "Bearer $token")
-          parameter("locationIds", cacheKey)
+          parameter("locationIds", payloadIds)
         }
 
         if (response.status.isSuccess()) {
           val poisResponse = response.body<PoisResponse>()
           if (poisResponse.success) {
-            val pois = poisResponse.data.map { dto ->
-              dto.toDomain()
-            }
-
-            // 2. Assured that this entry contains all POIs for the locations
-            poiCache[cacheKey] = pois
-
-            Logger.d(TAG, "Fetched and cached ${pois.size} POIs for locationIds: $cacheKey from network")
-            pois
+            val pois = poisResponse.data.map { dto -> dto.toDomain() }
+            poiDao.upsertPois(pois.map { it.toEntity() })
           } else {
             throw Exception("Unable to fetch POIs")
           }
@@ -468,10 +442,10 @@ class DailyReportRepositoryImpl(
   }
 
   override suspend fun getPoi(id: String): Result<PointOfInterest?> {
-    // Check cache first across all locations
-    poiCache.values.flatten().find { it.id == id }?.let {
-      Logger.d(TAG, "Cache hit for POI with id: $id")
-      return Result.Success(it)
+    val cached = poiDao.getPoiById(id)
+    if (cached != null) {
+      Logger.d(TAG, "Room cache hit for POI with id: $id")
+      return Result.Success(cached.toDomain())
     }
 
     return safeApiCall(TAG, auth) { token ->
@@ -486,15 +460,7 @@ class DailyReportRepositoryImpl(
           val poiResponse = response.body<PoiResponse>()
           if (poiResponse.success && poiResponse.data != null) {
             val poi = poiResponse.data.toDomain()
-
-            poiCache[poi.locationId]?.let { cachedList ->
-              poiCache[poi.locationId] = (cachedList + poi).distinctBy { it.id }
-              Logger.d(
-                TAG,
-                "Updated location cache for ${poi.locationId} with fetched POI: ${poi.id}"
-              )
-            }
-
+            poiDao.upsertPois(listOf(poi.toEntity()))
             poi
           } else {
             throw Exception("Unable to fetch POI")
@@ -528,10 +494,7 @@ class DailyReportRepositoryImpl(
         Logger.d(TAG, "Creating dailyReport via api for date: $thisDate")
 
         val request = BeginReportRequest(
-          date = thisDate,
-          dayType = dayType,
-          routeId = routeId,
-          travellingWithId = travellingWithId
+          date = thisDate, dayType = dayType, routeId = routeId, travellingWithId = travellingWithId
         )
 
         val response = httpClient.post("${appConfig.apiUrl}/api/reports/begin") {
@@ -577,8 +540,7 @@ class DailyReportRepositoryImpl(
 
       withContext(Dispatchers.IO) {
         Logger.d(
-          TAG,
-          "Creating visit via API for dailyReportId: $dailyReportId and date: $thisDate"
+          TAG, "Creating visit via API for dailyReportId: $dailyReportId and date: $thisDate"
         )
 
         val response = httpClient.post("${appConfig.apiUrl}/api/visits/create") {
@@ -596,6 +558,18 @@ class DailyReportRepositoryImpl(
             visitCountsCache.remove(dailyReportId)
             reportsWithVisitsLoaded.remove(dailyReportId)
             travelPlanRepository.invalidateMetricsCache()
+
+            // refresh POI
+            if (!visitCreateDto.newPoiName.isNullOrBlank()) {
+              val reportResult = getDailyReport(dailyReportId)
+              val report = (reportResult as? Result.Success)?.data
+              val route = report?.routeId?.let { routeDao.getRouteById(it) }
+              val locIds = listOfNotNull(route?.srcLocId, route?.destLocId).filter { it.isNotBlank() }.distinct()
+              if (locIds.isNotEmpty()) {
+                refreshPoisForLocations(locIds)
+              }
+            }
+
             visit
           } else {
             throw Exception("Unable to create visit")
@@ -621,8 +595,7 @@ class DailyReportRepositoryImpl(
         postgrest.from(TABLE_DAILY_REPORT).update(
           {
             DailyReportDto::locked setTo true
-          }
-        ) {
+          }) {
           filter {
             DailyReportDto::id eq reportId
           }

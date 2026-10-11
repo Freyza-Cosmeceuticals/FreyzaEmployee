@@ -2,75 +2,63 @@ package com.freyza.employee.data.repository
 
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.network.safeApiCall
-import com.freyza.employee.core.util.Logger
+import com.freyza.employee.data.local.dao.LocationDao
 import com.freyza.employee.data.mappers.toDomain
+import com.freyza.employee.data.mappers.toEntity
 import com.freyza.employee.data.network.dto.LocationDto
 import com.freyza.employee.domain.model.Location
 import com.freyza.employee.domain.repository.LocationRepository
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-class LocationRepositoryImpl(private val postgrest: Postgrest) : LocationRepository {
+class LocationRepositoryImpl(
+  private val postgrest: Postgrest,
+  private val locationDao: LocationDao,
+) : LocationRepository {
+
   companion object {
     const val TAG: String = "LocationRepo"
   }
 
   override fun clearCache() {
-    Logger.d(TAG, "Clearing location caches")
-    cachedLocations = null
-    cachedLocationsById.clear()
+    throw NotImplementedError()
   }
 
-  // Cache for the complete list of locations
-  private var cachedLocations: List<Location>? = null
-
-  // Cache for location by id
-  private var cachedLocationsById: MutableMap<String, Location?> = mutableMapOf()
+  override fun observeAllLocations(): Flow<List<Location>> {
+    return locationDao.getAllLocationsFlow().map { entities ->
+      entities.map { it.toDomain() }
+    }
+  }
 
   override suspend fun getLocation(locationId: String, forceRefresh: Boolean): Result<Location?> {
-    if (!forceRefresh && cachedLocationsById[locationId] != null) {
-      Logger.d(TAG, "Returning location from cache")
-      return Result.Success(cachedLocationsById[locationId])
-    }
-
-    return safeApiCall(TAG) {
-      withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying location with ID: $locationId from network")
-
-        val locationDto = postgrest.from("location").select {
-          filter {
-            LocationDto::id eq locationId
-          }
-        }.decodeSingleOrNull<LocationDto>()
-
-        val location = locationDto?.toDomain()
-        if (location != null) {
-          cachedLocationsById[locationId] = location
-        }
-
-        location
-      }
+    val cached = locationDao.getLocationById(locationId)
+    return if (cached != null && !forceRefresh) {
+      Result.Success(cached.toDomain())
+    } else {
+      refreshLocations()
+      Result.Success(locationDao.getLocationById(locationId)?.toDomain())
     }
   }
 
   override suspend fun getAllLocations(forceRefresh: Boolean): Result<List<Location>> {
-    if (!forceRefresh && cachedLocations != null) {
-      Logger.d(TAG, "Returning locations from cache")
-      return Result.Success(cachedLocations!!)
+    val cached = locationDao.getAllLocations()
+    return if (cached.isNotEmpty() && !forceRefresh) {
+      Result.Success(cached.map { it.toDomain() })
+    } else {
+      refreshLocations()
+      Result.Success(locationDao.getAllLocations().map { it.toDomain() })
     }
+  }
 
+  override suspend fun refreshLocations(): Result<Unit> {
     return safeApiCall(TAG) {
       withContext(Dispatchers.IO) {
-        Logger.d(TAG, "Querying all locations from network")
-
         val locationDtos = postgrest.from("location").select().decodeList<LocationDto>()
-        val locations = locationDtos.map { it.toDomain() }
-
-        cachedLocations = locations
-        cachedLocations?.forEach { cachedLocationsById[it.id] = it }
-
-        locations
+        val entities = locationDtos.map { it.toDomain().toEntity() }
+        locationDao.upsertLocations(entities)
       }
     }
   }

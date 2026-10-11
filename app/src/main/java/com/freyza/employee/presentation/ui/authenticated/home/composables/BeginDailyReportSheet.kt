@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.freyza.employee.R
@@ -82,9 +83,27 @@ fun BeginDailyReportSheet(
         .padding(dimensionResource(R.dimen.screen_padding).times(2)),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
-      Text("No travel plan assigned for today", style = MaterialTheme.typography.bodyLarge)
+      Icon(
+        painter = painterResource(R.drawable.pending_actions_24px),
+        contentDescription = null,
+        modifier = Modifier.size(120.dp),
+        tint = MaterialTheme.colorScheme.outlineVariant
+      )
+      Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing)))
+      Text(
+        text = "No Travel Plan assigned for today",
+        style = MaterialTheme.typography.titleMedium,
+        textAlign = TextAlign.Center,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+      )
+      Text(
+        text = "Try refreshing or ask admins to create one for you.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.outline,
+        textAlign = TextAlign.Center
+      )
 
-      Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(3)))
+      Spacer(modifier = Modifier.height(dimensionResource(R.dimen.default_spacing).times(4)))
 
       Row(
         horizontalArrangement = Arrangement.spacedBy(
@@ -202,8 +221,7 @@ fun BeginDailyReportSheet(
         TravellingWithSelector(
           employees = employees,
           selectedEmployee = selectedTravellingWith,
-          onEmployeeSelect = { selectedTravellingWith = it }
-        )
+          onEmployeeSelect = { selectedTravellingWith = it })
 
         SearchableDropdown(
           label = "Source Location",
@@ -214,8 +232,7 @@ fun BeginDailyReportSheet(
           onQueryChange = { sourceQuery = it },
           itemLabeler = { it.name },
           placeholder = "Search source...",
-          leadingIcon = { Icon(painterResource(R.drawable.location_on_24px), null) }
-        )
+          leadingIcon = { Icon(painterResource(R.drawable.location_on_24px), null) })
 
         SearchableDropdown(
           label = "Destination Location",
@@ -226,8 +243,7 @@ fun BeginDailyReportSheet(
           onQueryChange = { destinationQuery = it },
           itemLabeler = { it.name },
           placeholder = "Search destination...",
-          leadingIcon = { Icon(painterResource(R.drawable.location_on_24px), null) }
-        )
+          leadingIcon = { Icon(painterResource(R.drawable.location_on_24px), null) })
 
         AnimatedVisibility(visible = matchingRoute != null) {
           ElevatedCard(
@@ -305,14 +321,10 @@ fun BeginDailyReportSheet(
       onConfirm = {
         showConfirmationDialog = false
         onDailyReportBegin(
-          selectedDayType,
-          selectedSource?.id,
-          selectedDestination?.id,
-          selectedTravellingWith?.id
+          selectedDayType, selectedSource?.id, selectedDestination?.id, selectedTravellingWith?.id
         )
       },
-      onDismiss = { showConfirmationDialog = false }
-    )
+      onDismiss = { showConfirmationDialog = false })
   }
 }
 
@@ -399,8 +411,7 @@ private fun ConfirmAlertDialog(
       TextButton(onClick = onDismiss) {
         Text("Cancel")
       }
-    }
-  )
+    })
 }
 
 
@@ -416,8 +427,7 @@ private fun SheetPreviewWork() {
       todayTravelPlanEntry = dummyTravelPlanEntryWork(),
       onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
-      onExit = {}
-    )
+      onExit = {})
   }
 }
 
@@ -433,8 +443,7 @@ private fun SheetPreviewHoliday() {
       todayTravelPlanEntry = dummyTravelPlanEntryHoliday(),
       onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
-      onExit = {}
-    )
+      onExit = {})
   }
 }
 
@@ -451,8 +460,7 @@ private fun SheetPreviewLeave() {
       todayTravelPlanEntry = dummyTravelPlanEntryLeave(),
       onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
-      onExit = {}
-    )
+      onExit = {})
   }
 }
 
@@ -468,8 +476,7 @@ private fun SheetPreviewNoPlan() {
       todayTravelPlanEntry = null,
       onDailyReportBegin = { _, _, _, _ -> },
       onRetry = {},
-      onExit = {}
-    )
+      onExit = {})
   }
 }
 
@@ -484,8 +491,7 @@ private fun ConfirmAlertDialogWorkPreview() {
       selectedTravellingWith = dummyUserEmployee(),
       matchingRoute = dummyRouteWithLocation(),
       onConfirm = {},
-      onDismiss = {}
-    )
+      onDismiss = {})
   }
 }
 
@@ -500,8 +506,7 @@ private fun ConfirmAlertDialogLeavePreview() {
       selectedTravellingWith = null,
       matchingRoute = null,
       onConfirm = {},
-      onDismiss = {}
-    )
+      onDismiss = {})
   }
 }
 
@@ -516,7 +521,6 @@ private fun ConfirmAlertDialogHolidayPreview() {
       selectedTravellingWith = null,
       matchingRoute = null,
       onConfirm = {},
-      onDismiss = {}
-    )
+      onDismiss = {})
   }
 }

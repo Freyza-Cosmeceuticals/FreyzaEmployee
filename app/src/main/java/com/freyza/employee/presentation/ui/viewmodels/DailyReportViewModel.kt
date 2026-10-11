@@ -6,6 +6,8 @@ import com.freyza.employee.core.Constants
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.sync.SyncManager
+import com.freyza.employee.core.sync.SyncStep
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.repository.RouteRepository
@@ -15,6 +17,8 @@ import com.freyza.employee.domain.usecase.dailyreport.GetRecentDailyReportsUseCa
 import com.freyza.employee.presentation.ui.state.DailyReportUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -26,19 +30,30 @@ class DailyReportViewModel(
   private val routeRepository: RouteRepository,
   private val userRepository: UserRepository,
   private val serverTime: ServerTime,
+  private val syncManager: SyncManager,
 ) : ViewModel() {
 
   companion object {
     const val TAG = "DailyReportViewModel"
   }
 
-  private val _uiState = MutableStateFlow(DailyReportUiState(today = serverTime.nowLocalDateTime()))
-  val uiState = _uiState.onStart {
+  private val _transientState = MutableStateFlow(DailyReportUiState(today = serverTime.nowLocalDateTime()))
+
+  val uiState: StateFlow<DailyReportUiState> = combine(
+    _transientState,
+    routeRepository.observeAllRoutesWithLocation(),
+    userRepository.observeAllEmployees(),
+  ) { state, routes, employees ->
+    state.copy(
+      routes = routes,
+      employees = employees,
+    )
+  }.onStart {
     refresh()
   }.stateIn(
-    viewModelScope,
-    SharingStarted.WhileSubscribed(5_000),
-    DailyReportUiState(today = serverTime.nowLocalDateTime())
+    scope = viewModelScope,
+    started = SharingStarted.WhileSubscribed(5_000),
+    initialValue = DailyReportUiState(today = serverTime.nowLocalDateTime())
   )
 
   val currentUser = sessionManager.currentEmployee
@@ -53,7 +68,7 @@ class DailyReportViewModel(
       serverTime.isSynced.collect { synced ->
         if (synced) {
           val nowTime = serverTime.nowLocalDateTime()
-          _uiState.update { it.copy(today = nowTime) }
+          _transientState.update { it.copy(today = nowTime) }
         }
       }
     }
@@ -61,12 +76,11 @@ class DailyReportViewModel(
 
   fun refresh(forceRefresh: Boolean = false) {
     Logger.d(TAG, "Refreshing data, forceRefresh:$forceRefresh")
+    syncManager.performSync(targets = setOf(SyncStep.POIS), forceRefresh = forceRefresh)
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {
       loadAllDailyReports(employeeId, forceRefresh)
-      loadAllRoutes(forceRefresh)
-      loadHqEmployees(forceRefresh)
     }
   }
 
@@ -81,7 +95,7 @@ class DailyReportViewModel(
       return
     }
 
-    _uiState.update {
+    _transientState.update {
       it.copy(
         dailyReports = UIState.Loading(
           it.dailyReports.data, "Loading Daily Reports"
@@ -101,7 +115,7 @@ class DailyReportViewModel(
 
       when (result) {
         is Result.Success -> {
-          _uiState.update {
+          _transientState.update {
             it.copy(dailyReports = UIState.Ready(result.data))
           }
           Logger.i(
@@ -110,7 +124,7 @@ class DailyReportViewModel(
         }
 
         is Result.Error -> {
-          _uiState.update {
+          _transientState.update {
             it.copy(
               dailyReports = UIState.Error(message = "Unable to fetch daily reports")
             )
@@ -118,44 +132,6 @@ class DailyReportViewModel(
           Logger.e(TAG, "Cannot fetch daily reports: ${result.message}")
         }
 
-        else -> {}
-      }
-    }
-  }
-
-  private fun loadAllRoutes(forceRefresh: Boolean = false) {
-    Logger.d(TAG, "Fetching all routes")
-
-    viewModelScope.launch {
-      when (val result = routeRepository.getAllRoutesWithLocation(forceRefresh)) {
-        is Result.Success -> {
-          _uiState.update {
-            it.copy(routes = result.data)
-          }
-        }
-
-        is Result.Error -> {
-          Logger.e(TAG, "Cannot fetch all routes with location: ${result.message}")
-        }
-
-        else -> {}
-      }
-    }
-  }
-
-  private fun loadHqEmployees(forceRefresh: Boolean = false) {
-    val user = sessionManager.currentEmployee.value
-    val hqId = user?.hqId ?: return
-
-    viewModelScope.launch {
-      when (val result = userRepository.getAllEmployees(forceRefresh = forceRefresh)) {
-        is Result.Success -> {
-          _uiState.update {
-            it.copy(employees = result.data)
-          }
-        }
-
-        is Result.Error -> Logger.e(TAG, "Fetch employees failed: ${result.message}")
         else -> {}
       }
     }

@@ -6,6 +6,7 @@ plugins {
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.sentry.android.gradle)
+  alias(libs.plugins.ksp)
 }
 
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -241,10 +242,16 @@ dependencies {
 
   // fuzzy search
   implementation(libs.kt.fuzzy)
+
+  // Room DB
+  implementation(libs.androidx.room.runtime)
+  implementation(libs.androidx.room.ktx)
+  ksp(libs.androidx.room.compiler)
 }
 
 sentry {
   org.set("freyza-cosmeceuticals")
   projectName.set("employee-android")
-  includeSourceContext.set(false)
+  includeSourceContext.set(true)
+  includeProguardMapping.set(true)
 }
