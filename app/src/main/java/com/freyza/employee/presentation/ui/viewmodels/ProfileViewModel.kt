@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.sync.SyncGroup
 import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
@@ -114,8 +115,8 @@ class ProfileViewModel(
 
   fun forceResyncMasterData() {
     Logger.i(TAG, "User triggered force resync of master data")
-    syncManager.performSyncIfNeeded(forceRefresh = true)
-    snackbarManager.showSuccess("Syncing data in background...")
+    syncManager.performSync(targets = SyncGroup.ALL, forceRefresh = true)
+    snackbarManager.showSuccess("Syncing all data...")
   }
 
   fun triggerForceSync() {

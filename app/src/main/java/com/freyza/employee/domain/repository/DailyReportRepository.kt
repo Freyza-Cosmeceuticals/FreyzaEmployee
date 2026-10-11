@@ -8,6 +8,7 @@ import com.freyza.employee.domain.model.DayType
 import com.freyza.employee.domain.model.PointOfInterest
 import com.freyza.employee.domain.model.Visit
 import com.freyza.employee.domain.model.VisitType
+import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
 
 interface DailyReportRepository {
@@ -44,6 +45,11 @@ interface DailyReportRepository {
     locationIds: List<String>,
     forceRefresh: Boolean = false,
   ): Result<List<PointOfInterest>>
+
+  fun observePois(
+    locationIds: List<String>,
+    visitType: VisitType? = null,
+  ): Flow<List<PointOfInterest>>
 
   suspend fun refreshPoisForLocations(locationIds: List<String>): Result<Unit>
 

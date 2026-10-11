@@ -12,6 +12,7 @@ import com.freyza.employee.core.network.getNestedField
 import com.freyza.employee.core.network.getRootField
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.sync.SyncManager
+import com.freyza.employee.core.sync.SyncStep
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
@@ -28,14 +29,21 @@ import com.freyza.employee.presentation.ui.state.AddVisitUiState
 import com.freyza.employee.presentation.ui.state.ProductEntry
 import io.sentry.Breadcrumb
 import io.sentry.Sentry
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AddVisitViewModel(
   val visitType: VisitType,
   val reportId: String,
@@ -56,16 +64,38 @@ class AddVisitViewModel(
 
   val isEditMode = visitId != null
   private var submitJob: Job? = null
-  private var poisJob: Job? = null
 
-  private val _uiState = MutableStateFlow(
+  private val _transientState = MutableStateFlow(
     AddVisitUiState(
       today = serverTime.nowLocalDateTime(),
       visitType = visitType,
       creationState = UIState.Idle(true)
     )
   )
-  val uiState = _uiState.onStart {
+
+  private val availablePoisFlow = flow {
+    val reportResult = dailyReportRepository.getDailyReport(reportId)
+    emit((reportResult as? Result.Success)?.data?.routeId)
+  }.flatMapLatest { routeId ->
+    routeRepository.observeAllRoutesWithLocation().flatMapLatest { routes ->
+      val route = routes.find { it.id == routeId }
+      val locationIds = listOfNotNull(route?.srcLoc?.id, route?.destLoc?.id)
+        .filter { it.isNotBlank() }
+        .distinct()
+      if (locationIds.isNotEmpty()) {
+        dailyReportRepository.observePois(locationIds, visitType)
+      } else {
+        flowOf(emptyList())
+      }
+    }
+  }
+
+  val uiState: StateFlow<AddVisitUiState> = combine(
+    _transientState,
+    availablePoisFlow,
+  ) { state, pois ->
+    state.copy(availablePois = UIState.Ready(pois))
+  }.onStart {
     refresh()
   }.stateIn(
     viewModelScope,
@@ -80,8 +110,7 @@ class AddVisitViewModel(
   }
 
   fun refresh(forceRefresh: Boolean = false) {
-    syncManager.performSyncIfNeeded(forceRefresh)
-    loadAvailablePois(forceRefresh)
+    syncManager.performSync(targets = setOf(SyncStep.POIS), forceRefresh = forceRefresh)
 
     if (isEditMode) {
       loadVisit(forceRefresh)
@@ -90,45 +119,10 @@ class AddVisitViewModel(
     }
   }
 
-  private fun loadAvailablePois(forceRefresh: Boolean = false) {
-    if (poisJob?.isActive == true) {
-      Logger.d(TAG, "loadAvailablePois already in progress, skipping duplicate call")
-      return
-    }
-
-    _uiState.update { it.copy(availablePois = UIState.Loading()) }
-    poisJob = viewModelScope.launch {
-      val reportResult = dailyReportRepository.getDailyReport(reportId, forceRefresh = forceRefresh)
-      if (reportResult !is Result.Success) {
-        _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
-        return@launch
-      }
-
-      val routeId = reportResult.data?.routeId ?: run {
-        _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
-        return@launch
-      }
-
-      val routeResult = routeRepository.getRoute(routeId, forceRefresh = forceRefresh)
-      if (routeResult !is Result.Success || (routeResult.data == null)) {
-        _uiState.update { it.copy(availablePois = UIState.Ready(emptyList())) }
-        return@launch
-      }
-
-      val route = routeResult.data
-      val locationIds = listOf(route.srcLocId, route.destLocId).distinct()
-      val poisResult =
-        dailyReportRepository.getPois(locationIds, visitType, forceRefresh = forceRefresh)
-
-      val pois = (poisResult as? Result.Success)?.data ?: emptyList()
-      _uiState.update { it.copy(availablePois = UIState.Ready(pois)) }
-    }
-  }
-
   private fun loadVisit(forceRefresh: Boolean = false) {
     if (visitId == null) return
 
-    _uiState.update {
+    _transientState.update {
       it.copy(creationState = UIState.Loading(null, message = "Loading visit details"))
     }
 
@@ -137,20 +131,20 @@ class AddVisitViewModel(
         is Result.Success -> {
           val visit = result.data
           if (visit != null) {
-            _uiState.update {
+            _transientState.update {
               it.copy(
                 form = visit.toFormState(), creationState = UIState.Idle(true)
               )
             }
           } else {
-            _uiState.update {
+            _transientState.update {
               it.copy(creationState = UIState.Error("Visit not found", true))
             }
           }
         }
 
         is Result.Error -> {
-          _uiState.update {
+          _transientState.update {
             it.copy(creationState = UIState.Error(result.message, true))
           }
         }
@@ -168,22 +162,22 @@ class AddVisitViewModel(
   }
 
   fun updateName(name: String) {
-    _uiState.update { state ->
-      val pois = state.availablePois.data ?: emptyList()
-      val matchedPoi = pois.find {
-        it.name.trim().equals(name.trim(), ignoreCase = true)
-      }
-      if (matchedPoi == null && name.isNotBlank()) {
-        Sentry.addBreadcrumb(Breadcrumb().apply {
-          category = "ui.action"
-          message = "Entered custom POI name"
-        })
-      } else if (matchedPoi != null) {
-        Sentry.addBreadcrumb(Breadcrumb().apply {
-          category = "ui.action"
-          message = "Selected POI ID: ${matchedPoi.id}"
-        })
-      }
+    val pois = uiState.value.availablePois.data ?: emptyList()
+    val matchedPoi = pois.find {
+      it.name.trim().equals(name.trim(), ignoreCase = true)
+    }
+    if (matchedPoi == null && name.isNotBlank()) {
+      Sentry.addBreadcrumb(Breadcrumb().apply {
+        category = "ui.action"
+        message = "Entered custom POI name"
+      })
+    } else if (matchedPoi != null) {
+      Sentry.addBreadcrumb(Breadcrumb().apply {
+        category = "ui.action"
+        message = "Selected POI ID: ${matchedPoi.id}"
+      })
+    }
+    _transientState.update { state ->
       state.copy(
         form = state.form.copy(
           name = state.form.name.copy(value = name, error = null), poiId = matchedPoi?.id
@@ -197,7 +191,7 @@ class AddVisitViewModel(
       category = "ui.action"
       message = if (poi != null) "Selected POI ID: ${poi.id}" else "Cleared POI selection"
     })
-    _uiState.update { state ->
+    _transientState.update { state ->
       state.copy(
         form = state.form.copy(
           name = if (poi != null) state.form.name.copy(
@@ -211,19 +205,19 @@ class AddVisitViewModel(
   }
 
   fun updateNotes(notes: String) {
-    _uiState.update {
+    _transientState.update {
       it.copy(form = it.form.copy(notes = it.form.notes.copy(value = notes, error = null)))
     }
   }
 
   fun updateSamplesGiven(samples: List<String>) {
-    _uiState.update {
+    _transientState.update {
       it.copy(form = it.form.copy(samplesGiven = samples, samplesError = null))
     }
   }
 
   fun updateOrderTaken(orderTaken: Boolean) {
-    _uiState.update { state ->
+    _transientState.update { state ->
       var newForm = state.form.copy(orderTaken = orderTaken)
       if (visitType == VisitType.DOCTOR && orderTaken && newForm.productEntries.isEmpty()) {
         newForm = newForm.copy(productEntries = listOf(ProductEntry()))
@@ -235,7 +229,7 @@ class AddVisitViewModel(
   }
 
   fun addProductEntry() {
-    _uiState.update { state ->
+    _transientState.update { state ->
       if (state.form.productEntries.size < Constants.MAX_PRODUCT_ENTRIES) {
         state.copy(form = state.form.copy(productEntries = state.form.productEntries + ProductEntry()))
       } else state
@@ -243,21 +237,21 @@ class AddVisitViewModel(
   }
 
   fun removeProductEntry(index: Int) {
-    _uiState.update { state ->
+    _transientState.update { state ->
       val newList = state.form.productEntries.toMutableList().apply { removeAt(index) }
       state.copy(form = state.form.copy(productEntries = newList))
     }
   }
 
   fun updateProductEntry(index: Int, entry: ProductEntry) {
-    _uiState.update { state ->
+    _transientState.update { state ->
       val newList = state.form.productEntries.toMutableList().apply { set(index, entry) }
       state.copy(form = state.form.copy(productEntries = newList))
     }
   }
 
   fun updateOutstandingAmount(amount: String) {
-    _uiState.update {
+    _transientState.update {
       it.copy(
         form = it.form.copy(
           outstandingAmount = it.form.outstandingAmount.copy(
@@ -269,19 +263,19 @@ class AddVisitViewModel(
   }
 
   fun updateBillNo(billNo: String) {
-    _uiState.update {
+    _transientState.update {
       it.copy(form = it.form.copy(billNo = it.form.billNo.copy(value = billNo, error = null)))
     }
   }
 
   fun updatePaymentCollected(collected: Boolean) {
-    _uiState.update {
+    _transientState.update {
       it.copy(form = it.form.copy(paymentCollected = collected))
     }
   }
 
   fun updateAmountWithGST(amount: String) {
-    _uiState.update {
+    _transientState.update {
       it.copy(
         form = it.form.copy(
           amountWithGST = it.form.amountWithGST.copy(
@@ -293,7 +287,7 @@ class AddVisitViewModel(
   }
 
   fun updateAmountWithoutGST(amount: String) {
-    _uiState.update {
+    _transientState.update {
       it.copy(
         form = it.form.copy(
           amountWithoutGST = it.form.amountWithoutGST.copy(
@@ -305,13 +299,13 @@ class AddVisitViewModel(
   }
 
   fun updateStockChecked(checked: Boolean) {
-    _uiState.update {
+    _transientState.update {
       it.copy(form = it.form.copy(stockChecked = checked))
     }
   }
 
   private fun validateForm(): Boolean {
-    val form = _uiState.value.form
+    val form = _transientState.value.form
     var isValid = true
 
     val newName = if (form.name.value.isBlank()) {
@@ -350,8 +344,7 @@ class AddVisitViewModel(
         form.outstandingAmount.copy(error = "Invalid")
       } else form.outstandingAmount
 
-
-    _uiState.update {
+    _transientState.update {
       it.copy(
         form = form.copy(
           name = newName,
@@ -373,7 +366,7 @@ class AddVisitViewModel(
       setData("issues", error.data.toString())
     })
 
-    _uiState.update { state ->
+    _transientState.update { state ->
       var currentForm = state.form
       var unmappedErrorMessage: String? = null
 
@@ -441,10 +434,10 @@ class AddVisitViewModel(
   fun submitVisit() {
     Sentry.addBreadcrumb(Breadcrumb().apply {
       category = "ui.action"
-      message = "submitVisit called (visitType=${_uiState.value.visitType}, isEditMode=$isEditMode)"
+      message = "submitVisit called (visitType=${uiState.value.visitType}, isEditMode=$isEditMode)"
     })
 
-    if (_uiState.value.creationState is UIState.Loading || submitJob?.isActive == true) {
+    if (uiState.value.creationState is UIState.Loading || submitJob?.isActive == true) {
       Logger.w(TAG, "submitVisit already in progress, ignoring duplicate call")
       return
     }
@@ -453,13 +446,13 @@ class AddVisitViewModel(
       snackbarManager.showError("Please fix errors in the form")
       return
     }
-    val currentState = _uiState.value
+    val currentState = uiState.value
     val form = currentState.form
     val visitType = currentState.visitType
 
     // guard visitType
     if (visitType == null) {
-      _uiState.update {
+      _transientState.update {
         it.copy(creationState = UIState.Error("Invalid visit type selected", null))
       }
 
@@ -475,7 +468,7 @@ class AddVisitViewModel(
       return
     }
 
-    _uiState.update {
+    _transientState.update {
       it.copy(creationState = UIState.Loading(null, message = "Marking visit"))
     }
     Logger.d(TAG, "Submitting visit with data $form")
@@ -486,7 +479,7 @@ class AddVisitViewModel(
 
         when (val result = dailyReportRepository.updateVisit(visitId, updateDto)) {
           is Result.Success -> {
-            _uiState.update {
+            _transientState.update {
               it.copy(creationState = UIState.Ready(false))
             }
             snackbarManager.showSuccess("Visit updated successfully")
@@ -499,7 +492,7 @@ class AddVisitViewModel(
               handleApiError(apiError)
               snackbarManager.showError("Please correct errors in the form.")
             } else {
-              _uiState.update {
+              _transientState.update {
                 it.copy(
                   creationState = UIState.Error(
                     "Unable to update visit, please try again", true
@@ -540,7 +533,7 @@ class AddVisitViewModel(
 
         when (result) {
           is Result.Success -> {
-            _uiState.update {
+            _transientState.update {
               it.copy(creationState = UIState.Ready(false))
             }
             snackbarManager.showSuccess("Visit created successfully")
@@ -555,7 +548,7 @@ class AddVisitViewModel(
               handleApiError(apiError)
               snackbarManager.showError("Please correct errors in the form.")
             } else {
-              _uiState.update {
+              _transientState.update {
                 it.copy(
                   creationState = UIState.Error("Unable to mark visit, please try again", true)
                 )

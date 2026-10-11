@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.sync.SyncManager
+import com.freyza.employee.core.sync.SyncStep
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
@@ -42,10 +43,14 @@ class TravelPlanViewModel(
     MutableStateFlow(TravelPlanUiState(today = serverTime.nowLocalDateTime()))
 
   private val travelPlanFlow =
-    sessionManager.currentEmployee.filterNotNull().flatMapLatest { user ->
-      val today = serverTime.todayIn()
-      travelPlanRepository.observeCurrentTravelPlan(user.id, today)
-    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+    combine(
+      sessionManager.currentEmployee.filterNotNull(),
+      serverTime.isSynced
+    ) { user, _ -> user }
+      .flatMapLatest { user ->
+        val today = serverTime.todayIn()
+        travelPlanRepository.observeCurrentTravelPlan(user.id, today)
+      }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
   val uiState: StateFlow<TravelPlanUiState> = combine(
     _transientState,
@@ -85,7 +90,7 @@ class TravelPlanViewModel(
   }
 
   fun refresh(forceRefresh: Boolean = false) {
-    syncManager.performSyncIfNeeded(forceRefresh)
+    syncManager.performSync(targets = setOf(SyncStep.TRAVEL_PLAN), forceRefresh = forceRefresh)
   }
 
   fun loadSelectedPlanEntryRoute(tpEntryId: String) {

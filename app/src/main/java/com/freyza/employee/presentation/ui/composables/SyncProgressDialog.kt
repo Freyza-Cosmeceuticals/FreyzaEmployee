@@ -24,67 +24,71 @@ fun SyncProgressDialog(
 ) {
   when (syncState) {
     is SyncProgressState.Syncing -> {
-      AlertDialog(
-        properties = DialogProperties(
-          dismissOnBackPress = false,
-          dismissOnClickOutside = false
-        ),
-        onDismissRequest = { },
-        title = { Text(syncState.step.title ?: "Syncing Data") },
-        text = {
-          Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-          ) {
-            Text(
-              text = syncState.message,
-              style = MaterialTheme.typography.bodyMedium
-            )
-            LinearProgressIndicator(
-              progress = { syncState.progressFraction },
-              modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-              text = "Preparing offline data. Please keep the app open.",
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.secondary,
-              textAlign = TextAlign.Center
-            )
-          }
-        },
-        confirmButton = {}
-      )
+      if (syncState.showModalDialog) {
+        AlertDialog(
+          properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false
+          ),
+          onDismissRequest = { },
+          title = { Text("Syncing Data") },
+          text = {
+            Column(
+              verticalArrangement = Arrangement.spacedBy(12.dp),
+              horizontalAlignment = Alignment.CenterHorizontally,
+              modifier = Modifier.fillMaxWidth()
+            ) {
+              Text(
+                text = syncState.message,
+                style = MaterialTheme.typography.bodyMedium
+              )
+              LinearProgressIndicator(
+                progress = { syncState.progressFraction },
+                modifier = Modifier.fillMaxWidth(),
+              )
+              Text(
+                text = "Preparing offline data. Please keep the app open.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Center
+              )
+            }
+          },
+          confirmButton = {}
+        )
+      }
     }
 
     is SyncProgressState.Error -> {
-      AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-          Text(
-            text = "Sync Failed",
-            color = MaterialTheme.colorScheme.error
-          )
-        },
-        text = {
-          Text(
-            text = syncState.message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center
-          )
-        },
-        confirmButton = {
-          TextButton(onClick = onRetry) {
-            Text("Retry")
+      if (syncState.showModalDialog) {
+        AlertDialog(
+          onDismissRequest = onDismiss,
+          title = {
+            Text(
+              text = "Sync Failed",
+              color = MaterialTheme.colorScheme.error
+            )
+          },
+          text = {
+            Text(
+              text = syncState.message,
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.error,
+              textAlign = TextAlign.Center
+            )
+          },
+          confirmButton = {
+            TextButton(onClick = onRetry) {
+              Text("Retry")
+            }
+          },
+          dismissButton = {
+            TextButton(onClick = onDismiss) {
+              Text("Close")
+            }
           }
-        },
-        dismissButton = {
-          TextButton(onClick = onDismiss) {
-            Text("Close")
-          }
-        }
-      )
+        )
+      }
     }
 
     else -> {}

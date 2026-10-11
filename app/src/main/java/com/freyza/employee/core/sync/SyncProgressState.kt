@@ -10,6 +10,27 @@ enum class SyncStep(val title: String) {
   COMPLETED("Sync Completed")
 }
 
+object SyncGroup {
+  val ALL: Set<SyncStep> = setOf(
+    SyncStep.LOCATIONS,
+    SyncStep.ROUTES,
+    SyncStep.EMPLOYEES,
+    SyncStep.TRAVEL_PLAN,
+    SyncStep.POIS
+  )
+
+  val MASTER_DATA: Set<SyncStep> = setOf(
+    SyncStep.LOCATIONS,
+    SyncStep.ROUTES,
+    SyncStep.EMPLOYEES
+  )
+
+  val TRANSACTIONAL: Set<SyncStep> = setOf(
+    SyncStep.TRAVEL_PLAN,
+    SyncStep.POIS
+  )
+}
+
 sealed interface SyncProgressState {
   data object Idle : SyncProgressState
 
@@ -17,9 +38,13 @@ sealed interface SyncProgressState {
     val step: SyncStep,
     val message: String,
     val progressFraction: Float,
+    val showModalDialog: Boolean = false,
   ) : SyncProgressState
 
   data class Success(val message: String) : SyncProgressState
 
-  data class Error(val message: String) : SyncProgressState
+  data class Error(
+    val message: String,
+    val showModalDialog: Boolean = false,
+  ) : SyncProgressState
 }

@@ -8,6 +8,7 @@ import com.freyza.employee.core.network.safeApiCall
 import com.freyza.employee.core.util.DateFormatter
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.data.local.dao.PoiDao
+import com.freyza.employee.data.local.dao.RouteDao
 import com.freyza.employee.data.mappers.toDomain
 import com.freyza.employee.data.mappers.toEntity
 import com.freyza.employee.data.network.dto.BeginReportRequest
@@ -43,6 +44,9 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
@@ -73,6 +77,7 @@ class DailyReportRepositoryImpl(
   private val auth: Auth,
   private val travelPlanRepository: TravelPlanRepository,
   private val poiDao: PoiDao,
+  private val routeDao: RouteDao,
 ) : DailyReportRepository {
   // Cache for complete POI lists keyed by location ID
   private val poiCache = mutableMapOf<String, List<PointOfInterest>>()
@@ -386,6 +391,22 @@ class DailyReportRepositoryImpl(
     return Result.Success(poiDao.getPoisByLocations(locationIds).map { it.toDomain() })
   }
 
+  override fun observePois(
+    locationIds: List<String>,
+    visitType: VisitType?,
+  ): Flow<List<PointOfInterest>> {
+    if (locationIds.isEmpty()) return flowOf(emptyList())
+    return if (visitType != null) {
+      poiDao.getPoisByLocationsAndTypeFlow(locationIds, visitType).map { entities ->
+        entities.map { it.toDomain() }
+      }
+    } else {
+      poiDao.getPoisByLocationsFlow(locationIds).map { entities ->
+        entities.map { it.toDomain() }
+      }
+    }
+  }
+
   override suspend fun refreshPoisForLocations(locationIds: List<String>): Result<Unit> {
     val payloadIds = locationIds.filter { it.isNotBlank() }.sorted().joinToString(",")
     if (payloadIds.isBlank()) return Result.Success(Unit)
@@ -537,6 +558,18 @@ class DailyReportRepositoryImpl(
             visitCountsCache.remove(dailyReportId)
             reportsWithVisitsLoaded.remove(dailyReportId)
             travelPlanRepository.invalidateMetricsCache()
+
+            // refresh POI
+            if (!visitCreateDto.newPoiName.isNullOrBlank()) {
+              val reportResult = getDailyReport(dailyReportId)
+              val report = (reportResult as? Result.Success)?.data
+              val route = report?.routeId?.let { routeDao.getRouteById(it) }
+              val locIds = listOfNotNull(route?.srcLocId, route?.destLocId).filter { it.isNotBlank() }.distinct()
+              if (locIds.isNotEmpty()) {
+                refreshPoisForLocations(locIds)
+              }
+            }
+
             visit
           } else {
             throw Exception("Unable to create visit")

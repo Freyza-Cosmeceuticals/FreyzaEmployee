@@ -6,6 +6,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.sync.SyncManager
+import com.freyza.employee.core.sync.SyncStep
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.core.util.SnackbarManager
@@ -14,15 +15,19 @@ import com.freyza.employee.domain.repository.RouteRepository
 import com.freyza.employee.domain.repository.UserRepository
 import com.freyza.employee.domain.usecase.dailyreport.LockReportUseCase
 import com.freyza.employee.presentation.ui.state.ReportDetailUiState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ReportDetailViewModel(
   reportId: String,
   private val sessionManager: SessionManager,
@@ -45,14 +50,31 @@ class ReportDetailViewModel(
     )
   )
 
+  private val poisFlow = combine(
+    _transientState,
+    routeRepository.observeAllRoutesWithLocation()
+  ) { state, routes ->
+    val routeId = state.report.data?.routeId
+    routes.find { it.id == routeId }
+  }.flatMapLatest { route ->
+    val locationIds = listOfNotNull(route?.srcLoc?.id, route?.destLoc?.id).filter { it.isNotBlank() }.distinct()
+    if (locationIds.isNotEmpty()) {
+      dailyReportRepository.observePois(locationIds)
+    } else {
+      flowOf(emptyList())
+    }
+  }
+
   val uiState: StateFlow<ReportDetailUiState> = combine(
     _transientState,
     routeRepository.observeAllRoutesWithLocation(),
     userRepository.observeAllEmployees(),
-  ) { state, routes, employees ->
+    poisFlow,
+  ) { state, routes, employees, pois ->
     state.copy(
       routes = routes,
       employees = employees,
+      pois = pois,
     )
   }.onStart {
     refresh()
@@ -70,11 +92,11 @@ class ReportDetailViewModel(
 
   fun refresh(forceRefresh: Boolean = false) {
     Logger.d(TAG, "Refreshing data, forceRefresh:$forceRefresh")
-    syncManager.performSyncIfNeeded(forceRefresh)
+    syncManager.performSync(targets = setOf(SyncStep.POIS), forceRefresh = forceRefresh)
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {
-      loadDailyReport(reportId = _transientState.value.reportId, forceRefresh)
+      loadDailyReport(reportId = _transientState.value.reportId, forceRefresh = forceRefresh)
     }
   }
 
@@ -99,8 +121,18 @@ class ReportDetailViewModel(
             TAG, "Daily Report Fetched Successfully id:${result.data?.id}"
           )
 
-          // Trigger POI fetch as soon as we have the routeId/destLocId
-          result.data?.routeId?.let { loadRouteAndPois(it, forceRefresh) }
+          result.data?.routeId?.let { routeId ->
+            viewModelScope.launch {
+              val routeResult = routeRepository.getRoute(routeId, forceRefresh = forceRefresh)
+              val route = (routeResult as? Result.Success)?.data
+              if (route != null) {
+                val locationIds = listOfNotNull(route.srcLocId, route.destLocId).filter { it.isNotBlank() }.distinct()
+                if (locationIds.isNotEmpty()) {
+                  dailyReportRepository.getPoisByLocation(locationIds, forceRefresh = forceRefresh)
+                }
+              }
+            }
+          }
         }
 
         is Result.Error -> {
@@ -145,36 +177,6 @@ class ReportDetailViewModel(
           Logger.e(TAG, "Failed to lock report:$reportId")
         }
 
-        else -> {}
-      }
-    }
-  }
-
-  private fun loadRouteAndPois(routeId: String, forceRefresh: Boolean) {
-    viewModelScope.launch {
-      when (val result = routeRepository.getRoute(routeId, forceRefresh)) {
-        is Result.Success -> {
-          val route = result.data
-          if (route != null) {
-            val locationIds = listOfNotNull(route.srcLocId, route.destLocId).distinct()
-            loadPois(locationIds, forceRefresh)
-          }
-        }
-
-        is Result.Error -> Logger.e(TAG, "Failed to load route: ${result.message}")
-        else -> {}
-      }
-    }
-  }
-
-  private fun loadPois(locationIds: List<String>, forceRefresh: Boolean) {
-    viewModelScope.launch {
-      when (val result = dailyReportRepository.getPoisByLocation(locationIds, forceRefresh)) {
-        is Result.Success -> {
-          _transientState.update { it.copy(pois = result.data) }
-        }
-
-        is Result.Error -> Logger.e(TAG, "Failed to load POIs: ${result.message}")
         else -> {}
       }
     }

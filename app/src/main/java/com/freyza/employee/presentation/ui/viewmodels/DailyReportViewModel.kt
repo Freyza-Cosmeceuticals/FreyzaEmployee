@@ -7,6 +7,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.UIState
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.sync.SyncManager
+import com.freyza.employee.core.sync.SyncStep
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
 import com.freyza.employee.domain.repository.RouteRepository
@@ -75,7 +76,7 @@ class DailyReportViewModel(
 
   fun refresh(forceRefresh: Boolean = false) {
     Logger.d(TAG, "Refreshing data, forceRefresh:$forceRefresh")
-    syncManager.performSyncIfNeeded(forceRefresh)
+    syncManager.performSync(targets = setOf(SyncStep.POIS), forceRefresh = forceRefresh)
 
     val employeeId = sessionManager.currentEmployee.value?.id
     if (employeeId != null) {

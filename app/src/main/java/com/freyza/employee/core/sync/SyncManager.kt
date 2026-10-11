@@ -5,6 +5,7 @@ import com.freyza.employee.core.Result
 import com.freyza.employee.core.state.SessionManager
 import com.freyza.employee.core.util.Logger
 import com.freyza.employee.core.util.ServerTime
+import com.freyza.employee.core.util.SnackbarManager
 import com.freyza.employee.data.local.dao.AppMetaDao
 import com.freyza.employee.data.local.dao.LocationDao
 import com.freyza.employee.data.local.dao.PoiDao
@@ -47,6 +48,7 @@ class SyncManager(
   private val userDao: UserDao,
   private val travelPlanDao: TravelPlanDao,
   private val poiDao: PoiDao,
+  private val snackbarManager: SnackbarManager,
 ) {
 
   companion object {
@@ -82,13 +84,19 @@ class SyncManager(
     }
   }
 
-  fun performSyncIfNeeded(forceRefresh: Boolean = false) {
+  fun performSync(
+    targets: Set<SyncStep> = SyncGroup.ALL,
+    forceRefresh: Boolean = false,
+  ) {
     scope.launch {
       val user = sessionManager.currentEmployee.filterNotNull().first()
 
       syncMutex.withLock {
         val now = System.currentTimeMillis()
         val employeeId = user.id
+
+        val isInitialHydration = syncStateDao.getAllSyncStates().isEmpty()
+        val showModal = isInitialHydration || (forceRefresh && targets == SyncGroup.ALL)
 
         // check TTLs for time sync
         checkAppMetaTTLs(now, forceRefresh)
@@ -106,61 +114,64 @@ class SyncManager(
           travelPlanRepository.getCurrentTravelPlan(employeeId, forceRefresh = false)
         val currentPlan = (currentPlanResult as? Result.Success)?.data
 
-        val travelPlanNeverSynced = syncStateDao.getSyncState(KEY_TRAVEL_PLAN) == null
-        val travelPlanStale =
-          isDomainStale(
-            KEY_TRAVEL_PLAN,
-            now,
-            forceRefresh,
-            Constants.TTL_TRAVEL_PLAN_MS
-          ) || travelPlanNeverSynced
+        val currentReportResult = dailyReportRepository.getTodayDailyReport(
+          today = today, employeeId = employeeId, withVisits = false, forceRefresh = false
+        )
+        val currentReport = (currentReportResult as? Result.Success)?.data
 
-        val locationsStale = isDomainStale(
-          KEY_LOCATIONS,
-          now,
-          forceRefresh,
-          Constants.TTL_LOCATIONS_MS
-        ) || locationsEmpty
-        val routesStale =
-          isDomainStale(KEY_ROUTES, now, forceRefresh, Constants.TTL_ROUTES_MS) || routesEmpty
-        val employeesStale = isDomainStale(
-          KEY_EMPLOYEES,
-          now,
-          forceRefresh,
-          Constants.TTL_EMPLOYEES_MS
-        ) || employeesEmpty
+        val travelPlanNeverSynced = syncStateDao.getSyncState(KEY_TRAVEL_PLAN) == null
+
+        val locationsStale = SyncStep.LOCATIONS in targets && (isDomainStale(
+          KEY_LOCATIONS, now, forceRefresh, Constants.TTL_LOCATIONS_MS
+        ) || locationsEmpty)
+        val routesStale = SyncStep.ROUTES in targets && (isDomainStale(
+          KEY_ROUTES, now, forceRefresh, Constants.TTL_ROUTES_MS
+        ) || routesEmpty)
+        val employeesStale = SyncStep.EMPLOYEES in targets && (isDomainStale(
+          KEY_EMPLOYEES, now, forceRefresh, Constants.TTL_EMPLOYEES_MS
+        ) || employeesEmpty)
+        val travelPlanStale = SyncStep.TRAVEL_PLAN in targets && (isDomainStale(
+          KEY_TRAVEL_PLAN, now, forceRefresh, Constants.TTL_TRAVEL_PLAN_MS
+        ) || travelPlanNeverSynced)
 
         // collect target locations for POI sync (HQ + Today's plan entry route locations)
         val todayEntryResult = currentPlan?.let {
           travelPlanRepository.getTodayTravelPlanEntry(
-            it.id,
-            forceRefresh = false
+            it.id, forceRefresh = false
           )
         }
         val todayEntry = (todayEntryResult as? Result.Success)?.data
         val todayRoute = todayEntry?.routeId?.let {
           (routeRepository.getRoute(
-            it,
-            forceRefresh = false
+            it, forceRefresh = false
           ) as? Result.Success)?.data
+        }
+
+        val reportRoute = currentReport?.routeId?.let {
+          (routeRepository.getRoute(it, forceRefresh = false) as? Result.Success)?.data
         }
 
         val targetPoiLocIds = listOfNotNull(
           user.hqId,
           todayRoute?.srcLocId,
-          todayRoute?.destLocId
+          todayRoute?.destLocId,
+          reportRoute?.srcLocId,
+          reportRoute?.destLocId
         ).filter { it.isNotBlank() }.distinct()
 
-        val poisStale = targetPoiLocIds.any { locId ->
+        val poisStale = SyncStep.POIS in targets && targetPoiLocIds.any { locId ->
           isDomainStale("POIS_LOC_$locId", now, forceRefresh, Constants.TTL_POIS_MS)
         }
 
         if (!locationsStale && !routesStale && !employeesStale && !travelPlanStale && !poisStale) {
-          Logger.d(TAG, "All local data is fresh in Room. Skipping sync.")
+          Logger.d(TAG, "All local data for targets is fresh in Room. Skipping sync.")
           return@launch
         }
 
-        Logger.i(TAG, "Starting sync (forceRefresh=$forceRefresh)...")
+        Logger.i(
+          TAG,
+          "Starting sync (targets=$targets, forceRefresh=$forceRefresh, showModal=$showModal)..."
+        )
 
         // key to sync action
         val tasks = mutableListOf<Pair<SyncStep, suspend () -> Unit>>()
@@ -190,7 +201,8 @@ class SyncManager(
         _syncProgress.value = SyncProgressState.Syncing(
           step = SyncStep.INITIALIZING,
           message = "Preparing sync...",
-          progressFraction = 0.0f
+          progressFraction = 0.0f,
+          showModalDialog = showModal
         )
 
         try {
@@ -199,7 +211,8 @@ class SyncManager(
             _syncProgress.value = SyncProgressState.Syncing(
               step = step,
               message = step.title,
-              progressFraction = progress
+              progressFraction = progress,
+              showModalDialog = showModal
             )
             action()
             completedTasks++
@@ -208,15 +221,25 @@ class SyncManager(
           _syncProgress.value = SyncProgressState.Syncing(
             step = SyncStep.COMPLETED,
             message = "Sync completed",
-            progressFraction = 1.0f
+            progressFraction = 1.0f,
+            showModalDialog = showModal
           )
           _syncProgress.value = SyncProgressState.Success("Data synced successfully")
         } catch (e: Exception) {
           Logger.e(TAG, "Sync failed: ${e.message}", e)
-          _syncProgress.value = SyncProgressState.Error(e.message ?: "Failed to sync data")
+          _syncProgress.value = SyncProgressState.Error(
+            message = e.message ?: "Failed to sync data", showModalDialog = showModal
+          )
+          if (!showModal) {
+            snackbarManager.showError("Unable to refresh latest data")
+          }
         }
       }
     }
+  }
+
+  fun performSyncIfNeeded(forceRefresh: Boolean = false) {
+    performSync(targets = SyncGroup.ALL, forceRefresh = forceRefresh)
   }
 
   suspend fun nukeAndRebuildDatabase() {
@@ -230,7 +253,7 @@ class SyncManager(
       poiDao.clearAll()
       syncStateDao.clearAll()
     }
-    performSyncIfNeeded(forceRefresh = true)
+    performSync(targets = SyncGroup.ALL, forceRefresh = true)
   }
 
   fun resetProgressState() {
@@ -257,19 +280,13 @@ class SyncManager(
     if (result is Result.Success) {
       syncStateDao.upsertSyncState(
         SyncStateEntity(
-          key = key,
-          lastAttemptAt = now,
-          lastSuccessAt = now,
-          status = SyncStatus.SUCCESS
+          key = key, lastAttemptAt = now, lastSuccessAt = now, status = SyncStatus.SUCCESS
         )
       )
     } else if (result is Result.Error) {
       syncStateDao.upsertSyncState(
         SyncStateEntity(
-          key = key,
-          lastAttemptAt = now,
-          status = SyncStatus.FAILED,
-          errorMessage = result.message
+          key = key, lastAttemptAt = now, status = SyncStatus.FAILED, errorMessage = result.message
         )
       )
     }

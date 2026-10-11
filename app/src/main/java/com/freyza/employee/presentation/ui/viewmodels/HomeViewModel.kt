@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.freyza.employee.core.Result
 import com.freyza.employee.core.state.SessionManager
+import com.freyza.employee.core.sync.SyncGroup
 import com.freyza.employee.core.sync.SyncManager
 import com.freyza.employee.core.sync.SyncProgressState
 import com.freyza.employee.core.util.Logger
@@ -73,11 +74,15 @@ class HomeViewModel(
 
   // shared travelplan flow
   private val travelPlanFlow =
-    sessionManager.currentEmployee.filterNotNull().flatMapLatest { user ->
-      travelPlanRepository.observeCurrentTravelPlan(user.id, serverTime.todayIn())
-    }.distinctUntilChangedBy { it?.id }.onEach { plan ->
-      if (plan != null) loadTravelPlanMetrics(plan.id)
-    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+    combine(
+      sessionManager.currentEmployee.filterNotNull(),
+      serverTime.isSynced
+    ) { user, _ -> user }
+      .flatMapLatest { user ->
+        travelPlanRepository.observeCurrentTravelPlan(user.id, serverTime.todayIn())
+      }.distinctUntilChangedBy { it?.id }.onEach { plan ->
+        if (plan != null) loadTravelPlanMetrics(plan.id)
+      }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
   // derived entry flow
   private val travelPlanEntryFlow = travelPlanFlow.flatMapLatest { plan ->
@@ -103,26 +108,27 @@ class HomeViewModel(
   }
 
   // final reactive UI state
-  val uiState = combine(_uiState, roomDataFlow, syncManager.syncProgress) { state, room, syncProgress ->
-    val isSyncing = syncProgress is SyncProgressState.Syncing
+  val uiState =
+    combine(_uiState, roomDataFlow, syncManager.syncProgress) { state, room, syncProgress ->
+      val isSyncing = syncProgress is SyncProgressState.Syncing
 
-    state.copy(
-      isRefreshing = state.isRefreshing || isSyncing,
-      locations = room.locations,
-      routes = room.routes,
-      employees = room.employees,
-      currentTravelPlan = room.travelPlan,
-      todayTravelPlanEntry = room.travelPlanEntry,
-      todayPlanEntryRoute = room.routes.find { it.id == room.travelPlanEntry?.routeId },
-      todayReportRoute = room.routes.find { it.id == state.currentDailyReport?.routeId }
+      state.copy(
+        isRefreshing = state.isRefreshing || isSyncing,
+        locations = room.locations,
+        routes = room.routes,
+        employees = room.employees,
+        currentTravelPlan = room.travelPlan,
+        todayTravelPlanEntry = room.travelPlanEntry,
+        todayPlanEntryRoute = room.routes.find { it.id == room.travelPlanEntry?.routeId },
+        todayReportRoute = room.routes.find { it.id == state.currentDailyReport?.routeId }
+      )
+    }.onStart {
+      refresh()
+    }.stateIn(
+      scope = viewModelScope,
+      started = SharingStarted.WhileSubscribed(5_000),
+      initialValue = HomeScreenUiState(today = serverTime.nowLocalDateTime())
     )
-  }.onStart {
-    refresh()
-  }.stateIn(
-    scope = viewModelScope,
-    started = SharingStarted.WhileSubscribed(5_000),
-    initialValue = HomeScreenUiState(today = serverTime.nowLocalDateTime())
-  )
 
   val currentUser = sessionManager.currentEmployee
 
@@ -150,7 +156,7 @@ class HomeViewModel(
       return
     }
 
-    syncManager.performSyncIfNeeded(forceRefresh)
+    syncManager.performSync(targets = if (forceRefresh) SyncGroup.TRANSACTIONAL else SyncGroup.ALL, forceRefresh = forceRefresh)
 
     refreshJob = viewModelScope.launch {
       _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
