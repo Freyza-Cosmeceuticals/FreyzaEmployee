@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -28,6 +29,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,7 +38,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,6 +45,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.freyza.employee.core.SnackbarType
 import com.freyza.employee.core.network.NetworkMonitor
 import com.freyza.employee.core.showTypedSnackbar
 import com.freyza.employee.core.util.DateFormatter
@@ -58,6 +60,7 @@ import com.freyza.employee.presentation.ui.GPSGateway
 import com.freyza.employee.presentation.ui.composables.FreyzaBottomNavBar
 import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.OfflineBanner
@@ -83,6 +86,8 @@ fun FreyzaEmployeeApp(
   val isOnline by networkMonitor.isOnline.collectAsStateWithLifecycle(initialValue = true)
   val snackbarHostState = remember { SnackbarHostState() }
   val context = LocalContext.current
+  val coroutineScope = rememberCoroutineScope()
+  val activeJobs = remember { mutableListOf<Job>() }
 
   // load auth and setup snackbar consumer
   LaunchedEffect(Unit) {
@@ -93,16 +98,32 @@ fun FreyzaEmployeeApp(
     launch { appUpdateViewModel.checkForUpdate() }
 
     snackbarManager.messages.collect { message ->
-      val result = snackbarHostState.showTypedSnackbar(
-        message = message.message,
-        type = message.type,
-        actionLabel = message.actionLabel,
-        duration = message.duration,
-        withDismissAction = message.withDismissAction
-      )
-      if (result == SnackbarResult.ActionPerformed) {
-        message.onAction?.invoke()
+      val isError = message.type == SnackbarType.ERROR
+      if (isError) {
+        activeJobs.forEach { it.cancel() }
+        activeJobs.clear()
       }
+
+      var job: Job? = null
+      job = coroutineScope.launch {
+        try {
+          val result = snackbarHostState.showTypedSnackbar(
+            message = message.message,
+            type = message.type,
+            actionLabel = message.actionLabel,
+            duration = message.duration,
+            withDismissAction = message.withDismissAction,
+            dismissCurrent = isError
+          )
+          if (result == SnackbarResult.ActionPerformed) {
+            message.onAction?.invoke()
+          }
+        } finally {
+          job?.let { activeJobs.remove(it) }
+        }
+      }
+
+      activeJobs.add(job)
     }
   }
 
@@ -222,14 +243,15 @@ fun FreyzaEmployeeApp(
         }
       }
 
-      // TODO: Move this up to the navbarHost property of Scaffolds instead, for better placement
       Box(
         modifier = Modifier
-          .fillMaxSize()
-          .zIndex(10f), contentAlignment = Alignment.BottomCenter
+          .fillMaxSize(), contentAlignment = Alignment.TopCenter
       ) {
         FreyzaSnackbarHost(
-          hostState = snackbarHostState, modifier = Modifier.padding(bottom = 84.dp)
+          hostState = snackbarHostState,
+          modifier = Modifier
+            .statusBarsPadding()
+            .padding(top = 12.dp, start = 16.dp, end = 16.dp)
         )
       }
     }

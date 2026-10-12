@@ -2,8 +2,10 @@ package com.freyza.employee.core.util
 
 import androidx.compose.material3.SnackbarDuration
 import com.freyza.employee.core.SnackbarType
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 /**
  * Data class representing a snackbar message.
@@ -21,8 +23,12 @@ data class SnackbarMessage(
  * A centralized manager to handle snackbar messages across the app.
  */
 class SnackbarManager {
-  private val _messages = Channel<SnackbarMessage>(Channel.BUFFERED)
-  val messages = _messages.receiveAsFlow()
+  private val _messages = MutableSharedFlow<SnackbarMessage>(
+    replay = 0,
+    extraBufferCapacity = 2,
+    onBufferOverflow = BufferOverflow.DROP_OLDEST
+  )
+  val messages: SharedFlow<SnackbarMessage> = _messages.asSharedFlow()
 
   /**
    * Shows a snackbar message.
@@ -35,7 +41,7 @@ class SnackbarManager {
       withDismissAction: Boolean = false,
       onAction: (() -> Unit)? = null,
   ) {
-    _messages.trySend(
+    _messages.tryEmit(
       SnackbarMessage(
         message = message,
         type = type,
