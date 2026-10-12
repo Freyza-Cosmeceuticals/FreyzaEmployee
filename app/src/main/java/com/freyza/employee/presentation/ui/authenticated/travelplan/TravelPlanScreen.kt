@@ -42,10 +42,8 @@ import com.freyza.employee.domain.model.dummyTravelPlan
 import com.freyza.employee.domain.model.dummyUserEmployee
 import com.freyza.employee.presentation.ui.authenticated.travelplan.composables.DayBottomSheetContent
 import com.freyza.employee.presentation.ui.authenticated.travelplan.composables.TravelPlanCalendar
-import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.FreyzaTravelPlanAppBar
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
-import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
 import com.freyza.employee.presentation.ui.composables.Skeleton
 import com.freyza.employee.presentation.ui.state.TravelPlanUiState
 import com.freyza.employee.presentation.ui.theme.FreyzaEmployeeTheme
@@ -146,11 +144,6 @@ fun TravelPlanScreen(
                     loadSelectedPlanEntryRoute(selectedPlanEntry!!.id)
                   }
                 }
-              )
-
-              FreyzaSnackbarHost(
-                hostState = LocalSnackbarHostState.current, modifier = Modifier
-                  .padding(bottom = 16.dp)
               )
             }
           }

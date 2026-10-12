@@ -65,9 +65,8 @@ import com.freyza.employee.presentation.ui.authenticated.home.composables.TodayP
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanCardSkeleton
 import com.freyza.employee.presentation.ui.authenticated.home.composables.TravelPlanMetricsCard
 import com.freyza.employee.presentation.ui.composables.FreyzaHomeAppBar
-import com.freyza.employee.presentation.ui.composables.FreyzaSnackbarHost
 import com.freyza.employee.presentation.ui.composables.LoadingIndicator
-import com.freyza.employee.presentation.ui.composables.LocalSnackbarHostState
+import com.freyza.employee.presentation.ui.composables.SnackbarDebugger
 import com.freyza.employee.presentation.ui.state.HomeScreenUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenNoPlanUiState
 import com.freyza.employee.presentation.ui.state.dummyHomeScreenNoReportUiState
@@ -207,10 +206,6 @@ private fun HomeScreen(
             onExit = onExit
           )
         }
-
-        FreyzaSnackbarHost(
-          hostState = LocalSnackbarHostState.current, modifier = Modifier.padding(bottom = 16.dp)
-        )
       }
     }
 
@@ -380,6 +375,10 @@ private fun HomeScreen(
           item {
             Spacer(Modifier.height(30.dp))
             DebugUiState(uiState)
+          }
+
+          item("snackbar_debugger") {
+            SnackbarDebugger(modifier = Modifier.fillMaxWidth())
           }
 
           item("debug_keyboard") {
